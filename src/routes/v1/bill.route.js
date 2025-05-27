@@ -234,8 +234,8 @@ router
 
 router
   .route('/:id')
-  .get(auth('getBills'), validate(billValidation.getBill), billController.getBill)
-  .patch(auth('manageBills'), validate(billValidation.updateBill), billController.updateBill)
-  .delete(auth('manageBills'), validate(billValidation.deleteBill), billController.deleteBill);
+  .get(auth('getBills'), validate(billValidation.getBill), billController.getBills)
+  .patch(auth('manageBills'), validate(billValidation.updateBill), billController.updateBillById)
+  .delete(auth('manageBills'), validate(billValidation.deleteBill), billController.deleteBillById);
 
 module.exports = router;

@@ -1,0 +1,49 @@
+const Joi = require('joi');
+
+const createUtilityType = {
+  body: Joi.object().keys({
+    name: Joi.string().required().min(2).max(50),
+    description: Joi.string().max(200),
+  }),
+};
+
+const getUtilityTypes = {
+  query: Joi.object().keys({
+    name: Joi.string().min(2).max(50),
+    sortBy: Joi.string().pattern(/^[a-zA-Z]+:(asc|desc)$/),
+    limit: Joi.number().integer().min(1).default(10),
+    page: Joi.number().integer().min(1).default(1),
+  }),
+};
+
+const getUtilityType = {
+  params: Joi.object().keys({
+    id: Joi.number().integer().required().min(1),
+  }),
+};
+
+const updateUtilityType = {
+  params: Joi.object().keys({
+    id: Joi.number().integer().required().min(1),
+  }),
+  body: Joi.object()
+    .keys({
+      name: Joi.string().min(2).max(50),
+      description: Joi.string().max(200),
+    })
+    .min(1),
+};
+
+const deleteUtilityType = {
+  params: Joi.object().keys({
+    id: Joi.number().integer().required().min(1),
+  }),
+};
+
+module.exports = {
+  createUtilityType,
+  getUtilityTypes,
+  getUtilityType,
+  updateUtilityType,
+  deleteUtilityType,
+};

@@ -236,8 +236,8 @@ router
 
 router
   .route('/:id')
-  .get(auth('getMeters'), validate(meterValidation.getMeter), meterController.getMeter)
-  .patch(auth('manageMeters'), validate(meterValidation.updateMeter), meterController.updateMeter)
-  .delete(auth('manageMeters'), validate(meterValidation.deleteMeter), meterController.deleteMeter);
+  .get(auth('getMeters'), validate(meterValidation.getMeter), meterController.getMeters)
+  .patch(auth('manageMeters'), validate(meterValidation.updateMeter), meterController.updateMeterById)
+  .delete(auth('manageMeters'), validate(meterValidation.deleteMeter), meterController.deleteMeterById);
 
 module.exports = router;

@@ -1,53 +1,25 @@
 const express = require('express');
-const catchAsync = require('../../utils/catchAsync');
-const { adminService } = require('../../services');
 const auth = require('../../middlewares/auth');
-const restrictTo = require('../../middlewares/restrictTo');
+const validate = require('../../middlewares/validate');
+const adminValidation = require('../../validations/auth.validation');
+const adminController = require('../../controllers/admin.controller');
 
 const router = express.Router();
 
 /**
  * @swagger
- * /v1/admin/users:
- *   get:
- *     summary: Get all users (admin view)
- *     tags: [Admin]
- *     description: Retrieves a detailed list of all users for administrative purposes.
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: query
- *         name: role
- *         schema:
- *           type: string
- *         description: Filter by user role (e.g., "tenant")
- *     responses:
- *       200:
- *         description: List of users retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/User'
- *       401:
- *         description: Unauthorized - Missing or invalid token
- *       403:
- *         description: Forbidden - Insufficient permissions
+ * tags:
+ *   name: Admins
+ *   description: Admin user management
  */
-router.get('/users', auth(), restrictTo('admin'), catchAsync(async (req, res) => {
-  const { role } = req.query;
-  const users = await adminService.getAllUsers({ role });
-  res.send(users);
-}));
 
 /**
  * @swagger
- * /v1/admin/settings:
- *   patch:
- *     summary: Update system settings
- *     tags: [Admin]
- *     description: Updates global system settings (e.g., payment thresholds).
+ * /admins:
+ *   post:
+ *     summary: Create a new admin user
+ *     description: Only super-admins can create new admin users.
+ *     tags: [Admins]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -56,29 +28,208 @@ router.get('/users', auth(), restrictTo('admin'), catchAsync(async (req, res) =>
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *               - role
  *             properties:
- *               paymentDueDays:
- *                 type: integer
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *                 minLength: 8
+ *               role:
+ *                 type: string
+ *                 enum: [admin, super-admin]
+ *             example:
+ *               email: admin@example.com
+ *               password: SecurePass123
+ *               role: admin
  *     responses:
- *       200:
- *         description: Settings updated successfully
+ *       "201":
+ *         description: Created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Admin'
+ *       "400":
+ *         $ref: '#/components/responses/BadRequest'
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
+ *
+ *   get:
+ *     summary: Get all admin users
+ *     description: Only super-admins can retrieve all admin users.
+ *     tags: [Admins]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: role
+ *         schema:
+ *           type: string
+ *           enum: [admin, super-admin]
+ *         description: Filter by admin role
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *         description: Sort by query in the form of field:desc/asc (ex. email:asc)
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *         default: 10
+ *         description: Maximum number of admins
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *         default: 1
+ *         description: Page number
+ *     responses:
+ *       "200":
+ *         description: OK
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 paymentDueDays:
+ *                 results:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Admin'
+ *                 page:
  *                   type: integer
- *       400:
- *         description: Invalid settings data
- *       401:
- *         description: Unauthorized - Missing or invalid token
- *       403:
- *         description: Forbidden - Insufficient permissions
+ *                   example: 1
+ *                 limit:
+ *                   type: integer
+ *                   example: 10
+ *                 totalPages:
+ *                   type: integer
+ *                   example: 1
+ *                 totalResults:
+ *                   type: integer
+ *                   example: 1
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
  */
-router.patch('/settings', auth(), restrictTo('admin'), catchAsync(async (req, res) => {
-  const settings = await adminService.updateSettings(req.body);
-  res.send(settings);
-}));
+
+/**
+ * @swagger
+ * /admins/{id}:
+ *   get:
+ *     summary: Get an admin user by ID
+ *     description: Only super-admins can retrieve an admin user.
+ *     tags: [Admins]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Admin ID
+ *     responses:
+ *       "200":
+ *         description: OK
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Admin'
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
+ *       "404":
+ *         $ref: '#/components/responses/NotFound'
+ *
+ *   patch:
+ *     summary: Update an admin user by ID
+ *     description: Only super-admins can update admin users.
+ *     tags: [Admins]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Admin ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               role:
+ *                 type: string
+ *                 enum: [admin, super-admin]
+ *             example:
+ *               email: admin.updated@example.com
+ *               role: super-admin
+ *     responses:
+ *       "200":
+ *         description: OK
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Admin'
+ *       "400":
+ *         $ref: '#/components/responses/BadRequest'
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
+ *       "404":
+ *         $ref: '#/components/responses/NotFound'
+ *
+ *   delete:
+ *     summary: Delete an admin user by ID
+ *     description: Only super-admins can delete admin users.
+ *     tags: [Admins]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Admin ID
+ *     responses:
+ *       "200":
+ *         description: No content
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
+ *       "404":
+ *         $ref: '#/components/responses/NotFound'
+ */
+
+router
+  .route('/')
+  .post(auth('manageAdmins'), validate(adminValidation.createAdmin), adminController.createAdmin)
+  .get(auth('manageAdmins'), validate(adminValidation.getAdmins), adminController.getAdmins);
+
+router
+  .route('/:id')
+  .get(auth('manageAdmins'), validate(adminValidation.getAdmin), adminController.getAdminById)
+  .patch(auth('manageAdmins'), validate(adminValidation.updateAdmin), adminController.updateAdminById)
+  .delete(auth('manageAdmins'), validate(adminValidation.deleteAdmin), adminController.deleteAdminById);
 
 module.exports = router;

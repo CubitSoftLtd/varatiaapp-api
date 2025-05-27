@@ -236,8 +236,8 @@ router
 
 router
   .route('/:id')
-  .get(auth('getSubMeters'), validate(subMeterValidation.getSubMeter), subMeterController.getSubMeter)
-  .patch(auth('manageSubMeters'), validate(subMeterValidation.updateSubMeter), subMeterController.updateSubMeter)
-  .delete(auth('manageSubMeters'), validate(subMeterValidation.deleteSubMeter), subMeterController.deleteSubMeter);
+  .get(auth('getSubMeters'), validate(subMeterValidation.getSubMeter), subMeterController.getSubMeters)
+  .patch(auth('manageSubMeters'), validate(subMeterValidation.updateSubMeter), subMeterController.updateSubMeterById)
+  .delete(auth('manageSubMeters'), validate(subMeterValidation.deleteSubMeter), subMeterController.deleteSubMeterById);
 
 module.exports = router;

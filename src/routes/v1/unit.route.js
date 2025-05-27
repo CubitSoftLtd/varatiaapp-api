@@ -234,8 +234,8 @@ router
 
 router
   .route('/:id')
-  .get(auth('getUnits'), validate(unitValidation.getUnit), unitController.getUnit)
-  .patch(auth('manageUnits'), validate(unitValidation.updateUnit), unitController.updateUnit)
-  .delete(auth('manageUnits'), validate(unitValidation.deleteUnit), unitController.deleteUnit);
+  .get(auth('getUnits'), validate(unitValidation.getUnit), unitController.getUnits)
+  .patch(auth('manageUnits'), validate(unitValidation.updateUnit), unitController.updateUnitById)
+  .delete(auth('manageUnits'), validate(unitValidation.deleteUnit), unitController.deleteUnitById);
 
 module.exports = router;

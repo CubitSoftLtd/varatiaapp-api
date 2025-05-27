@@ -255,8 +255,8 @@ router
 
 router
   .route('/:id')
-  .get(auth('getLeases'), validate(leaseValidation.getLease), leaseController.getLease)
-  .patch(auth('manageLeases'), validate(leaseValidation.updateLease), leaseController.updateLease)
-  .delete(auth('manageLeases'), validate(leaseValidation.deleteLease), leaseController.deleteLease);
+  .get(auth('getLeases'), validate(leaseValidation.getLease), leaseController.getLeases)
+  .patch(auth('manageLeases'), validate(leaseValidation.updateLease), leaseController.updateLeaseById)
+  .delete(auth('manageLeases'), validate(leaseValidation.deleteLease), leaseController.deleteLeaseById);
 
 module.exports = router;

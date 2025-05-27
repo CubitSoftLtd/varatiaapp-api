@@ -231,16 +231,16 @@ router
 
 router
   .route('/:id')
-  .get(auth('getUtilityTypes'), validate(utilityTypeValidation.getUtilityType), utilityTypeController.getUtilityType)
+  .get(auth('getUtilityTypes'), validate(utilityTypeValidation.getUtilityType), utilityTypeController.getUtilityTypes)
   .patch(
     auth('manageUtilityTypes'),
     validate(utilityTypeValidation.updateUtilityType),
-    utilityTypeController.updateUtilityType
+    utilityTypeController.updateUtilityTypeById
   )
   .delete(
     auth('manageUtilityTypes'),
     validate(utilityTypeValidation.deleteUtilityType),
-    utilityTypeController.deleteUtilityType
+    utilityTypeController.deleteUtilityTypeById
   );
 
 module.exports = router;

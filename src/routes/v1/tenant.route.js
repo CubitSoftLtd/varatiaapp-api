@@ -1,4 +1,3 @@
-// src/routes/v1/tenant.route.js
 const express = require('express');
 const auth = require('../../middlewares/auth');
 const validate = require('../../middlewares/validate');
@@ -234,8 +233,8 @@ router
 
 router
   .route('/:id')
-  .get(auth('getTenants'), validate(tenantValidation.getTenant), tenantController.getTenant)
-  .patch(auth('manageTenants'), validate(tenantValidation.updateTenant), tenantController.updateTenant)
-  .delete(auth('manageTenants'), validate(tenantValidation.deleteTenant), tenantController.deleteTenant);
+  .get(auth('getTenants'), validate(tenantValidation.getTenant), tenantController.getTenants)
+  .patch(auth('manageTenants'), validate(tenantValidation.updateTenant), tenantController.updateTenantById)
+  .delete(auth('manageTenants'), validate(tenantValidation.deleteTenant), tenantController.deleteTenantById);
 
 module.exports = router;

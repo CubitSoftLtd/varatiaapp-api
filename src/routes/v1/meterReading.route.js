@@ -233,16 +233,16 @@ router
 
 router
   .route('/:id')
-  .get(auth('getMeterReadings'), validate(meterReadingValidation.getMeterReading), meterReadingController.getMeterReading)
+  .get(auth('getMeterReadings'), validate(meterReadingValidation.getMeterReading), meterReadingController.getMeterReadings)
   .patch(
     auth('manageMeterReadings'),
     validate(meterReadingValidation.updateMeterReading),
-    meterReadingController.updateMeterReading
+    meterReadingController.updateMeterReadingById
   )
   .delete(
     auth('manageMeterReadings'),
     validate(meterReadingValidation.deleteMeterReading),
-    meterReadingController.deleteMeterReading
+    meterReadingController.deleteMeterReadingById
   );
 
 module.exports = router;

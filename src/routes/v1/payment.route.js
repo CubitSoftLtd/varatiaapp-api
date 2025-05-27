@@ -222,15 +222,19 @@ const router = express.Router();
  *         $ref: '#/components/responses/NotFound'
  */
 
+const { createPayment, getPaymentsByLease, getPaymentById, updatePaymentById, deletePaymentById } = paymentController;
+
+// Base route: /payments
 router
   .route('/')
-  .post(auth('managePayments'), validate(paymentValidation.createPayment), paymentController.createPayment)
-  .get(auth('getPayments'), validate(paymentValidation.getPayments), paymentController.getPayments);
+  .post(auth('managePayments'), validate(paymentValidation.createPayment), createPayment)
+  .get(auth('getPayments'), validate(paymentValidation.getPayments), getPaymentsByLease);
 
+// Item route: /payments/:id
 router
   .route('/:id')
-  .get(auth('getPayments'), validate(paymentValidation.getPayment), paymentController.getPayment)
-  .patch(auth('managePayments'), validate(paymentValidation.updatePayment), paymentController.updatePayment)
-  .delete(auth('managePayments'), validate(paymentValidation.deletePayment), paymentController.deletePayment);
+  .get(auth('getPayments'), validate(paymentValidation.getPayment), getPaymentById)
+  .patch(auth('managePayments'), validate(paymentValidation.updatePayment), updatePaymentById)
+  .delete(auth('managePayments'), validate(paymentValidation.deletePayment), deletePaymentById);
 
 module.exports = router;
