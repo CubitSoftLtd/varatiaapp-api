@@ -1,2 +1,18 @@
 module.exports.authValidation = require('./auth.validation');
 module.exports.userValidation = require('./user.validation');
+module.exports.accountValidation = require('./account.validation');
+module.exports.propertyValidation = require('./property.validation');
+module.exports.unitValidation = require('./unit.validation');
+module.exports.tenantValidation = require('./tenant.validation');
+module.exports.leaseValidation = require('./lease.validation');
+module.exports.billValidation = require('./bill.validation');
+module.exports.paymentValidation = require('./payment.validation');
+module.exports.utilityTypeValidation = require('./utilityType.validation');
+module.exports.meterValidation = require('./meter.validation');
+module.exports.subMeterValidation = require('./subMeter.validation');
+module.exports.meterReadingValidation = require('./meterReading.validation');
+module.exports.utilityChargeValidation = require('./utilityCharge.validation');
+module.exports.expenseCategoryValidation = require('./expenseCategory.validation');
+module.exports.expenseValidation = require('./expense.validation');
+module.exports.maintenanceRequestValidation = require('./maintenanceRequest.validation');
+

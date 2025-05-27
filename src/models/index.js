@@ -2,6 +2,7 @@ const { Sequelize } = require('sequelize');
 const config = require('../config/config');
 const User = require('./user.model');
 const Token = require('./token.model');
+const Account = require('./account.model');
 const Bill = require('./bill.model');
 const House = require('./house.model');
 const Meter = require('./meter.model');
@@ -30,6 +31,7 @@ const sequelize = new Sequelize(dbConfig.database, dbConfig.username, dbConfig.p
 const models = {
   User: User(sequelize),
   Token: Token(sequelize),
+  Account: Account(sequelize),
   Bill: Bill(sequelize),
   House: House(sequelize),
   Meter: Meter(sequelize),
