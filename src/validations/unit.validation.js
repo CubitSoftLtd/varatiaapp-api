@@ -43,7 +43,7 @@ const deleteUnit = {
   }),
 };
 
-module.exports = {
+module.exs = {
   createUnit,
   getUnits,
   getUnit,

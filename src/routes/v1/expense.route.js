@@ -1,5 +1,4 @@
 const express = require('express');
-const auth = require('../../middlewares/auth');
 const validate = require('../../middlewares/validate');
 const expenseValidation = require('../../validations/expense.validation');
 const expenseController = require('../../controllers/expense.controller');
@@ -237,13 +236,13 @@ const router = express.Router();
 
 router
   .route('/properties/:propertyId/expenses')
-  .post(auth('manageExpenses'), validate(expenseValidation.createExpense), expenseController.createExpense)
-  .get(auth('getExpenses'), validate(expenseValidation.getExpenses), expenseController.getExpenses);
+  .post(validate(expenseValidation.createExpense), expenseController.createExpense)
+  .get(validate(expenseValidation.getExpenses), expenseController.getExpenses);
 
 router
   .route('/expenses/:id')
-  .get(auth('getExpenses'), validate(expenseValidation.getExpense), expenseController.getExpenseById)
-  .patch(auth('manageExpenses'), validate(expenseValidation.updateExpense), expenseController.updateExpenseById)
-  .delete(auth('manageExpenses'), validate(expenseValidation.deleteExpense), expenseController.deleteExpenseById);
+  .get(validate(expenseValidation.getExpense), expenseController.getExpenseById)
+  .patch(validate(expenseValidation.updateExpense), expenseController.updateExpenseById)
+  .delete(validate(expenseValidation.deleteExpense), expenseController.deleteExpenseById);
 
-module.exports = router;
+module.exs = router;

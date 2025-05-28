@@ -6,7 +6,7 @@
 
 A boilerplate/starter project for quickly building RESTful APIs using Node.js, Express, and Mongoose.
 
-By running a single command, you will get a production-ready Node.js app installed and fully configured on your machine. The app comes with many built-in features, such as authentication using JWT, request validation, unit and integration tests, continuous integration, docker support, API documentation, pagination, etc. For more details, check the features list below.
+By running a single command, you will get a production-ready Node.js app installed and fully configured on your machine. The app comes with many built-in features, such as authentication using JWT, request validation, unit and integration tests, continuous integration, docker sup, API documentation, pagination, etc. For more details, check the features list below.
 
 ## Quick Start
 
@@ -67,7 +67,7 @@ cp .env.example .env
 ## Features
 
 - **NoSQL database**: [MongoDB](https://www.mongodb.com) object data modeling using [Mongoose](https://mongoosejs.com)
-- **Authentication and authorization**: using [passport](http://www.passportjs.org)
+- **Authentication and authorization**: using [pass](http://www.passjs.org)
 - **Validation**: request data validation using [Joi](https://github.com/hapijs/joi)
 - **Logging**: using [winston](https://github.com/winstonjs/winston) and [morgan](https://github.com/expressjs/morgan)
 - **Testing**: unit and integration tests using [Jest](https://jestjs.io)
@@ -81,7 +81,7 @@ cp .env.example .env
 - **CORS**: Cross-Origin Resource-Sharing enabled using [cors](https://github.com/expressjs/cors)
 - **Compression**: gzip compression with [compression](https://github.com/expressjs/compression)
 - **CI**: continuous integration with [Travis CI](https://travis-ci.org)
-- **Docker support**
+- **Docker sup**
 - **Code coverage**: using [coveralls](https://coveralls.io)
 - **Code quality**: with [Codacy](https://www.codacy.com)
 - **Git hooks**: with [husky](https://github.com/typicode/husky) and [lint-staged](https://github.com/okonet/lint-staged)
@@ -149,8 +149,8 @@ yarn prettier:fix
 The environment variables can be found and modified in the `.env` file. They come with these default values:
 
 ```bash
-# Port number
-PORT=3000
+#  number
+=3000
 
 # URL of the Mongo DB
 MONGODB_URL=mongodb://127.0.0.1:27017/node-boilerplate
@@ -166,10 +166,10 @@ JWT_REFRESH_EXPIRATION_DAYS=30
 # SMTP configuration options for the email service
 # For testing, you can use a fake SMTP service like Ethereal: https://ethereal.email/create
 SMTP_HOST=email-server
-SMTP_PORT=587
+SMTP_=587
 SMTP_USERNAME=email-server-username
 SMTP_PASSWORD=email-server-password
-EMAIL_FROM=support@yourapp.com
+EMAIL_FROM=sup@yourapp.com
 ```
 
 ## Project Structure
@@ -312,7 +312,7 @@ const userController = require('../../controllers/user.controller');
 
 const router = express.Router();
 
-router.post('/users', auth('manageUsers'), userController.createUser);
+router.post('/users',auth(), userController.createUser);
 ```
 
 In the example above, an authenticated user can access this route only if that user has the `manageUsers` permission.
@@ -323,9 +323,9 @@ If the user making the request does not have the required permissions to access 
 
 ## Logging
 
-Import the logger from `src/config/logger.js`. It is using the [Winston](https://github.com/winstonjs/winston) logging library.
+Im the logger from `src/config/logger.js`. It is using the [Winston](https://github.com/winstonjs/winston) logging library.
 
-Logging should be done according to the following severity levels (ascending order from most important to least important):
+Logging should be done according to the following severity levels (ascending order from most imant to least imant):
 
 ```javascript
 const logger = require('<path to src>/config/logger');
@@ -399,7 +399,7 @@ const options = {
 };
 ```
 
-The plugin also supports sorting by multiple criteria (separated by a comma): `sortBy: name:desc,role:asc`
+The plugin also sups sorting by multiple criteria (separated by a comma): `sortBy: name:desc,role:asc`
 
 The `paginate` method returns a Promise, which fulfills with an object having the following properties:
 

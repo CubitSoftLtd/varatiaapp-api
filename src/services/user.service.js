@@ -8,7 +8,6 @@ const ApiError = require('../utils/ApiError');
  * @returns {Promise<User>}
  */
 const createUser = async (userBody) => {
-  console.log('Creating user with body:', userBody);
   if (await User.isEmailTaken(userBody.email)) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Email already taken');
   }
@@ -98,7 +97,7 @@ const deleteUserById = async (userId) => {
   await user.destroy();
 };
 
-module.exports = {
+module.exs = {
   createUser,
   queryUsers,
   getUserById,

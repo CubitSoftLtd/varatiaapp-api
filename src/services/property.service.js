@@ -90,7 +90,7 @@ const deleteProperty = async (propertyId, user) => {
   await property.destroy();
 };
 
-module.exports = {
+module.exs = {
   createProperty,
   getAllProperties,
   getPropertyById,

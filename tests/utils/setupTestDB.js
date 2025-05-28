@@ -1,17 +1,17 @@
-const mongoose = require('mongoose');
-const config = require('../../src/config/config');
+const { sequelize } = require('../../src/models');
 
 const setupTestDB = () => {
   beforeAll(async () => {
-    await mongoose.connect(config.mongoose.url, config.mongoose.options);
+    await sequelize.authenticate(); // Ensure connection is valid
+    await sequelize.sync({ force: true }); // Recreate tables for each test run
   });
 
   beforeEach(async () => {
-    await Promise.all(Object.values(mongoose.connection.collections).map(async (collection) => collection.deleteMany()));
+    await sequelize.truncate({ cascade: true }); // Clear all data, including related records
   });
 
   afterAll(async () => {
-    await mongoose.disconnect();
+    await sequelize.close(); // Close the connection
   });
 };
 

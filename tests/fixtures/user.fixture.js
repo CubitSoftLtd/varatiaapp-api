@@ -1,41 +1,41 @@
-const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
-const faker = require('faker');
 const User = require('../../src/models/user.model');
 
 const password = 'password1';
-const salt = bcrypt.genSaltSync(8);
-const hashedPassword = bcrypt.hashSync(password, salt);
+const hashedPassword = bcrypt.hashSync(password, 8); // Synchronized hashing with user.model.js salt rounds
 
 const userOne = {
-  _id: mongoose.Types.ObjectId(),
-  name: faker.name.findName(),
-  email: faker.internet.email().toLowerCase(),
+  name: 'John Doe',
+  email: 'john.doe@example.com',
   password,
   role: 'user',
   isEmailVerified: false,
 };
 
 const userTwo = {
-  _id: mongoose.Types.ObjectId(),
-  name: faker.name.findName(),
-  email: faker.internet.email().toLowerCase(),
+  name: 'Jane Smith',
+  email: 'jane.smith@example.com',
   password,
   role: 'user',
   isEmailVerified: false,
 };
 
 const admin = {
-  _id: mongoose.Types.ObjectId(),
-  name: faker.name.findName(),
-  email: faker.internet.email().toLowerCase(),
+  name: 'Admin User',
+  email: 'admin@example.com',
   password,
   role: 'admin',
   isEmailVerified: false,
 };
 
 const insertUsers = async (users) => {
-  await User.insertMany(users.map((user) => ({ ...user, password: hashedPassword })));
+  // Hash passwords for each user before insertion
+  const usersWithHashedPasswords = await Promise.all(
+    users.map(async (user) => {
+      return { ...user, password: hashedPassword };
+    })
+  );
+  return User.bulkCreate(usersWithHashedPasswords);
 };
 
 module.exports = {

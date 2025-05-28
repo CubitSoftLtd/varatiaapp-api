@@ -106,7 +106,7 @@ const generateVerifyEmailToken = async (user) => {
   return verifyEmailToken;
 };
 
-module.exports = {
+module.exs = {
   generateToken,
   saveToken,
   verifyToken,

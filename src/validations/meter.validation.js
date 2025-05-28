@@ -45,7 +45,7 @@ const deleteMeter = {
   }),
 };
 
-module.exports = {
+module.exs = {
   createMeter,
   getMeters,
   getMeter,

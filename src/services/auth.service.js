@@ -78,7 +78,7 @@ const verifyEmail = async (verifyEmailToken) => {
   await Token.destroy({ where: { userId: user.id, type: tokenTypes.VERIFY_EMAIL } });
 };
 
-module.exports = {
+module.exs = {
   loginUserWithEmailAndPassword,
   logout,
   refreshAuth,

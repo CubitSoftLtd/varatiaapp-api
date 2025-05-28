@@ -82,7 +82,7 @@ const deleteTenant = async (tenantId) => {
   await tenant.destroy();
 };
 
-module.exports = {
+module.exs = {
   createTenant,
   getAllTenants,
   getTenantById,

@@ -1,5 +1,4 @@
 const express = require('express');
-const auth = require('../../middlewares/auth');
 const validate = require('../../middlewares/validate');
 const meterReadingValidation = require('../../validations/meterReading.validation');
 const meterReadingController = require('../../controllers/meterReading.controller');
@@ -224,25 +223,13 @@ const router = express.Router();
 
 router
   .route('/')
-  .post(
-    auth('manageMeterReadings'),
-    validate(meterReadingValidation.createMeterReading),
-    meterReadingController.createMeterReading
-  )
-  .get(auth('getMeterReadings'), validate(meterReadingValidation.getMeterReadings), meterReadingController.getMeterReadings);
+  .post(validate(meterReadingValidation.createMeterReading), meterReadingController.createMeterReading)
+  .get(validate(meterReadingValidation.getMeterReadings), meterReadingController.getMeterReadings);
 
 router
   .route('/:id')
-  .get(auth('getMeterReadings'), validate(meterReadingValidation.getMeterReading), meterReadingController.getMeterReadings)
-  .patch(
-    auth('manageMeterReadings'),
-    validate(meterReadingValidation.updateMeterReading),
-    meterReadingController.updateMeterReadingById
-  )
-  .delete(
-    auth('manageMeterReadings'),
-    validate(meterReadingValidation.deleteMeterReading),
-    meterReadingController.deleteMeterReadingById
-  );
+  .get(validate(meterReadingValidation.getMeterReading), meterReadingController.getMeterReadings)
+  .patch(validate(meterReadingValidation.updateMeterReading), meterReadingController.updateMeterReadingById)
+  .delete(validate(meterReadingValidation.deleteMeterReading), meterReadingController.deleteMeterReadingById);
 
 module.exports = router;

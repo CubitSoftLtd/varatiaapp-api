@@ -8,7 +8,10 @@ const createMeterReading = catchAsync(async (req, res) => {
 });
 
 const getMeterReadings = catchAsync(async (req, res) => {
-  const meterReadings = await meterReadingService.getMeterReadingsByMeterAndSubMeterId(req.params.meterId, req.params.subMeterId);
+  const meterReadings = await meterReadingService.getMeterReadingsByMeterAndSubMeterId(
+    req.params.meterId,
+    req.params.subMeterId
+  );
   res.send(meterReadings);
 });
 

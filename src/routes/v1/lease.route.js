@@ -1,5 +1,4 @@
 const express = require('express');
-const auth = require('../../middlewares/auth');
 const validate = require('../../middlewares/validate');
 const leaseValidation = require('../../validations/lease.validation');
 const leaseController = require('../../controllers/lease.controller');
@@ -250,13 +249,13 @@ const router = express.Router();
 
 router
   .route('/')
-  .post(auth('manageLeases'), validate(leaseValidation.createLease), leaseController.createLease)
-  .get(auth('getLeases'), validate(leaseValidation.getLeases), leaseController.getLeases);
+  .post(validate(leaseValidation.createLease), leaseController.createLease)
+  .get(validate(leaseValidation.getLeases), leaseController.getLeases);
 
 router
   .route('/:id')
-  .get(auth('getLeases'), validate(leaseValidation.getLease), leaseController.getLeases)
-  .patch(auth('manageLeases'), validate(leaseValidation.updateLease), leaseController.updateLeaseById)
-  .delete(auth('manageLeases'), validate(leaseValidation.deleteLease), leaseController.deleteLeaseById);
+  .get(validate(leaseValidation.getLease), leaseController.getLeases)
+  .patch(validate(leaseValidation.updateLease), leaseController.updateLeaseById)
+  .delete(validate(leaseValidation.deleteLease), leaseController.deleteLeaseById);
 
-module.exports = router;
+module.exs = router;

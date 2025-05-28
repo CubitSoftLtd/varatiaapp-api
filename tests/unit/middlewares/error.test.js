@@ -1,4 +1,3 @@
-const mongoose = require('mongoose');
 const httpStatus = require('http-status');
 const httpMocks = require('node-mocks-http');
 const { errorConverter, errorHandler } = require('../../../src/middlewares/error');
@@ -67,22 +66,6 @@ describe('Error middlewares', () => {
       );
     });
 
-    test('should convert a Mongoose error to ApiError with status 400 and preserve its message', () => {
-      const error = new mongoose.Error('Any mongoose error');
-      const next = jest.fn();
-
-      errorConverter(error, httpMocks.createRequest(), httpMocks.createResponse(), next);
-
-      expect(next).toHaveBeenCalledWith(expect.any(ApiError));
-      expect(next).toHaveBeenCalledWith(
-        expect.objectContaining({
-          statusCode: httpStatus.BAD_REQUEST,
-          message: error.message,
-          isOperational: false,
-        })
-      );
-    });
-
     test('should convert any other object to ApiError with status 500 and its message', () => {
       const error = {};
       const next = jest.fn();
@@ -101,8 +84,15 @@ describe('Error middlewares', () => {
   });
 
   describe('Error handler', () => {
+    let originalEnv;
+
     beforeEach(() => {
       jest.spyOn(logger, 'error').mockImplementation(() => {});
+      originalEnv = config.env; // Store original env value
+    });
+
+    afterEach(() => {
+      config.env = originalEnv; // Restore original env value
     });
 
     test('should send proper error response and put the error message in res.locals', () => {
@@ -127,7 +117,6 @@ describe('Error middlewares', () => {
       expect(sendSpy).toHaveBeenCalledWith(
         expect.objectContaining({ code: error.statusCode, message: error.message, stack: error.stack })
       );
-      config.env = process.env.NODE_ENV;
     });
 
     test('should send internal server error status and message if in production mode and error is not operational', () => {
@@ -145,7 +134,6 @@ describe('Error middlewares', () => {
         })
       );
       expect(res.locals.errorMessage).toBe(error.message);
-      config.env = process.env.NODE_ENV;
     });
 
     test('should preserve original error status and message if in production mode and error is operational', () => {
@@ -162,7 +150,6 @@ describe('Error middlewares', () => {
           message: error.message,
         })
       );
-      config.env = process.env.NODE_ENV;
     });
   });
 });

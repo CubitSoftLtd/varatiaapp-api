@@ -65,4 +65,4 @@ const paginate = (Model) => {
   };
 };
 
-module.exports = paginate;
+module.exs = paginate;

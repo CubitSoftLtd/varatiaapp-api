@@ -97,7 +97,7 @@ const deleteLease = async (leaseId) => {
   await lease.destroy();
 };
 
-module.exports = {
+module.exs = {
   createLease,
   getAllLeases,
   getLeaseById,

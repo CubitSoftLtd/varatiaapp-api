@@ -40,7 +40,7 @@ const deleteUtilityType = {
   }),
 };
 
-module.exports = {
+module.exs = {
   createUtilityType,
   getUtilityTypes,
   getUtilityType,

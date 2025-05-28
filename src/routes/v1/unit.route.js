@@ -1,5 +1,4 @@
 const express = require('express');
-const auth = require('../../middlewares/auth');
 const validate = require('../../middlewares/validate');
 const unitValidation = require('../../validations/unit.validation');
 const unitController = require('../../controllers/unit.controller');
@@ -229,13 +228,13 @@ const router = express.Router();
 
 router
   .route('/')
-  .post(auth('manageUnits'), validate(unitValidation.createUnit), unitController.createUnit)
-  .get(auth('getUnits'), validate(unitValidation.getUnits), unitController.getUnits);
+  .post(validate(unitValidation.createUnit), unitController.createUnit)
+  .get(validate(unitValidation.getUnits), unitController.getUnits);
 
 router
   .route('/:id')
-  .get(auth('getUnits'), validate(unitValidation.getUnit), unitController.getUnits)
-  .patch(auth('manageUnits'), validate(unitValidation.updateUnit), unitController.updateUnitById)
-  .delete(auth('manageUnits'), validate(unitValidation.deleteUnit), unitController.deleteUnitById);
+  .get(validate(unitValidation.getUnit), unitController.getUnits)
+  .patch(validate(unitValidation.updateUnit), unitController.updateUnitById)
+  .delete(validate(unitValidation.deleteUnit), unitController.deleteUnitById);
 
-module.exports = router;
+module.exs = router;

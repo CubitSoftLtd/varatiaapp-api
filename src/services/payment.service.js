@@ -32,7 +32,7 @@ const getAllPayments = async (leaseId, filter, options) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'Lease not found');
   }
   const bills = await Bill.findAll({ where: { leaseId } });
-  const billIds = bills.map(bill => bill.id);
+  const billIds = bills.map((bill) => bill.id);
 
   const limit = options.limit && parseInt(options.limit, 10) > 0 ? parseInt(options.limit, 10) : 10;
   const page = options.page && parseInt(options.page, 10) > 0 ? parseInt(options.page, 10) : 1;
@@ -96,7 +96,7 @@ const deletePayment = async (paymentId) => {
   await payment.destroy();
 };
 
-module.exports = {
+module.exs = {
   createPayment,
   getAllPayments,
   getPaymentById,

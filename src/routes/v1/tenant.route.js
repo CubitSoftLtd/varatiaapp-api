@@ -1,5 +1,4 @@
 const express = require('express');
-const auth = require('../../middlewares/auth');
 const validate = require('../../middlewares/validate');
 const tenantValidation = require('../../validations/tenant.validation');
 const tenantController = require('../../controllers/tenant.controller');
@@ -228,13 +227,13 @@ const router = express.Router();
 
 router
   .route('/')
-  .post(auth('manageTenants'), validate(tenantValidation.createTenant), tenantController.createTenant)
-  .get(auth('getTenants'), validate(tenantValidation.getTenants), tenantController.getTenants);
+  .post(validate(tenantValidation.createTenant), tenantController.createTenant)
+  .get(validate(tenantValidation.getTenants), tenantController.getTenants);
 
 router
   .route('/:id')
-  .get(auth('getTenants'), validate(tenantValidation.getTenant), tenantController.getTenants)
-  .patch(auth('manageTenants'), validate(tenantValidation.updateTenant), tenantController.updateTenantById)
-  .delete(auth('manageTenants'), validate(tenantValidation.deleteTenant), tenantController.deleteTenantById);
+  .get(validate(tenantValidation.getTenant), tenantController.getTenants)
+  .patch(validate(tenantValidation.updateTenant), tenantController.updateTenantById)
+  .delete(validate(tenantValidation.deleteTenant), tenantController.deleteTenantById);
 
-module.exports = router;
+module.exs = router;

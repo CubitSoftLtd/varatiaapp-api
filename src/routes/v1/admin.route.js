@@ -1,5 +1,4 @@
 const express = require('express');
-const auth = require('../../middlewares/auth');
 const validate = require('../../middlewares/validate');
 const adminValidation = require('../../validations/auth.validation');
 const adminController = require('../../controllers/admin.controller');
@@ -223,13 +222,13 @@ const router = express.Router();
 
 router
   .route('/')
-  .post(auth('manageAdmins'), validate(adminValidation.createAdmin), adminController.createAdmin)
-  .get(auth('manageAdmins'), validate(adminValidation.getAdmins), adminController.getAdmins);
+  .post(validate(adminValidation.createAdmin), adminController.createAdmin)
+  .get(validate(adminValidation.getAdmins), adminController.getAdmins);
 
 router
   .route('/:id')
-  .get(auth('manageAdmins'), validate(adminValidation.getAdmin), adminController.getAdminById)
-  .patch(auth('manageAdmins'), validate(adminValidation.updateAdmin), adminController.updateAdminById)
-  .delete(auth('manageAdmins'), validate(adminValidation.deleteAdmin), adminController.deleteAdminById);
+  .get(validate(adminValidation.getAdmin), adminController.getAdminById)
+  .patch(validate(adminValidation.updateAdmin), adminController.updateAdminById)
+  .delete(validate(adminValidation.deleteAdmin), adminController.deleteAdminById);
 
-module.exports = router;
+module.exs = router;

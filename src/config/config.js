@@ -46,8 +46,7 @@ module.exports = {
       password: envVars.DB_PASSWORD,
       host: envVars.DB_HOST,
       dialect: 'mysql',
-      timezone: '+06:00', // Dhaka, Bangladesh
-      logging: (msg) => console.log(`[DB] ${msg}`),
+      timezone: '+06:00',
       pool: {
         max: 5,
         min: 0,

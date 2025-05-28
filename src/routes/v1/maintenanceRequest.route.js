@@ -1,5 +1,4 @@
 const express = require('express');
-const auth = require('../../middlewares/auth');
 const validate = require('../../middlewares/validate');
 const maintenanceRequestValidation = require('../../validations/maintenanceRequest.validation');
 const maintenanceRequestController = require('../../controllers/maintenanceRequest.controller');
@@ -228,32 +227,21 @@ const router = express.Router();
 router
   .route('/units/:unitId/maintenance-requests')
   .post(
-    auth('manageMaintenanceRequests'),
     validate(maintenanceRequestValidation.createMaintenanceRequest),
     maintenanceRequestController.createMaintenanceRequest
   )
-  .get(
-    auth('getMaintenanceRequests'),
-    validate(maintenanceRequestValidation.getMaintenanceRequests),
-    maintenanceRequestController.getMaintenanceRequests
-  );
+  .get(validate(maintenanceRequestValidation.getMaintenanceRequests), maintenanceRequestController.getMaintenanceRequests);
 
 router
   .route('/maintenance-requests/:id')
-  .get(
-    auth('getMaintenanceRequests'),
-    validate(maintenanceRequestValidation.getMaintenanceRequest),
-    maintenanceRequestController.getMaintenanceRequestById
-  )
+  .get(validate(maintenanceRequestValidation.getMaintenanceRequest), maintenanceRequestController.getMaintenanceRequestById)
   .patch(
-    auth('manageMaintenanceRequests'),
     validate(maintenanceRequestValidation.updateMaintenanceRequest),
     maintenanceRequestController.updateMaintenanceRequestById
   )
   .delete(
-    auth('manageMaintenanceRequests'),
     validate(maintenanceRequestValidation.deleteMaintenanceRequest),
     maintenanceRequestController.deleteMaintenanceRequestById
   );
 
-module.exports = router;
+module.exs = router;

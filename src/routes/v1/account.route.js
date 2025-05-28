@@ -1,5 +1,4 @@
 const express = require('express');
-const auth = require('../../middlewares/auth');
 const validate = require('../../middlewares/validate');
 const accountValidation = require('../../validations/account.validation');
 const accountController = require('../../controllers/account.controller');
@@ -239,13 +238,13 @@ const router = express.Router();
 
 router
   .route('/')
-  .post(auth('manageAccounts'), validate(accountValidation.createAccount), accountController.createAccount)
-  .get(auth('getAccounts'), validate(accountValidation.getAccounts), accountController.getAccounts);
+  .post(validate(accountValidation.createAccount), accountController.createAccount)
+  .get(validate(accountValidation.getAccounts), accountController.getAccounts);
 
 router
   .route('/:id')
-  .get(auth('getAccounts'), validate(accountValidation.getAccount), accountController.getAccounts)
-  .patch(auth('manageAccounts'), validate(accountValidation.updateAccount), accountController.updateAccountById)
-  .delete(auth('manageAccounts'), validate(accountValidation.deleteAccount), accountController.deleteAccountById);
+  .get(validate(accountValidation.getAccount), accountController.getAccounts)
+  .patch(validate(accountValidation.updateAccount), accountController.updateAccountById)
+  .delete(validate(accountValidation.deleteAccount), accountController.deleteAccountById);
 
-module.exports = router;
+module.exs = router;

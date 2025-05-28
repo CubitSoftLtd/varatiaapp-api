@@ -43,7 +43,7 @@ const deleteProperty = {
   }),
 };
 
-module.exports = {
+module.exs = {
   createProperty,
   getProperties,
   getProperty,

@@ -1,6 +1,5 @@
-version: '3'
 
 services:
-  node-app:
-    container_name: node-app-test
+  varatiya-app:
+    container_name: varatiya-app-test
     command: yarn test

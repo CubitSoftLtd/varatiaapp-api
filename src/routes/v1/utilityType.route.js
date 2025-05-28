@@ -1,5 +1,4 @@
 const express = require('express');
-const auth = require('../../middlewares/auth');
 const validate = require('../../middlewares/validate');
 const utilityTypeValidation = require('../../validations/utilityType.validation');
 const utilityTypeController = require('../../controllers/utilityType.controller');
@@ -222,25 +221,13 @@ const router = express.Router();
 
 router
   .route('/')
-  .post(
-    auth('manageUtilityTypes'),
-    validate(utilityTypeValidation.createUtilityType),
-    utilityTypeController.createUtilityType
-  )
-  .get(auth('getUtilityTypes'), validate(utilityTypeValidation.getUtilityTypes), utilityTypeController.getUtilityTypes);
+  .post(validate(utilityTypeValidation.createUtilityType), utilityTypeController.createUtilityType)
+  .get(validate(utilityTypeValidation.getUtilityTypes), utilityTypeController.getUtilityTypes);
 
 router
   .route('/:id')
-  .get(auth('getUtilityTypes'), validate(utilityTypeValidation.getUtilityType), utilityTypeController.getUtilityTypes)
-  .patch(
-    auth('manageUtilityTypes'),
-    validate(utilityTypeValidation.updateUtilityType),
-    utilityTypeController.updateUtilityTypeById
-  )
-  .delete(
-    auth('manageUtilityTypes'),
-    validate(utilityTypeValidation.deleteUtilityType),
-    utilityTypeController.deleteUtilityTypeById
-  );
+  .get(validate(utilityTypeValidation.getUtilityType), utilityTypeController.getUtilityTypes)
+  .patch(validate(utilityTypeValidation.updateUtilityType), utilityTypeController.updateUtilityTypeById)
+  .delete(validate(utilityTypeValidation.deleteUtilityType), utilityTypeController.deleteUtilityTypeById);
 
 module.exports = router;

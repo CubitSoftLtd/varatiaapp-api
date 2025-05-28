@@ -82,7 +82,7 @@ const deleteUtilityType = async (utilityTypeId) => {
   await utilityType.destroy();
 };
 
-module.exports = {
+module.exs = {
   createUtilityType,
   getAllUtilityTypes,
   getUtilityTypeById,

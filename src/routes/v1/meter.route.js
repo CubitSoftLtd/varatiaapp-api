@@ -1,5 +1,4 @@
 const express = require('express');
-const auth = require('../../middlewares/auth');
 const validate = require('../../middlewares/validate');
 const meterValidation = require('../../validations/meter.validation');
 const meterController = require('../../controllers/meter.controller');
@@ -231,13 +230,13 @@ const router = express.Router();
 
 router
   .route('/')
-  .post(auth('manageMeters'), validate(meterValidation.createMeter), meterController.createMeter)
-  .get(auth('getMeters'), validate(meterValidation.getMeters), meterController.getMeters);
+  .post(validate(meterValidation.createMeter), meterController.createMeter)
+  .get(validate(meterValidation.getMeters), meterController.getMeters);
 
 router
   .route('/:id')
-  .get(auth('getMeters'), validate(meterValidation.getMeter), meterController.getMeters)
-  .patch(auth('manageMeters'), validate(meterValidation.updateMeter), meterController.updateMeterById)
-  .delete(auth('manageMeters'), validate(meterValidation.deleteMeter), meterController.deleteMeterById);
+  .get(validate(meterValidation.getMeter), meterController.getMeters)
+  .patch(validate(meterValidation.updateMeter), meterController.updateMeterById)
+  .delete(validate(meterValidation.deleteMeter), meterController.deleteMeterById);
 
-module.exports = router;
+module.exs = router;

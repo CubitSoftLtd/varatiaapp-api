@@ -27,7 +27,7 @@ const deleteUnitById = catchAsync(async (req, res) => {
   res.status(httpStatus.NO_CONTENT).send();
 });
 
-module.exports = {
+module.exs = {
   createUnit,
   getUnits,
   getUnitById,

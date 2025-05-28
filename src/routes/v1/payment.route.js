@@ -1,5 +1,4 @@
 const express = require('express');
-const auth = require('../../middlewares/auth');
 const validate = require('../../middlewares/validate');
 const paymentValidation = require('../../validations/payment.validation');
 const paymentController = require('../../controllers/payment.controller');
@@ -227,14 +226,14 @@ const { createPayment, getPaymentsByLease, getPaymentById, updatePaymentById, de
 // Base route: /payments
 router
   .route('/')
-  .post(auth('managePayments'), validate(paymentValidation.createPayment), createPayment)
-  .get(auth('getPayments'), validate(paymentValidation.getPayments), getPaymentsByLease);
+  .post(validate(paymentValidation.createPayment), createPayment)
+  .get(validate(paymentValidation.getPayments), getPaymentsByLease);
 
 // Item route: /payments/:id
 router
   .route('/:id')
-  .get(auth('getPayments'), validate(paymentValidation.getPayment), getPaymentById)
-  .patch(auth('managePayments'), validate(paymentValidation.updatePayment), updatePaymentById)
-  .delete(auth('managePayments'), validate(paymentValidation.deletePayment), deletePaymentById);
+  .get(validate(paymentValidation.getPayment), getPaymentById)
+  .patch(validate(paymentValidation.updatePayment), updatePaymentById)
+  .delete(validate(paymentValidation.deletePayment), deletePaymentById);
 
-module.exports = router;
+module.exs = router;

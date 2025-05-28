@@ -1,5 +1,4 @@
 const express = require('express');
-const auth = require('../../middlewares/auth');
 const validate = require('../../middlewares/validate');
 const utilityChargeValidation = require('../../validations/utilityCharge.validation');
 const utilityChargeController = require('../../controllers/utilityCharge.controller');
@@ -193,33 +192,13 @@ const router = express.Router();
 
 router
   .route('/utility-types/:utilityTypeId/charges')
-  .post(
-    auth('manageUtilityCharges'),
-    validate(utilityChargeValidation.createUtilityCharge),
-    utilityChargeController.createUtilityCharge
-  )
-  .get(
-    auth('getUtilityCharges'),
-    validate(utilityChargeValidation.getUtilityCharges),
-    utilityChargeController.getUtilityCharges
-  );
+  .post(validate(utilityChargeValidation.createUtilityCharge), utilityChargeController.createUtilityCharge)
+  .get(validate(utilityChargeValidation.getUtilityCharges), utilityChargeController.getUtilityCharges);
 
 router
   .route('/utility-charges/:id')
-  .get(
-    auth('getUtilityCharges'),
-    validate(utilityChargeValidation.getUtilityCharge),
-    utilityChargeController.getUtilityChargeById
-  )
-  .patch(
-    auth('manageUtilityCharges'),
-    validate(utilityChargeValidation.updateUtilityCharge),
-    utilityChargeController.updateUtilityChargeById
-  )
-  .delete(
-    auth('manageUtilityCharges'),
-    validate(utilityChargeValidation.deleteUtilityCharge),
-    utilityChargeController.deleteUtilityChargeById
-  );
+  .get(validate(utilityChargeValidation.getUtilityCharge), utilityChargeController.getUtilityChargeById)
+  .patch(validate(utilityChargeValidation.updateUtilityCharge), utilityChargeController.updateUtilityChargeById)
+  .delete(validate(utilityChargeValidation.deleteUtilityCharge), utilityChargeController.deleteUtilityChargeById);
 
 module.exports = router;

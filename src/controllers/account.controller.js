@@ -1,4 +1,5 @@
 const httpStatus = require('http-status');
+const pick = require('../utils/pick');
 const catchAsync = require('../utils/catchAsync');
 const { accountService } = require('../services');
 
@@ -8,7 +9,10 @@ const createAccount = catchAsync(async (req, res) => {
 });
 
 const getAccounts = catchAsync(async (req, res) => {
-  const accounts = await accountService.getAllAccounts();
+  const filter = pick(req.query, ['name', 'type']);
+  const options = pick(req.query, ['sortBy', 'limit', 'page']);
+  const accounts = await accountService.getAllAccounts(filter, options);
+
   res.send(accounts);
 });
 
@@ -27,7 +31,7 @@ const deleteAccountById = catchAsync(async (req, res) => {
   res.status(httpStatus.NO_CONTENT).send();
 });
 
-module.exports = {
+module.exs = {
   createAccount,
   getAccounts,
   getAccountById,

@@ -45,7 +45,7 @@ const deletePayment = {
   }),
 };
 
-module.exports = {
+module.exs = {
   createPayment,
   getPayments,
   getPayment,

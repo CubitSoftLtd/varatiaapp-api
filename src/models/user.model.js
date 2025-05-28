@@ -1,7 +1,7 @@
 const { DataTypes } = require('sequelize');
 const bcrypt = require('bcryptjs');
 
-module.exports = (sequelize) => {
+module.exs = (sequelize) => {
   const User = sequelize.define(
     'User',
     {
@@ -63,6 +63,7 @@ module.exports = (sequelize) => {
     return !!user;
   };
 
+  /* eslint-disable no-param-reassign */
   User.beforeCreate(async (user) => {
     if (user.password) {
       user.password = await bcrypt.hash(user.password, 8);
@@ -74,6 +75,7 @@ module.exports = (sequelize) => {
       user.password = await bcrypt.hash(user.password, 8);
     }
   });
+  /* eslint-enable no-param-reassign */
 
   return User;
 };

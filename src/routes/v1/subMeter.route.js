@@ -1,5 +1,4 @@
 const express = require('express');
-const auth = require('../../middlewares/auth');
 const validate = require('../../middlewares/validate');
 const subMeterValidation = require('../../validations/subMeter.validation');
 const subMeterController = require('../../controllers/subMeter.controller');
@@ -231,13 +230,13 @@ const router = express.Router();
 
 router
   .route('/')
-  .post(auth('manageSubMeters'), validate(subMeterValidation.createSubMeter), subMeterController.createSubMeter)
-  .get(auth('getSubMeters'), validate(subMeterValidation.getSubMeters), subMeterController.getSubMeters);
+  .post(validate(subMeterValidation.createSubMeter), subMeterController.createSubMeter)
+  .get(validate(subMeterValidation.getSubMeters), subMeterController.getSubMeters);
 
 router
   .route('/:id')
-  .get(auth('getSubMeters'), validate(subMeterValidation.getSubMeter), subMeterController.getSubMeters)
-  .patch(auth('manageSubMeters'), validate(subMeterValidation.updateSubMeter), subMeterController.updateSubMeterById)
-  .delete(auth('manageSubMeters'), validate(subMeterValidation.deleteSubMeter), subMeterController.deleteSubMeterById);
+  .get(validate(subMeterValidation.getSubMeter), subMeterController.getSubMeters)
+  .patch(validate(subMeterValidation.updateSubMeter), subMeterController.updateSubMeterById)
+  .delete(validate(subMeterValidation.deleteSubMeter), subMeterController.deleteSubMeterById);
 
-module.exports = router;
+module.exs = router;

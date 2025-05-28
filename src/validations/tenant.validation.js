@@ -43,7 +43,7 @@ const deleteTenant = {
   }),
 };
 
-module.exports = {
+module.exs = {
   createTenant,
   getTenants,
   getTenant,

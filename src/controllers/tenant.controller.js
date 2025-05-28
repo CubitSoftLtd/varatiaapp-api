@@ -27,7 +27,7 @@ const deleteTenantById = catchAsync(async (req, res) => {
   res.status(httpStatus.NO_CONTENT).send();
 });
 
-module.exports = {
+module.exs = {
   createTenant,
   getTenants,
   getTenantById,

@@ -98,7 +98,7 @@ const deleteSubMeter = async (subMeterId) => {
   await subMeter.destroy();
 };
 
-module.exports = {
+module.exs = {
   createSubMeter,
   getAllSubMeters,
   getSubMeterById,

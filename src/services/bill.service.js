@@ -93,7 +93,7 @@ const deleteBill = async (billId) => {
   await bill.destroy();
 };
 
-module.exports = {
+module.exs = {
   createBill,
   getAllBills,
   getBillById,

@@ -1,5 +1,4 @@
 const express = require('express');
-const auth = require('../../middlewares/auth');
 const validate = require('../../middlewares/validate');
 const notificationValidation = require('../../validations/notification.validation');
 const notificationController = require('../../controllers/notification.controller');
@@ -103,20 +102,10 @@ const router = express.Router();
  *         $ref: '#/components/responses/NotFound'
  */
 
-router
-  .route('/')
-  .get(
-    auth('getNotifications'),
-    validate(notificationValidation.getNotifications),
-    notificationController.getUserNotifications
-  );
+router.route('/').get(validate(notificationValidation.getNotifications), notificationController.getUserNotifications);
 
 router
   .route('/:id/mark-read')
-  .patch(
-    auth('manageNotifications'),
-    validate(notificationValidation.markNotificationAsRead),
-    notificationController.markAsRead
-  );
+  .patch(validate(notificationValidation.markNotificationAsRead), notificationController.markAsRead);
 
 module.exports = router;

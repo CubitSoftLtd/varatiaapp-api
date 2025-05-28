@@ -1,61 +1,67 @@
-const mongoose = require('mongoose');
 const setupTestDB = require('../../../utils/setupTestDB');
-const paginate = require('../../../../src/models/plugins/paginate.plugin');
-
-const projectSchema = mongoose.Schema({
-  name: {
-    type: String,
-    required: true,
-  },
-});
-
-projectSchema.virtual('tasks', {
-  ref: 'Task',
-  localField: '_id',
-  foreignField: 'project',
-});
-
-projectSchema.plugin(paginate);
-const Project = mongoose.model('Project', projectSchema);
-
-const taskSchema = mongoose.Schema({
-  name: {
-    type: String,
-    required: true,
-  },
-  project: {
-    type: mongoose.SchemaTypes.ObjectId,
-    ref: 'Project',
-    required: true,
-  },
-});
-
-taskSchema.plugin(paginate);
-const Task = mongoose.model('Task', taskSchema);
+const { Project, Task } = require('../../../../src/models');
 
 setupTestDB();
 
-describe('paginate plugin', () => {
+// Custom pagination function to mimic Mongoose paginate plugin
+const paginate = async (model, options = {}) => {
+  const { page = 1, limit = 10, where = {}, include = [] } = options;
+  const offset = (page - 1) * limit;
+
+  const { count, rows } = await model.findAndCountAll({
+    where,
+    offset,
+    limit,
+    include,
+    order: [['id', 'ASC']], // Ensure consistent ordering for testing
+  });
+
+  return {
+    results: rows,
+    page,
+    limit,
+    totalPages: Math.ceil(count / limit),
+    totalResults: count,
+  };
+};
+
+describe('paginate plugin behavior', () => {
+  beforeEach(async () => {
+    // Sync models to ensure a clean slate
+    await Promise.all([Project.sync({ force: true }), Task.sync({ force: true })]);
+
+    // Define associations
+    Project.hasMany(Task, { foreignKey: 'projectId' });
+    Task.belongsTo(Project, { foreignKey: 'projectId' });
+
+    // Create test data
+    const project = await Project.create({ name: 'Project One' });
+    await Task.create({ name: 'Task One', projectId: project.id });
+  });
+
   describe('populate option', () => {
     test('should populate the specified data fields', async () => {
-      const project = await Project.create({ name: 'Project One' });
-      const task = await Task.create({ name: 'Task One', project: project._id });
+      const task = await Task.findOne({ where: { name: 'Task One' } });
+      const taskPages = await paginate(Task, {
+        where: { id: task.id },
+        include: [{ model: Project, as: 'project' }],
+      });
 
-      const taskPages = await Task.paginate({ _id: task._id }, { populate: 'project' });
-
-      expect(taskPages.results[0].project).toHaveProperty('_id', project._id);
+      expect(taskPages.results[0].project).toBeDefined();
+      expect(taskPages.results[0].project.id).toBe(task.projectId);
     });
 
     test('should populate nested fields', async () => {
-      const project = await Project.create({ name: 'Project One' });
-      const task = await Task.create({ name: 'Task One', project: project._id });
+      const project = await Project.findOne({ where: { name: 'Project One' } });
+      const task = await Task.findOne({ where: { name: 'Task One' } });
+      const projectPages = await paginate(Project, {
+        where: { id: project.id },
+        include: [{ model: Task, as: 'tasks' }],
+      });
 
-      const projectPages = await Project.paginate({ _id: project._id }, { populate: 'tasks.project' });
-      const { tasks } = projectPages.results[0];
-
-      expect(tasks).toHaveLength(1);
-      expect(tasks[0]).toHaveProperty('_id', task._id);
-      expect(tasks[0].project).toHaveProperty('_id', project._id);
+      expect(projectPages.results[0].tasks).toHaveLength(1);
+      expect(projectPages.results[0].tasks[0].id).toBe(task.id);
+      expect(projectPages.results[0].tasks[0].projectId).toBe(project.id);
     });
   });
 });

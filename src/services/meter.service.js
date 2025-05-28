@@ -93,7 +93,7 @@ const deleteMeter = async (meterId) => {
   await meter.destroy();
 };
 
-module.exports = {
+module.exs = {
   createMeter,
   getAllMeters,
   getMeterById,

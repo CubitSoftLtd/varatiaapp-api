@@ -41,7 +41,7 @@ const deleteAdmin = {
   }),
 };
 
-module.exports = {
+module.exs = {
   createAdmin,
   getAdmins,
   getAdmin,

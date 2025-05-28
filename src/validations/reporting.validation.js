@@ -1,4 +1,4 @@
-// src/validations/reporting.validation.js
+// src/validations/reing.validation.js
 const Joi = require('joi');
 
 const getFinancialSummary = {
@@ -14,7 +14,7 @@ const getMaintenanceStats = {
   }),
 };
 
-module.exports = {
+module.exs = {
   getFinancialSummary,
   getMaintenanceStats,
 };

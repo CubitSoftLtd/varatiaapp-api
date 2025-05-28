@@ -45,7 +45,7 @@ const deleteUtilityCharge = {
   }),
 };
 
-module.exports = {
+module.exs = {
   createUtilityCharge,
   getUtilityCharges,
   getUtilityCharge,

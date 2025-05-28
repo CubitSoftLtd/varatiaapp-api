@@ -27,7 +27,7 @@ const deleteBillById = catchAsync(async (req, res) => {
   res.status(httpStatus.NO_CONTENT).send();
 });
 
-module.exports = {
+module.exs = {
   createBill,
   getBills,
   getBillById,

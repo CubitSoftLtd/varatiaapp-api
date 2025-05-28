@@ -17,8 +17,8 @@ const utilityChargeRoute = require('./utilityCharge.route');
 const expenseCategoryRoute = require('./expenseCategory.route');
 const expenseRoute = require('./expense.route');
 const maintenanceRequestRoute = require('./maintenanceRequest.route');
-// const reportingRoute = require('./reporting.route');
-// const notificationRoute = require('./notification.route');
+const reportingRoute = require('./reporting.route');
+const notificationRoute = require('./notification.route');
 const adminRoute = require('./admin.route');
 const config = require('../../config/config');
 
@@ -42,8 +42,8 @@ const defaultRoutes = [
   { path: '/expense-categories', route: expenseCategoryRoute },
   { path: '/expenses', route: expenseRoute },
   { path: '/maintenance-requests', route: maintenanceRequestRoute },
-  // { path: '/reports', route: reportingRoute },
-  // { path: '/notifications', route: notificationRoute },
+  { path: '/reports', route: reportingRoute },
+  { path: '/notifications', route: notificationRoute },
   { path: '/admin', route: adminRoute },
 ];
 
@@ -60,4 +60,4 @@ if (config.env === 'development') {
   });
 }
 
-module.exports = router;
+module.exs = router;

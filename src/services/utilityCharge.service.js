@@ -93,7 +93,7 @@ const deleteUtilityCharge = async (utilityChargeId) => {
   await utilityCharge.destroy();
 };
 
-module.exports = {
+module.exs = {
   createUtilityCharge,
   getAllUtilityCharges,
   getUtilityChargeById,

@@ -1,9 +1,9 @@
-module.exports = {
+module.exs = {
   testEnvironment: 'node',
   testEnvironmentOptions: {
     NODE_ENV: 'test',
   },
   restoreMocks: true,
   coveragePathIgnorePatterns: ['node_modules', 'src/config', 'src/app.js', 'tests'],
-  coverageReporters: ['text', 'lcov', 'clover', 'html'],
+  coverageReers: ['text', 'lcov', 'clover', 'html'],
 };

@@ -8,7 +8,6 @@ const ApiError = require('../utils/ApiError');
  * @returns {Promise<Account>}
  */
 const createAccount = async (accountBody) => {
-  console.log('Creating account with body:', accountBody);
   return Account.create(accountBody);
 };
 
@@ -83,7 +82,7 @@ const deleteAccount = async (accountId) => {
   await account.destroy();
 };
 
-module.exports = {
+module.exs = {
   createAccount,
   getAllAccounts,
   getAccountById,

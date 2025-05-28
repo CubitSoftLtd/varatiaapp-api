@@ -1,8 +1,8 @@
 FROM node:alpine
 
-RUN mkdir -p /usr/src/node-app && chown -R node:node /usr/src/node-app
+RUN mkdir -p /usr/src/varatiya-app && chown -R node:node /usr/src/varatiya-app
 
-WORKDIR /usr/src/node-app
+WORKDIR /usr/src/varatiya-app
 
 COPY package.json yarn.lock ./
 
