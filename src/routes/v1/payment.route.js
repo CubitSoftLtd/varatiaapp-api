@@ -236,4 +236,4 @@ router
   .patch(validate(paymentValidation.updatePayment), updatePaymentById)
   .delete(validate(paymentValidation.deletePayment), deletePaymentById);
 
-module.exs = router;
+module.exports = router;

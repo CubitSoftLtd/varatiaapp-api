@@ -45,7 +45,7 @@ const deleteMaintenanceRequest = {
   }),
 };
 
-module.exs = {
+module.exports = {
   createMaintenanceRequest,
   getMaintenanceRequests,
   getMaintenanceRequest,

@@ -49,7 +49,7 @@ const verifyEmail = {
   }),
 };
 
-module.exs = {
+module.exports = {
   register,
   login,
   logout,

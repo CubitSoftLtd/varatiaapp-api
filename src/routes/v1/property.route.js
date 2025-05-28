@@ -231,4 +231,4 @@ router
   .patch(validate(propertyValidation.updateProperty), propertyController.updatePropertyById)
   .delete(validate(propertyValidation.deleteProperty), propertyController.deletePropertyById);
 
-module.exs = router;
+module.exports = router;

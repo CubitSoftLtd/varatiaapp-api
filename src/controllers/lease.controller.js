@@ -27,7 +27,7 @@ const deleteLeaseById = catchAsync(async (req, res) => {
   res.status(httpStatus.NO_CONTENT).send();
 });
 
-module.exs = {
+module.exports = {
   createLease,
   getLeases,
   getLeaseById,

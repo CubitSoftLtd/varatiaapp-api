@@ -31,7 +31,7 @@ const deleteAccountById = catchAsync(async (req, res) => {
   res.status(httpStatus.NO_CONTENT).send();
 });
 
-module.exs = {
+module.exports = {
   createAccount,
   getAccounts,
   getAccountById,

@@ -47,7 +47,7 @@ const deleteLease = {
   }),
 };
 
-module.exs = {
+module.exports = {
   createLease,
   getLeases,
   getLease,

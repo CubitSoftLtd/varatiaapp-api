@@ -17,10 +17,10 @@ const logger = winston.createLogger({
     winston.format.printf(({ level, message }) => `${level}: ${message}`)
   ),
   transs: [
-    new winston.transs.Console({
+    new winston.transports.Console({
       stderrLevels: ['error'],
     }),
   ],
 });
 
-module.exs = logger;
+module.exports = logger;

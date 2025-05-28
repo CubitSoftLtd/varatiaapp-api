@@ -38,4 +38,4 @@ const validate = (schema) => (req, res, next) => {
   return next();
 };
 
-module.exs = validate;
+module.exports = validate;

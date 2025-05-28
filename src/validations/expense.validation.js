@@ -47,7 +47,7 @@ const deleteExpense = {
   }),
 };
 
-module.exs = {
+module.exports = {
   createExpense,
   getExpenses,
   getExpense,

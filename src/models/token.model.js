@@ -8,7 +8,7 @@ const tokenTypes = {
 
 class Token extends Model {}
 
-module.exs = (sequelize) => {
+module.exports = (sequelize) => {
   Token.init(
     {
       id: {

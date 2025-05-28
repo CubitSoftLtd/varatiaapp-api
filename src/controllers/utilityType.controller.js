@@ -27,7 +27,7 @@ const deleteUtilityTypeById = catchAsync(async (req, res) => {
   res.status(httpStatus.NO_CONTENT).send();
 });
 
-module.exs = {
+module.exports = {
   createUtilityType,
   getUtilityTypes,
   getUtilityTypeById,

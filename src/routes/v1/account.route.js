@@ -247,4 +247,4 @@ router
   .patch(validate(accountValidation.updateAccount), accountController.updateAccountById)
   .delete(validate(accountValidation.deleteAccount), accountController.deleteAccountById);
 
-module.exs = router;
+module.exports = router;

@@ -27,7 +27,7 @@ const deleteMaintenanceRequestById = catchAsync(async (req, res) => {
   res.status(httpStatus.NO_CONTENT).send();
 });
 
-module.exs = {
+module.exports = {
   createMaintenanceRequest,
   getMaintenanceRequests,
   getMaintenanceRequestById,

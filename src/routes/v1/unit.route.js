@@ -237,4 +237,4 @@ router
   .patch(validate(unitValidation.updateUnit), unitController.updateUnitById)
   .delete(validate(unitValidation.deleteUnit), unitController.deleteUnitById);
 
-module.exs = router;
+module.exports = router;

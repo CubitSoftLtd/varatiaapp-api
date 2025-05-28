@@ -82,7 +82,7 @@ const deleteAccount = async (accountId) => {
   await account.destroy();
 };
 
-module.exs = {
+module.exports = {
   createAccount,
   getAllAccounts,
   getAccountById,

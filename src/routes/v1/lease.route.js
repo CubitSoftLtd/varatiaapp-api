@@ -258,4 +258,4 @@ router
   .patch(validate(leaseValidation.updateLease), leaseController.updateLeaseById)
   .delete(validate(leaseValidation.deleteLease), leaseController.deleteLeaseById);
 
-module.exs = router;
+module.exports = router;

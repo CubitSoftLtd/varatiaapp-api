@@ -40,7 +40,7 @@ const deleteExpenseCategory = {
   }),
 };
 
-module.exs = {
+module.exports = {
   createExpenseCategory,
   getExpenseCategories,
   getExpenseCategory,

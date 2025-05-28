@@ -236,4 +236,4 @@ router
   .patch(validate(tenantValidation.updateTenant), tenantController.updateTenantById)
   .delete(validate(tenantValidation.deleteTenant), tenantController.deleteTenantById);
 
-module.exs = router;
+module.exports = router;

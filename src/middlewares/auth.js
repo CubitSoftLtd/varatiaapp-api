@@ -48,4 +48,4 @@ const auth =
       .catch((err) => next(err));
   };
 
-module.exs = auth;
+module.exports = auth;

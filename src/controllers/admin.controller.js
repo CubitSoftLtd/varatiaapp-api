@@ -40,7 +40,7 @@ const deleteAdminById = async (req, res) => {
   res.status(httpStatus.OK).send();
 };
 
-module.exs = {
+module.exports = {
   createAdmin,
   getAdmins,
   getAdminById,

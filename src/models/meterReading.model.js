@@ -1,6 +1,6 @@
 const { DataTypes } = require('sequelize');
 
-module.exs = (sequelize) => {
+module.exports = (sequelize) => {
   const MeterReading = sequelize.define(
     'MeterReading',
     {

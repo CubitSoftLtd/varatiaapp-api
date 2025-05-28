@@ -27,7 +27,7 @@ const deleteSubMeterById = catchAsync(async (req, res) => {
   res.status(httpStatus.NO_CONTENT).send();
 });
 
-module.exs = {
+module.exports = {
   createSubMeter,
   getSubMeters,
   getSubMeterById,

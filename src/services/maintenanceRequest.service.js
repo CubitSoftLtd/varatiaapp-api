@@ -93,7 +93,7 @@ const deleteMaintenanceRequest = async (maintenanceRequestId) => {
   await maintenanceRequest.destroy();
 };
 
-module.exs = {
+module.exports = {
   createMaintenanceRequest,
   getAllMaintenanceRequests,
   getMaintenanceRequestById,

@@ -41,7 +41,7 @@ const deleteMeterReading = {
   }),
 };
 
-module.exs = {
+module.exports = {
   createMeterReading,
   getMeterReadings,
   getMeterReading,

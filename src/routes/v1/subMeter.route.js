@@ -239,4 +239,4 @@ router
   .patch(validate(subMeterValidation.updateSubMeter), subMeterController.updateSubMeterById)
   .delete(validate(subMeterValidation.deleteSubMeter), subMeterController.deleteSubMeterById);
 
-module.exs = router;
+module.exports = router;

@@ -14,4 +14,4 @@ const pick = (object, keys) => {
   }, {});
 };
 
-module.exs = pick;
+module.exports = pick;

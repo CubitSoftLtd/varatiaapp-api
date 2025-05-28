@@ -2,7 +2,7 @@ const nodemailer = require('nodemailer');
 const config = require('../config/config');
 const logger = require('../config/logger');
 
-const trans = nodemailer.createTrans(config.email.smtp);
+const trans = nodemailer.createTransport(config.email.smtp);
 /* istanbul ignore next */
 if (config.env !== 'test') {
   trans
@@ -55,7 +55,7 @@ If you did not create an account, then ignore this email.`;
   await sendEmail(to, subject, text);
 };
 
-module.exs = {
+module.exports = {
   trans,
   sendEmail,
   sendResetPasswordEmail,

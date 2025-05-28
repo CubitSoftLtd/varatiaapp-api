@@ -82,7 +82,7 @@ const deleteExpenseCategory = async (expenseCategoryId) => {
   await expenseCategory.destroy();
 };
 
-module.exs = {
+module.exports = {
   createExpenseCategory,
   getAllExpenseCategories,
   getExpenseCategoryById,

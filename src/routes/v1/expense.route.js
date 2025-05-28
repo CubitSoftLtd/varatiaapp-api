@@ -245,4 +245,4 @@ router
   .patch(validate(expenseValidation.updateExpense), expenseController.updateExpenseById)
   .delete(validate(expenseValidation.deleteExpense), expenseController.deleteExpenseById);
 
-module.exs = router;
+module.exports = router;

@@ -231,4 +231,4 @@ router
   .patch(validate(adminValidation.updateAdmin), adminController.updateAdminById)
   .delete(validate(adminValidation.deleteAdmin), adminController.deleteAdminById);
 
-module.exs = router;
+module.exports = router;

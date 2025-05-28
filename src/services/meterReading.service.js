@@ -107,7 +107,7 @@ const deleteMeterReading = async (meterReadingId) => {
   await meterReading.destroy();
 };
 
-module.exs = {
+module.exports = {
   createMeterReading,
   getAllMeterReadings,
   getMeterReadingById,

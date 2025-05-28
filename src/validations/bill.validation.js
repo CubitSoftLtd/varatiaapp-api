@@ -47,7 +47,7 @@ const deleteBill = {
   }),
 };
 
-module.exs = {
+module.exports = {
   createBill,
   getBills,
   getBill,

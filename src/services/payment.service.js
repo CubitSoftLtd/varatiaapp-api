@@ -96,7 +96,7 @@ const deletePayment = async (paymentId) => {
   await payment.destroy();
 };
 
-module.exs = {
+module.exports = {
   createPayment,
   getAllPayments,
   getPaymentById,

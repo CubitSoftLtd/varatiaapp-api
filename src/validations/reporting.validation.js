@@ -14,7 +14,7 @@ const getMaintenanceStats = {
   }),
 };
 
-module.exs = {
+module.exports = {
   getFinancialSummary,
   getMaintenanceStats,
 };

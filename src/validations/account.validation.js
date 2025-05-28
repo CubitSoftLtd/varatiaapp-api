@@ -42,7 +42,7 @@ const deleteAccount = {
   }),
 };
 
-module.exs = {
+module.exports = {
   createAccount,
   getAccounts,
   getAccount,

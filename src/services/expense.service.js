@@ -100,7 +100,7 @@ const deleteExpense = async (expenseId) => {
   await expense.destroy();
 };
 
-module.exs = {
+module.exports = {
   createExpense,
   getAllExpenses,
   getExpenseById,

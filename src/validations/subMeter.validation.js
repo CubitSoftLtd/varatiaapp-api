@@ -47,7 +47,7 @@ const deleteSubmeter = {
   }),
 };
 
-module.exs = {
+module.exports = {
   createSubmeter,
   getSubmeters,
   getSubmeter,

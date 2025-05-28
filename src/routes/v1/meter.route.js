@@ -239,4 +239,4 @@ router
   .patch(validate(meterValidation.updateMeter), meterController.updateMeterById)
   .delete(validate(meterValidation.deleteMeter), meterController.deleteMeterById);
 
-module.exs = router;
+module.exports = router;

@@ -29,7 +29,7 @@ const deletePropertyById = catchAsync(async (req, res) => {
   res.status(httpStatus.NO_CONTENT).send();
 });
 
-module.exs = {
+module.exports = {
   createProperty,
   getProperties,
   getPropertyById,

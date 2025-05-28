@@ -248,4 +248,4 @@ router
   .patch(validate(userValidation.updateUser), userController.updateUser)
   .delete(validate(userValidation.deleteUser), userController.deleteUser);
 
-module.exs = router;
+module.exports = router;

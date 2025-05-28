@@ -60,4 +60,4 @@ if (config.env === 'development') {
   });
 }
 
-module.exs = router;
+module.exports = router;

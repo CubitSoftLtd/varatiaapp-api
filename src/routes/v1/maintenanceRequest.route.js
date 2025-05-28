@@ -244,4 +244,4 @@ router
     maintenanceRequestController.deleteMaintenanceRequestById
   );
 
-module.exs = router;
+module.exports = router;

@@ -56,7 +56,7 @@ const errorHandler = (err, req, res, next) => {
   res.status(statusCode).send(response);
 };
 
-module.exs = {
+module.exports = {
   errorConverter,
   errorHandler,
 };

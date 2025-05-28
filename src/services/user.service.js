@@ -97,7 +97,7 @@ const deleteUserById = async (userId) => {
   await user.destroy();
 };
 
-module.exs = {
+module.exports = {
   createUser,
   queryUsers,
   getUserById,

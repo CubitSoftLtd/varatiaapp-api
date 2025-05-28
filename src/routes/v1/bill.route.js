@@ -237,4 +237,4 @@ router
   .patch(validate(billValidation.updateBill), billController.updateBillById)
   .delete(validate(billValidation.deleteBill), billController.deleteBillById);
 
-module.exs = router;
+module.exports = router;

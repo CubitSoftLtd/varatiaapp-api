@@ -98,7 +98,7 @@ const deleteUnit = async (unitId, user) => {
   await unit.destroy();
 };
 
-module.exs = {
+module.exports = {
   createUnit,
   getAllUnits,
   getUnitById,
