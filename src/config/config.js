@@ -12,6 +12,7 @@ const envVarsSchema = Joi.object()
     DB_USER: Joi.string().required().description('MySQL username'),
     DB_PASSWORD: Joi.string().allow('').description('MySQL password'),
     DB_HOST: Joi.string().required().description('MySQL host'),
+    DB_PORT: Joi.number().required().description('MySQL PORT'),
     DB_SSL: Joi.string().valid('true', 'false').default('false').description('Enable SSL for MySQL'),
     JWT_SECRET: Joi.string().required().description('JWT secret key'),
     JWT_ACCESS_EXPIRATION_MINUTES: Joi.number().default(30).description('minutes after which access tokens expire'),
@@ -45,6 +46,7 @@ module.exports = {
       username: envVars.DB_USER,
       password: envVars.DB_PASSWORD,
       host: envVars.DB_HOST,
+      port: envVars.DB_PORT,
       dialect: 'mysql',
       timezone: '+06:00',
       pool: {
@@ -59,6 +61,7 @@ module.exports = {
       username: envVars.DB_USER,
       password: envVars.DB_PASSWORD,
       host: envVars.DB_HOST,
+      port: envVars.DB_PORT,
       dialect: 'mysql',
       timezone: '+06:00',
       logging: false,
