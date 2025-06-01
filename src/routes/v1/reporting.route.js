@@ -8,17 +8,17 @@ const router = express.Router();
 /**
  * @swagger
  * tags:
- *   name: Res
+ *   name: Reports
  *   description: Re generation and retrieval
  */
 
 /**
  * @swagger
- * /res/financial:
+ * /reports/financial:
  *   get:
  *     summary: Get financial re
  *     description: Retrieve a financial re with total revenue, expenses, and outstanding payments.
- *     tags: [Res]
+ *     tags: [Reports]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -90,11 +90,11 @@ const router = express.Router();
 
 /**
  * @swagger
- * /res/tenant-activity:
+ * /reports/tenant-activity:
  *   get:
  *     summary: Get tenant activity re
  *     description: Retrieve a tenant activity re with lease status, payment history, and maintenance requests.
- *     tags: [Res]
+ *     tags: [Reports]
  *     security:
  *       - bearerAuth: []
  *     parameters:

@@ -49,7 +49,7 @@ const getAllUtilityTypes = async (filter, options) => {
 
 /**
  * Get utility type by id
- * @param {number} id
+ * @param {string} id
  * @returns {Promise<UtilityType>}
  */
 const getUtilityTypeById = async (id) => {
@@ -62,7 +62,7 @@ const getUtilityTypeById = async (id) => {
 
 /**
  * Update utility type by id
- * @param {number} utilityTypeId
+ * @param {string} utilityTypeId
  * @param {Object} updateBody
  * @returns {Promise<UtilityType>}
  */
@@ -74,7 +74,7 @@ const updateUtilityType = async (utilityTypeId, updateBody) => {
 
 /**
  * Delete utility type by id
- * @param {number} utilityTypeId
+ * @param {string} utilityTypeId
  * @returns {Promise<void>}
  */
 const deleteUtilityType = async (utilityTypeId) => {

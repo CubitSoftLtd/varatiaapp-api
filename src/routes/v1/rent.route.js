@@ -1,33 +1,26 @@
 const express = require('express');
 const validate = require('../../middlewares/validate');
-const maintenanceRequestValidation = require('../../validations/maintenanceRequest.validation');
-const maintenanceRequestController = require('../../controllers/maintenanceRequest.controller');
+const rentValidation = require('../../validations/rent.validation');
+const rentController = require('../../controllers/rent.controller');
 
 const router = express.Router();
 
 /**
  * @swagger
  * tags:
- *   name: MaintenanceRequests
- *   description: Maintenance request management and retrieval
+ *   name: Rents
+ *   description: Rent management and retrieval
  */
 
 /**
  * @swagger
- * /units/{unitId}/maintenance-requests:
+ * /rents:
  *   post:
- *     summary: Create a new maintenance request
- *     description: Tenants can create maintenance requests for their units. Admins and owners can create requests for any unit.
- *     tags: [MaintenanceRequests]
+ *     summary: Create a new rent
+ *     description: Only admins and owners can create rents.
+ *     tags: [Rents]
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: unitId
- *         required: true
- *         schema:
- *           type: integer
- *         description: Unit ID
  *     requestBody:
  *       required: true
  *       content:
@@ -35,26 +28,42 @@ const router = express.Router();
  *           schema:
  *             type: object
  *             required:
- *               - description
- *               - requestDate
+ *               - tenantId
+ *               - unitId
+ *               - startDate
+ *               - endDate
+ *               - rentAmount
  *             properties:
- *               description:
- *                 type: string
- *                 description: Description of the maintenance issue
- *               requestDate:
+ *               tenantId:
+ *                 type: integer
+ *                 description: ID of the tenant
+ *               unitId:
+ *                 type: integer
+ *                 description: ID of the unit
+ *               startDate:
  *                 type: string
  *                 format: date
- *                 description: Date of the request
+ *                 description: Start date of the rent
+ *               endDate:
+ *                 type: string
+ *                 format: date
+ *                 description: End date of the rent
+ *               rentAmount:
+ *                 type: number
+ *                 description: Monthly rent amount
  *             example:
- *               description: Leaky faucet in the kitchen
- *               requestDate: 2025-05-27
+ *               tenantId: 1
+ *               unitId: 1
+ *               startDate: 2025-06-01
+ *               endDate: 2026-05-31
+ *               rentAmount: 1000.00
  *     responses:
  *       "201":
  *         description: Created
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/MaintenanceRequest'
+ *               $ref: '#/components/schemas/Rent'
  *       "400":
  *         $ref: '#/components/responses/BadRequest'
  *       "401":
@@ -63,15 +72,19 @@ const router = express.Router();
  *         $ref: '#/components/responses/Forbidden'
  *
  *   get:
- *     summary: Get all maintenance requests for a unit
- *     description: Admins and owners can retrieve all maintenance requests. Tenants can retrieve requests for their units.
- *     tags: [MaintenanceRequests]
+ *     summary: Get all rents
+ *     description: Admins and owners can retrieve all rents. Tenants can retrieve their own rents.
+ *     tags: [Rents]
  *     security:
  *       - bearerAuth: []
  *     parameters:
- *       - in: path
+ *       - in: query
+ *         name: tenantId
+ *         schema:
+ *           type: integer
+ *         description: Tenant ID
+ *       - in: query
  *         name: unitId
- *         required: true
  *         schema:
  *           type: integer
  *         description: Unit ID
@@ -79,14 +92,14 @@ const router = express.Router();
  *         name: sortBy
  *         schema:
  *           type: string
- *         description: Sort by query in the form of field:desc/asc (ex. requestDate:asc)
+ *         description: Sort by query in the form of field:desc/asc (ex. startDate:asc)
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
  *           minimum: 1
  *         default: 10
- *         description: Maximum number of maintenance requests
+ *         description: Maximum number of rents
  *       - in: query
  *         name: page
  *         schema:
@@ -105,7 +118,7 @@ const router = express.Router();
  *                 results:
  *                   type: array
  *                   items:
- *                     $ref: '#/components/schemas/MaintenanceRequest'
+ *                     $ref: '#/components/schemas/Rent'
  *                 page:
  *                   type: integer
  *                   example: 1
@@ -126,11 +139,11 @@ const router = express.Router();
 
 /**
  * @swagger
- * /maintenance-requests/{id}:
+ * /rents/{id}:
  *   get:
- *     summary: Get a maintenance request by ID
- *     description: Admins and owners can fetch any maintenance request. Tenants can fetch requests for their units.
- *     tags: [MaintenanceRequests]
+ *     summary: Get a rent
+ *     description: Admins and owners can fetch any rent. Tenants can fetch their own rents.
+ *     tags: [Rents]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -139,14 +152,14 @@ const router = express.Router();
  *         required: true
  *         schema:
  *           type: integer
- *         description: Maintenance Request ID
+ *         description: Rent id
  *     responses:
  *       "200":
  *         description: OK
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/MaintenanceRequest'
+ *               $ref: '#/components/schemas/Rent'
  *       "401":
  *         $ref: '#/components/responses/Unauthorized'
  *       "403":
@@ -155,9 +168,9 @@ const router = express.Router();
  *         $ref: '#/components/responses/NotFound'
  *
  *   patch:
- *     summary: Update a maintenance request by ID
- *     description: Only admins and owners can update maintenance requests.
- *     tags: [MaintenanceRequests]
+ *     summary: Update a rent
+ *     description: Only admins and owners can update rents.
+ *     tags: [Rents]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -166,7 +179,7 @@ const router = express.Router();
  *         required: true
  *         schema:
  *           type: integer
- *         description: Maintenance Request ID
+ *         description: Rent id
  *     requestBody:
  *       required: true
  *       content:
@@ -174,23 +187,33 @@ const router = express.Router();
  *           schema:
  *             type: object
  *             properties:
+ *               startDate:
+ *                 type: string
+ *                 format: date
+ *                 description: Start date of the rent
+ *               endDate:
+ *                 type: string
+ *                 format: date
+ *                 description: End date of the rent
+ *               rentAmount:
+ *                 type: number
+ *                 description: Monthly rent amount
  *               status:
  *                 type: string
- *                 enum: [open, in-progress, closed]
- *                 description: Status of the maintenance request
- *               description:
- *                 type: string
- *                 description: Description of the maintenance issue
+ *                 enum: [active, terminated, expired]
+ *                 description: Rent status
  *             example:
- *               status: in-progress
- *               description: Leaky faucet in the kitchen - plumber scheduled
+ *               startDate: 2025-06-01
+ *               endDate: 2026-06-30
+ *               rentAmount: 1050.00
+ *               status: active
  *     responses:
  *       "200":
  *         description: OK
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/MaintenanceRequest'
+ *               $ref: '#/components/schemas/Rent'
  *       "400":
  *         $ref: '#/components/responses/BadRequest'
  *       "401":
@@ -201,9 +224,9 @@ const router = express.Router();
  *         $ref: '#/components/responses/NotFound'
  *
  *   delete:
- *     summary: Delete a maintenance request by ID
- *     description: Only admins and owners can delete maintenance requests.
- *     tags: [MaintenanceRequests]
+ *     summary: Delete a rent
+ *     description: Only admins and owners can delete rents.
+ *     tags: [Rents]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -212,7 +235,7 @@ const router = express.Router();
  *         required: true
  *         schema:
  *           type: integer
- *         description: Maintenance Request ID
+ *         description: Rent id
  *     responses:
  *       "200":
  *         description: No content
@@ -225,23 +248,14 @@ const router = express.Router();
  */
 
 router
-  .route('/units/:unitId/maintenance-requests')
-  .post(
-    validate(maintenanceRequestValidation.createMaintenanceRequest),
-    maintenanceRequestController.createMaintenanceRequest
-  )
-  .get(validate(maintenanceRequestValidation.getMaintenanceRequests), maintenanceRequestController.getMaintenanceRequests);
+  .route('/')
+  .post(validate(rentValidation.createRent), rentController.createRent)
+  .get(validate(rentValidation.getRents), rentController.getRents);
 
 router
-  .route('/maintenance-requests/:id')
-  .get(validate(maintenanceRequestValidation.getMaintenanceRequest), maintenanceRequestController.getMaintenanceRequestById)
-  .patch(
-    validate(maintenanceRequestValidation.updateMaintenanceRequest),
-    maintenanceRequestController.updateMaintenanceRequestById
-  )
-  .delete(
-    validate(maintenanceRequestValidation.deleteMaintenanceRequest),
-    maintenanceRequestController.deleteMaintenanceRequestById
-  );
+  .route('/:id')
+  .get(validate(rentValidation.getRent), rentController.getRents)
+  .patch(validate(rentValidation.updateRent), rentController.updateRentById)
+  .delete(validate(rentValidation.deleteRent), rentController.deleteRentById);
 
 module.exports = router;

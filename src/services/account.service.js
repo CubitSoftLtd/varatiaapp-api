@@ -49,7 +49,7 @@ const getAllAccounts = async (filter, options) => {
 
 /**
  * Get account by id
- * @param {number} id
+ * @param {string} id
  * @returns {Promise<Account>}
  */
 const getAccountById = async (id) => {
@@ -62,7 +62,7 @@ const getAccountById = async (id) => {
 
 /**
  * Update account by id
- * @param {number} accountId
+ * @param {string} accountId
  * @param {Object} updateBody
  * @returns {Promise<Account>}
  */
@@ -74,7 +74,7 @@ const updateAccount = async (accountId, updateBody) => {
 
 /**
  * Delete account by id
- * @param {number} accountId
+ * @param {string} accountId
  * @returns {Promise<void>}
  */
 const deleteAccount = async (accountId) => {

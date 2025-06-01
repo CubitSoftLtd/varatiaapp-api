@@ -1,38 +1,38 @@
 const httpStatus = require('http-status');
-const { Bill, Tenant, Unit } = require('../models');
+const { Rent, Tenant, Unit } = require('../models');
 const ApiError = require('../utils/ApiError');
 
 /**
- * Create a bill
- * @param {Object} billBody
- * @returns {Promise<Bill>}
+ * Create a rent record
+ * @param {Object} rentBody
+ * @returns {Promise<Rent>}
  */
-const createBill = async (billBody) => {
-  if (billBody.tenantId) {
-    const tenant = await Tenant.findByPk(billBody.tenantId);
+const createRent = async (rentBody) => {
+  if (rentBody.tenantId) {
+    const tenant = await Tenant.findByPk(rentBody.tenantId);
     if (!tenant) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Tenant not found');
     }
   }
-  if (billBody.unitId) {
-    const unit = await Unit.findByPk(billBody.unitId);
+  if (rentBody.unitId) {
+    const unit = await Unit.findByPk(rentBody.unitId);
     if (!unit) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Unit not found');
     }
   }
-  return Bill.create(billBody);
+  return Rent.create(rentBody);
 };
 
 /**
- * Query for bills
+ * Query for rent records
  * @param {Object} filter - Sequelize filter
  * @param {Object} options - Query options
  * @param {string} [options.sortBy] - Sort option in the format: sortField:(desc|asc)
  * @param {number} [options.limit] - Maximum number of results per page (default = 10)
  * @param {number} [options.page] - Current page (default = 1)
- * @returns {Promise<{ results: Bill[], page: number, limit: number, totalPages: number, totalResults: number }>}
+ * @returns {Promise<{ results: Rent[], page: number, limit: number, totalPages: number, totalResults: number }>}
  */
-const getAllBills = async (filter, options) => {
+const getAllRents = async (filter, options) => {
   const limit = options.limit && parseInt(options.limit, 10) > 0 ? parseInt(options.limit, 10) : 10;
   const page = options.page && parseInt(options.page, 10) > 0 ? parseInt(options.page, 10) : 1;
   const offset = (page - 1) * limit;
@@ -43,7 +43,7 @@ const getAllBills = async (filter, options) => {
     sort.push([field, order.toUpperCase() === 'DESC' ? 'DESC' : 'ASC']);
   }
 
-  const { count, rows } = await Bill.findAndCountAll({
+  const { count, rows } = await Rent.findAndCountAll({
     where: filter,
     limit,
     offset,
@@ -64,31 +64,31 @@ const getAllBills = async (filter, options) => {
 };
 
 /**
- * Get bill by id
+ * Get rent record by id
  * @param {string} id
- * @returns {Promise<Bill>}
+ * @returns {Promise<Rent>}
  */
-const getBillById = async (id) => {
-  const bill = await Bill.findByPk(id, {
+const getRentById = async (id) => {
+  const rent = await Rent.findByPk(id, {
     include: [
       { model: Tenant, as: 'Tenant' },
       { model: Unit, as: 'Unit' },
     ],
   });
-  if (!bill) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Bill not found');
+  if (!rent) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Rent record not found');
   }
-  return bill;
+  return rent;
 };
 
 /**
- * Update bill by id
- * @param {string} billId
+ * Update rent record by id
+ * @param {string} rentId
  * @param {Object} updateBody
- * @returns {Promise<Bill>}
+ * @returns {Promise<Rent>}
  */
-const updateBill = async (billId, updateBody) => {
-  const bill = await getBillById(billId);
+const updateRent = async (rentId, updateBody) => {
+  const rent = await getRentById(rentId);
   if (updateBody.tenantId) {
     const tenant = await Tenant.findByPk(updateBody.tenantId);
     if (!tenant) {
@@ -101,24 +101,24 @@ const updateBill = async (billId, updateBody) => {
       throw new ApiError(httpStatus.NOT_FOUND, 'Unit not found');
     }
   }
-  await bill.update(updateBody);
-  return bill;
+  await rent.update(updateBody);
+  return rent;
 };
 
 /**
- * Delete bill by id
- * @param {string} billId
+ * Delete rent record by id
+ * @param {string} rentId
  * @returns {Promise<void>}
  */
-const deleteBill = async (billId) => {
-  const bill = await getBillById(billId);
-  await bill.destroy();
+const deleteRent = async (rentId) => {
+  const rent = await getRentById(rentId);
+  await rent.destroy();
 };
 
 module.exports = {
-  createBill,
-  getAllBills,
-  getBillById,
-  updateBill,
-  deleteBill,
+  createRent,
+  getAllRents,
+  getRentById,
+  updateRent,
+  deleteRent,
 };

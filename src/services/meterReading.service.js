@@ -1,32 +1,24 @@
 const httpStatus = require('http-status');
-const { MeterReading, Meter, SubMeter } = require('../models');
+const { MeterReading, Meter, Unit } = require('../models');
 const ApiError = require('../utils/ApiError');
 
 /**
  * Create a meter reading
- * @param {number} meterId
- * @param {number} subMeterId
  * @param {Object} meterReadingBody
  * @returns {Promise<MeterReading>}
  */
-const createMeterReading = async (meterId, subMeterId, meterReadingBody) => {
-  const meter = await Meter.findByPk(meterId);
-  if (!meter) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Meter not found');
-  }
-  if (subMeterId) {
-    const subMeter = await SubMeter.findByPk(subMeterId);
-    if (!subMeter) {
-      throw new ApiError(httpStatus.NOT_FOUND, 'Sub-meter not found');
+const createMeterReading = async (meterReadingBody) => {
+  if (meterReadingBody.meterId) {
+    const meter = await Meter.findByPk(meterReadingBody.meterId);
+    if (!meter) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'Meter not found');
     }
   }
-  return MeterReading.create({ ...meterReadingBody, meterId, subMeterId });
+  return MeterReading.create(meterReadingBody);
 };
 
 /**
  * Query for meter readings
- * @param {number} meterId
- * @param {number} subMeterId
  * @param {Object} filter - Sequelize filter
  * @param {Object} options - Query options
  * @param {string} [options.sortBy] - Sort option in the format: sortField:(desc|asc)
@@ -34,17 +26,7 @@ const createMeterReading = async (meterId, subMeterId, meterReadingBody) => {
  * @param {number} [options.page] - Current page (default = 1)
  * @returns {Promise<{ results: MeterReading[], page: number, limit: number, totalPages: number, totalResults: number }>}
  */
-const getAllMeterReadings = async (meterId, subMeterId, filter, options) => {
-  const meter = await Meter.findByPk(meterId);
-  if (!meter) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Meter not found');
-  }
-  if (subMeterId) {
-    const subMeter = await SubMeter.findByPk(subMeterId);
-    if (!subMeter) {
-      throw new ApiError(httpStatus.NOT_FOUND, 'Sub-meter not found');
-    }
-  }
+const getAllMeterReadings = async (filter, options) => {
   const limit = options.limit && parseInt(options.limit, 10) > 0 ? parseInt(options.limit, 10) : 10;
   const page = options.page && parseInt(options.page, 10) > 0 ? parseInt(options.page, 10) : 1;
   const offset = (page - 1) * limit;
@@ -56,11 +38,11 @@ const getAllMeterReadings = async (meterId, subMeterId, filter, options) => {
   }
 
   const { count, rows } = await MeterReading.findAndCountAll({
-    where: { ...filter, meterId, subMeterId: subMeterId || null },
+    where: filter,
     limit,
     offset,
-    order: sort.length ? sort : [['createdAt', 'DESC']],
-    include: [{ model: Meter }, { model: SubMeter }],
+    order: sort.length ? sort : [['readingDate', 'DESC']],
+    include: [{ model: Meter, as: 'Meter', include: [{ model: Unit, as: 'Unit' }] }],
   });
 
   return {
@@ -74,11 +56,13 @@ const getAllMeterReadings = async (meterId, subMeterId, filter, options) => {
 
 /**
  * Get meter reading by id
- * @param {number} id
+ * @param {string} id
  * @returns {Promise<MeterReading>}
  */
 const getMeterReadingById = async (id) => {
-  const meterReading = await MeterReading.findByPk(id, { include: [{ model: Meter }, { model: SubMeter }] });
+  const meterReading = await MeterReading.findByPk(id, {
+    include: [{ model: Meter, as: 'Meter', include: [{ model: Unit, as: 'Unit' }] }],
+  });
   if (!meterReading) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Meter reading not found');
   }
@@ -87,19 +71,25 @@ const getMeterReadingById = async (id) => {
 
 /**
  * Update meter reading by id
- * @param {number} meterReadingId
+ * @param {string} meterReadingId
  * @param {Object} updateBody
  * @returns {Promise<MeterReading>}
  */
 const updateMeterReading = async (meterReadingId, updateBody) => {
   const meterReading = await getMeterReadingById(meterReadingId);
+  if (updateBody.meterId) {
+    const meter = await Meter.findByPk(updateBody.meterId);
+    if (!meter) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'Meter not found');
+    }
+  }
   await meterReading.update(updateBody);
   return meterReading;
 };
 
 /**
  * Delete meter reading by id
- * @param {number} meterReadingId
+ * @param {string} meterReadingId
  * @returns {Promise<void>}
  */
 const deleteMeterReading = async (meterReadingId) => {

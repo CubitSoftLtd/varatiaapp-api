@@ -1,31 +1,39 @@
-const { DataTypes } = require('sequelize');
-
-module.exports = (sequelize) => {
+module.exports = (sequelize, DataTypes) => {
   const MeterReading = sequelize.define(
     'MeterReading',
     {
       id: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4,
         primaryKey: true,
-        autoIncrement: true,
       },
       meterId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-      },
-      date: {
-        type: DataTypes.DATE,
+        type: DataTypes.UUID,
         allowNull: false,
       },
       readingValue: {
         type: DataTypes.DECIMAL(10, 2),
         allowNull: false,
       },
+      readingDate: {
+        type: DataTypes.DATE,
+        allowNull: false,
+      },
+      consumption: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: true,
+      },
     },
     {
       timestamps: true,
+      tableName: 'meter_readings',
     }
   );
+
+  MeterReading.associate = (models) => {
+    MeterReading.belongsTo(models.Meter, { foreignKey: 'meterId', as: 'meter' });
+    MeterReading.belongsTo(models.Submeter, { foreignKey: 'submeterId', as: 'submeter' });
+  };
 
   return MeterReading;
 };

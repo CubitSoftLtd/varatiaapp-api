@@ -19,7 +19,7 @@ const router = express.Router();
  *     summary: Create a new account
  *     description: |
  *       Only admins can create new accounts.
- *       Last updated: May 27, 2025, 03:35 PM +06.
+ *       Last updated: May 31, 2025, 11:12 AM +06.
  *     tags: [Accounts]
  *     security:
  *       - bearerAuth: []
@@ -31,23 +31,44 @@ const router = express.Router();
  *             type: object
  *             required:
  *               - name
- *               - accountNumber
- *               - type
+ *               - contactName
+ *               - contactEmail
  *             properties:
  *               name:
  *                 type: string
  *                 description: Name of the account
- *               accountNumber:
+ *               subscriptionType:
  *                 type: string
- *                 description: Unique account number
- *               type:
+ *                 enum: [free, basic, premium]
+ *                 description: Subscription type of the account
+ *                 default: free
+ *               contactName:
  *                 type: string
- *                 enum: [savings, checking]
- *                 description: Type of account
+ *                 description: Name of the contact person
+ *               contactEmail:
+ *                 type: string
+ *                 description: Email address of the contact person
+ *               contactPhone:
+ *                 type: string
+ *                 description: Phone number of the contact person
+ *                 nullable: true
+ *               isActive:
+ *                 type: boolean
+ *                 description: Whether the account is active
+ *                 default: true
+ *               subscriptionExpiry:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Expiry date of the subscription
+ *                 nullable: true
  *             example:
- *               name: Main Savings Account
- *               accountNumber: ACC123456
- *               type: savings
+ *               name: Main Business Account
+ *               subscriptionType: premium
+ *               contactName: John Doe
+ *               contactEmail: john.doe@example.com
+ *               contactPhone: +1234567890
+ *               isActive: true
+ *               subscriptionExpiry: 2026-05-31T11:12:02Z
  *     responses:
  *       "201":
  *         description: Created
@@ -56,7 +77,7 @@ const router = express.Router();
  *             schema:
  *               $ref: '#/components/schemas/Account'
  *       "400":
- *         $ref: '#/components/responses/DuplicateAccountNumber'
+ *         $ref: '#/components/responses/BadRequest'
  *       "401":
  *         $ref: '#/components/responses/Unauthorized'
  *       "403":
@@ -66,7 +87,7 @@ const router = express.Router();
  *     summary: Get all accounts
  *     description: |
  *       Only admins can retrieve all accounts.
- *       Last updated: May 27, 2025, 03:35 PM +06.
+ *       Last updated: May 31, 2025, 11:12 AM +06.
  *     tags: [Accounts]
  *     security:
  *       - bearerAuth: []
@@ -77,10 +98,11 @@ const router = express.Router();
  *           type: string
  *         description: Account name
  *       - in: query
- *         name: type
+ *         name: subscriptionType
  *         schema:
  *           type: string
- *         description: Account type
+ *           enum: [free, basic, premium]
+ *         description: Subscription type
  *       - in: query
  *         name: sortBy
  *         schema:
@@ -137,7 +159,7 @@ const router = express.Router();
  *     summary: Get an account by ID
  *     description: |
  *       Only admins can fetch any account. Account owners can fetch their own accounts.
- *       Last updated: May 27, 2025, 03:35 PM +06.
+ *       Last updated: May 31, 2025, 11:12 AM +06.
  *     tags: [Accounts]
  *     security:
  *       - bearerAuth: []
@@ -146,8 +168,9 @@ const router = express.Router();
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
- *         description: Account id
+ *           type: string
+ *           format: uuid
+ *         description: Account ID
  *     responses:
  *       "200":
  *         description: OK
@@ -166,7 +189,7 @@ const router = express.Router();
  *     summary: Update an account by ID
  *     description: |
  *       Only admins can update any account. Account owners can update their own accounts.
- *       Last updated: May 27, 2025, 03:35 PM +06.
+ *       Last updated: May 31, 2025, 11:12 AM +06.
  *     tags: [Accounts]
  *     security:
  *       - bearerAuth: []
@@ -175,8 +198,9 @@ const router = express.Router();
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
- *         description: Account id
+ *           type: string
+ *           format: uuid
+ *         description: Account ID
  *     requestBody:
  *       required: true
  *       content:
@@ -187,13 +211,36 @@ const router = express.Router();
  *               name:
  *                 type: string
  *                 description: Name of the account
- *               status:
+ *               subscriptionType:
  *                 type: string
- *                 enum: [active, inactive]
- *                 description: Account status
+ *                 enum: [free, basic, premium]
+ *                 description: Subscription type of the account
+ *               contactName:
+ *                 type: string
+ *                 description: Name of the contact person
+ *               contactEmail:
+ *                 type: string
+ *                 description: Email address of the contact person
+ *               contactPhone:
+ *                 type: string
+ *                 description: Phone number of the contact person
+ *                 nullable: true
+ *               isActive:
+ *                 type: boolean
+ *                 description: Whether the account is active
+ *               subscriptionExpiry:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Expiry date of the subscription
+ *                 nullable: true
  *             example:
- *               name: Main Savings Account Updated
- *               status: active
+ *               name: Main Business Account Updated
+ *               subscriptionType: basic
+ *               contactName: Jane Doe
+ *               contactEmail: jane.doe@example.com
+ *               contactPhone: +1234567890
+ *               isActive: true
+ *               subscriptionExpiry: 2026-05-31T11:12:02Z
  *     responses:
  *       "200":
  *         description: OK
@@ -214,7 +261,7 @@ const router = express.Router();
  *     summary: Delete an account by ID
  *     description: |
  *       Only admins can delete any account. Account owners can delete their own accounts.
- *       Last updated: May 27, 2025, 03:35 PM +06.
+ *       Last updated: May 31, 2025, 11:12 AM +06.
  *     tags: [Accounts]
  *     security:
  *       - bearerAuth: []
@@ -223,8 +270,9 @@ const router = express.Router();
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
- *         description: Account id
+ *           type: string
+ *           format: uuid
+ *         description: Account ID
  *     responses:
  *       "200":
  *         description: No content

@@ -1,10 +1,23 @@
 const httpStatus = require('http-status');
 const pick = require('../utils/pick');
 const catchAsync = require('../utils/catchAsync');
-const { accountService } = require('../services');
+const { accountService, userService, emailService, tokenService } = require('../services');
 
 const createAccount = catchAsync(async (req, res) => {
   const account = await accountService.createAccount(req.body);
+
+  if (account) {
+    // If the account is created successfully, also create a user for this account
+    await userService.createUser({
+      accountId: account.id,
+      email: account.contactEmail,
+      name: account.name,
+    });
+
+    const verifyEmailToken = await tokenService.generateVerifyEmailToken(req.user);
+    await emailService.sendVerificationEmail(req.user.email, verifyEmailToken);
+  }
+
   res.status(httpStatus.CREATED).send(account);
 });
 

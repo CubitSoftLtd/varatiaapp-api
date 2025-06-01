@@ -1,13 +1,19 @@
 const httpStatus = require('http-status');
-const { Tenant } = require('../models');
+const { Tenant, Unit, Property, TenancyHistory } = require('../models');
 const ApiError = require('../utils/ApiError');
-
+const sequelize = require('../models');
 /**
  * Create a tenant
  * @param {Object} tenantBody
  * @returns {Promise<Tenant>}
  */
 const createTenant = async (tenantBody) => {
+  if (tenantBody.unitId) {
+    const unit = await Unit.findByPk(tenantBody.unitId);
+    if (!unit) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'Unit not found');
+    }
+  }
   return Tenant.create(tenantBody);
 };
 
@@ -36,6 +42,7 @@ const getAllTenants = async (filter, options) => {
     limit,
     offset,
     order: sort.length ? sort : [['createdAt', 'DESC']],
+    include: [{ model: Unit, as: 'Unit', include: [{ model: Property, as: 'Property' }] }],
   });
 
   return {
@@ -49,11 +56,13 @@ const getAllTenants = async (filter, options) => {
 
 /**
  * Get tenant by id
- * @param {number} id
+ * @param {string} id
  * @returns {Promise<Tenant>}
  */
 const getTenantById = async (id) => {
-  const tenant = await Tenant.findByPk(id);
+  const tenant = await Tenant.findByPk(id, {
+    include: [{ model: Unit, as: 'Unit', include: [{ model: Property, as: 'Property' }] }],
+  });
   if (!tenant) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Tenant not found');
   }
@@ -62,24 +71,89 @@ const getTenantById = async (id) => {
 
 /**
  * Update tenant by id
- * @param {number} tenantId
+ * @param {string} tenantId
  * @param {Object} updateBody
  * @returns {Promise<Tenant>}
  */
 const updateTenant = async (tenantId, updateBody) => {
   const tenant = await getTenantById(tenantId);
+  if (updateBody.unitId) {
+    const unit = await Unit.findByPk(updateBody.unitId);
+    if (!unit) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'Unit not found');
+    }
+  }
   await tenant.update(updateBody);
   return tenant;
 };
 
 /**
  * Delete tenant by id
- * @param {number} tenantId
+ * @param {string} tenantId
  * @returns {Promise<void>}
  */
 const deleteTenant = async (tenantId) => {
   const tenant = await getTenantById(tenantId);
   await tenant.destroy();
+};
+
+/**
+ * Get tenants by unit and property
+ * @param {string} propertyId
+ * @param {string} unitId
+ * @returns {Promise<Tenant[]>}
+ */
+const getTenantsByUnitAndProperty = async (propertyId, unitId) => {
+  const property = await Property.findByPk(propertyId);
+  if (!property) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Property not found');
+  }
+
+  const unit = await Unit.findByPk(unitId);
+  if (!unit) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Unit not found');
+  }
+  if (unit.propertyId !== propertyId) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Unit does not belong to the specified property');
+  }
+
+  const tenants = await Tenant.findAll({
+    where: { unitId },
+    include: [{ model: Unit, as: 'Unit', include: [{ model: Property, as: 'Property' }] }],
+  });
+
+  return tenants;
+};
+
+/**
+ * Get historical tenants for a unit within a date range
+ * @param {string} unitId
+ * @param {Date} startDate
+ * @param {Date} endDate
+ * @returns {Promise<{ results: TenancyHistory[], totalResults: number }>}
+ */
+const getHistoricalTenantsByUnit = async (unitId, startDate, endDate) => {
+  const unit = await Unit.findByPk(unitId);
+  if (!unit) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Unit not found');
+  }
+
+  const histories = await TenancyHistory.findAll({
+    where: {
+      unitId,
+      startDate: { [sequelize.Op.lte]: endDate },
+      [sequelize.Op.or]: [{ endDate: { [sequelize.Op.gte]: startDate } }, { endDate: null }],
+    },
+    include: [
+      { model: Tenant, as: 'Tenant' },
+      { model: Unit, as: 'Unit', include: [{ model: Property, as: 'Property' }] },
+    ],
+  });
+
+  return {
+    results: histories,
+    totalResults: histories.length,
+  };
 };
 
 module.exports = {
@@ -88,4 +162,6 @@ module.exports = {
   getTenantById,
   updateTenant,
   deleteTenant,
+  getTenantsByUnitAndProperty,
+  getHistoricalTenantsByUnit,
 };

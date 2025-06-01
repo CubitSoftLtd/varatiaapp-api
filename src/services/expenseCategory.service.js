@@ -49,7 +49,7 @@ const getAllExpenseCategories = async (filter, options) => {
 
 /**
  * Get expense category by id
- * @param {number} id
+ * @param {string} id
  * @returns {Promise<ExpenseCategory>}
  */
 const getExpenseCategoryById = async (id) => {
@@ -62,7 +62,7 @@ const getExpenseCategoryById = async (id) => {
 
 /**
  * Update expense category by id
- * @param {number} expenseCategoryId
+ * @param {string} expenseCategoryId
  * @param {Object} updateBody
  * @returns {Promise<ExpenseCategory>}
  */
@@ -74,7 +74,7 @@ const updateExpenseCategory = async (expenseCategoryId, updateBody) => {
 
 /**
  * Delete expense category by id
- * @param {number} expenseCategoryId
+ * @param {string} expenseCategoryId
  * @returns {Promise<void>}
  */
 const deleteExpenseCategory = async (expenseCategoryId) => {

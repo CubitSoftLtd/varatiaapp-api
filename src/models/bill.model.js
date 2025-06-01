@@ -1,16 +1,14 @@
-const { DataTypes } = require('sequelize');
-
-module.exports = (sequelize) => {
+module.exports = (sequelize, DataTypes) => {
   const Bill = sequelize.define(
     'Bill',
     {
       id: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4,
         primaryKey: true,
-        autoIncrement: true,
       },
-      tenantId: {
-        type: DataTypes.INTEGER,
+      userId: {
+        type: DataTypes.UUID,
         allowNull: false,
       },
       billingPeriod: {
@@ -32,8 +30,13 @@ module.exports = (sequelize) => {
     },
     {
       timestamps: true,
+      tableName: 'bills',
     }
   );
 
+  Bill.associate = (models) => {
+    Bill.belongsTo(models.Tenant, { foreignKey: 'tenantId', as: 'tenant' });
+    Bill.belongsTo(models.Unit, { foreignKey: 'unitId', as: 'unit' });
+  };
   return Bill;
 };

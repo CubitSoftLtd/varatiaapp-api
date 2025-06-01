@@ -1,18 +1,20 @@
 const httpStatus = require('http-status');
-const { Property } = require('../models');
+const { Property, Account } = require('../models');
 const ApiError = require('../utils/ApiError');
 
 /**
  * Create a property
  * @param {Object} propertyBody
- * @param {User} user
  * @returns {Promise<Property>}
  */
-const createProperty = async (propertyBody, user) => {
-  if (!['owner', 'manager'].includes(user.role)) {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Access denied');
+const createProperty = async (propertyBody) => {
+  if (propertyBody.accountId) {
+    const account = await Account.findByPk(propertyBody.accountId);
+    if (!account) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'Account not found');
+    }
   }
-  return Property.create({ ...propertyBody, accountId: user.accountId });
+  return Property.create(propertyBody);
 };
 
 /**
@@ -22,10 +24,9 @@ const createProperty = async (propertyBody, user) => {
  * @param {string} [options.sortBy] - Sort option in the format: sortField:(desc|asc)
  * @param {number} [options.limit] - Maximum number of results per page (default = 10)
  * @param {number} [options.page] - Current page (default = 1)
- * @param {User} user
  * @returns {Promise<{ results: Property[], page: number, limit: number, totalPages: number, totalResults: number }>}
  */
-const getAllProperties = async (filter, options, user) => {
+const getAllProperties = async (filter, options) => {
   const limit = options.limit && parseInt(options.limit, 10) > 0 ? parseInt(options.limit, 10) : 10;
   const page = options.page && parseInt(options.page, 10) > 0 ? parseInt(options.page, 10) : 1;
   const offset = (page - 1) * limit;
@@ -37,10 +38,11 @@ const getAllProperties = async (filter, options, user) => {
   }
 
   const { count, rows } = await Property.findAndCountAll({
-    where: { ...filter, accountId: user.accountId },
+    where: filter,
     limit,
     offset,
     order: sort.length ? sort : [['createdAt', 'DESC']],
+    include: [{ model: Account, as: 'Account' }],
   });
 
   return {
@@ -54,12 +56,13 @@ const getAllProperties = async (filter, options, user) => {
 
 /**
  * Get property by id
- * @param {number} id
- * @param {User} user
+ * @param {string} id
  * @returns {Promise<Property>}
  */
-const getPropertyById = async (id, user) => {
-  const property = await Property.findOne({ where: { id, accountId: user.accountId } });
+const getPropertyById = async (id) => {
+  const property = await Property.findByPk(id, {
+    include: [{ model: Account, as: 'Account' }],
+  });
   if (!property) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Property not found');
   }
@@ -68,25 +71,29 @@ const getPropertyById = async (id, user) => {
 
 /**
  * Update property by id
- * @param {number} propertyId
+ * @param {string} propertyId
  * @param {Object} updateBody
- * @param {User} user
  * @returns {Promise<Property>}
  */
-const updateProperty = async (propertyId, updateBody, user) => {
-  const property = await getPropertyById(propertyId, user);
+const updateProperty = async (propertyId, updateBody) => {
+  const property = await getPropertyById(propertyId);
+  if (updateBody.accountId) {
+    const account = await Account.findByPk(updateBody.accountId);
+    if (!account) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'Account not found');
+    }
+  }
   await property.update(updateBody);
   return property;
 };
 
 /**
  * Delete property by id
- * @param {number} propertyId
- * @param {User} user
+ * @param {string} propertyId
  * @returns {Promise<void>}
  */
-const deleteProperty = async (propertyId, user) => {
-  const property = await getPropertyById(propertyId, user);
+const deleteProperty = async (propertyId) => {
+  const property = await getPropertyById(propertyId);
   await property.destroy();
 };
 

@@ -29,23 +29,22 @@ const router = express.Router();
  *             type: object
  *             required:
  *               - name
- *               - email
- *               - phone
+ *               - contactInfo
  *             properties:
  *               name:
  *                 type: string
  *                 description: Name of the tenant
- *               email:
+ *               contactInfo:
  *                 type: string
- *                 format: email
- *                 description: Email address of the tenant
- *               phone:
+ *                 description: Contact information of the tenant (e.g., email or phone)
+ *               unitId:
  *                 type: string
- *                 description: Phone number of the tenant
+ *                 format: uuid
+ *                 description: ID of the unit the tenant is assigned to
  *             example:
  *               name: John Doe
- *               email: john.doe@example.com
- *               phone: +1234567890
+ *               contactInfo: john.doe@example.com
+ *               unitId: 987fcdeb-1234-5678-9abc-def123456789
  *     responses:
  *       "201":
  *         description: Created
@@ -68,10 +67,10 @@ const router = express.Router();
  *       - bearerAuth: []
  *     parameters:
  *       - in: query
- *         name: name
+ *         name: filter
  *         schema:
  *           type: string
- *         description: Tenant name
+ *         description: JSON string of filter conditions (e.g., {"name":"John"})
  *       - in: query
  *         name: sortBy
  *         schema:
@@ -135,8 +134,9 @@ const router = express.Router();
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
- *         description: Tenant id
+ *           type: string
+ *           format: uuid
+ *         description: Tenant ID
  *     responses:
  *       "200":
  *         description: OK
@@ -162,8 +162,9 @@ const router = express.Router();
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
- *         description: Tenant id
+ *           type: string
+ *           format: uuid
+ *         description: Tenant ID
  *     requestBody:
  *       required: true
  *       content:
@@ -174,17 +175,17 @@ const router = express.Router();
  *               name:
  *                 type: string
  *                 description: Name of the tenant
- *               email:
+ *               contactInfo:
  *                 type: string
- *                 format: email
- *                 description: Email address of the tenant
- *               phone:
+ *                 description: Contact information of the tenant (e.g., email or phone)
+ *               unitId:
  *                 type: string
- *                 description: Phone number of the tenant
+ *                 format: uuid
+ *                 description: ID of the unit the tenant is assigned to
  *             example:
  *               name: John Doe Updated
- *               email: john.doe.updated@example.com
- *               phone: +0987654321
+ *               contactInfo: john.doe.updated@example.com
+ *               unitId: 987fcdeb-1234-5678-9abc-def123456789
  *     responses:
  *       "200":
  *         description: OK
@@ -212,11 +213,109 @@ const router = express.Router();
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
- *         description: Tenant id
+ *           type: string
+ *           format: uuid
+ *         description: Tenant ID
+ *     responses:
+ *       "204":
+ *         description: No content
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
+ *       "404":
+ *         $ref: '#/components/responses/NotFound'
+ */
+
+/**
+ * @swagger
+ * /tenants/property/{propertyId}/unit/{unitId}:
+ *   get:
+ *     summary: Get tenants by unit and property
+ *     description: Admins and owners can fetch tenants assigned to a specific unit in a property.
+ *     tags: [Tenants]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: propertyId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Property ID
+ *       - in: path
+ *         name: unitId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Unit ID
  *     responses:
  *       "200":
- *         description: No content
+ *         description: OK
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Tenant'
+ *       "400":
+ *         $ref: '#/components/responses/BadRequest'
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
+ *       "404":
+ *         $ref: '#/components/responses/NotFound'
+ */
+
+/**
+ * @swagger
+ * /tenants/history/unit/{unitId}:
+ *   get:
+ *     summary: Get historical tenants for a unit
+ *     description: Admins and owners can fetch historical tenants for a unit within a date range.
+ *     tags: [Tenants]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: unitId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Unit ID
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Start date for the tenancy history (e.g., 2024-01-01)
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: End date for the tenancy history (e.g., 2025-12-31)
+ *     responses:
+ *       "200":
+ *         description: OK
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 results:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/TenancyHistory'
+ *                 totalResults:
+ *                   type: integer
+ *                   example: 1
+ *       "400":
+ *         $ref: '#/components/responses/BadRequest'
  *       "401":
  *         $ref: '#/components/responses/Unauthorized'
  *       "403":
@@ -228,12 +327,20 @@ const router = express.Router();
 router
   .route('/')
   .post(validate(tenantValidation.createTenant), tenantController.createTenant)
-  .get(validate(tenantValidation.getTenants), tenantController.getTenants);
+  .get(validate(tenantValidation.getTenants), tenantController.getAllTenants);
 
 router
   .route('/:id')
-  .get(validate(tenantValidation.getTenant), tenantController.getTenants)
-  .patch(validate(tenantValidation.updateTenant), tenantController.updateTenantById)
-  .delete(validate(tenantValidation.deleteTenant), tenantController.deleteTenantById);
+  .get(validate(tenantValidation.getTenant), tenantController.getTenantById)
+  .patch(validate(tenantValidation.updateTenant), tenantController.updateTenant)
+  .delete(validate(tenantValidation.deleteTenant), tenantController.deleteTenant);
+
+router
+  .route('/property/:propertyId/unit/:unitId')
+  .get(validate(tenantValidation.getTenantsByUnitAndProperty), tenantController.getTenantsByUnitAndProperty);
+
+router
+  .route('/history/unit/:unitId')
+  .get(validate(tenantValidation.getHistoricalTenantsByUnit), tenantController.getHistoricalTenantsByUnit);
 
 module.exports = router;

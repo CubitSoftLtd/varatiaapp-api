@@ -1,6 +1,6 @@
 const Joi = require('joi');
 
-const createLease = {
+const createRent = {
   body: Joi.object().keys({
     unitId: Joi.number().integer().required().min(1),
     tenantId: Joi.number().integer().required().min(1),
@@ -11,7 +11,7 @@ const createLease = {
   }),
 };
 
-const getLeases = {
+const getRents = {
   query: Joi.object().keys({
     unitId: Joi.number().integer().min(1),
     tenantId: Joi.number().integer().min(1),
@@ -22,13 +22,13 @@ const getLeases = {
   }),
 };
 
-const getLease = {
+const getRent = {
   params: Joi.object().keys({
     id: Joi.number().integer().required().min(1),
   }),
 };
 
-const updateLease = {
+const updateRent = {
   params: Joi.object().keys({
     id: Joi.number().integer().required().min(1),
   }),
@@ -41,16 +41,16 @@ const updateLease = {
     .min(1),
 };
 
-const deleteLease = {
+const deleteRent = {
   params: Joi.object().keys({
     id: Joi.number().integer().required().min(1),
   }),
 };
 
 module.exports = {
-  createLease,
-  getLeases,
-  getLease,
-  updateLease,
-  deleteLease,
+  createRent,
+  getRents,
+  getRent,
+  updateRent,
+  deleteRent,
 };
