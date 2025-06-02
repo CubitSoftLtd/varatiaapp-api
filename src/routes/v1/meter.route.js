@@ -17,7 +17,9 @@ const router = express.Router();
  * /meters:
  *   post:
  *     summary: Create a new meter
- *     description: Only admins and owners can create meters.
+ *     description: |
+ *       Only admins can create new meters. Property ID must be provided in the request body.
+ *       Last updated: June 02, 2025, 08:13 AM +06.
  *     tags: [Meters]
  *     security:
  *       - bearerAuth: []
@@ -28,23 +30,31 @@ const router = express.Router();
  *           schema:
  *             type: object
  *             required:
- *               - unitId
+ *               - number
+ *               - propertyId
  *               - utilityTypeId
- *               - meterNumber
  *             properties:
- *               unitId:
- *                 type: integer
- *                 description: ID of the unit associated with the meter
- *               utilityTypeId:
- *                 type: integer
- *                 description: ID of the utility type (e.g., electricity, water)
- *               meterNumber:
+ *               number:
  *                 type: string
  *                 description: Unique meter number
+ *               propertyId:
+ *                 type: string
+ *                 format: uuid
+ *                 description: ID of the associated property
+ *               utilityTypeId:
+ *                 type: string
+ *                 format: uuid
+ *                 description: ID of the associated utility type
+ *               status:
+ *                 type: string
+ *                 enum: [active, inactive, maintenance]
+ *                 description: Status of the meter
+ *                 default: active
  *             example:
- *               unitId: 1
- *               utilityTypeId: 1
- *               meterNumber: MTR12345
+ *               number: MTR123456
+ *               propertyId: "b567bd64-12ac-4d7c-add8-eec1dad11225"
+ *               utilityTypeId: "123e4567-e89b-12d3-a456-426614174001"
+ *               status: active
  *     responses:
  *       "201":
  *         description: Created
@@ -58,29 +68,40 @@ const router = express.Router();
  *         $ref: '#/components/responses/Unauthorized'
  *       "403":
  *         $ref: '#/components/responses/Forbidden'
+ *       "404":
+ *         $ref: '#/components/responses/NotFound'
  *
  *   get:
  *     summary: Get all meters
- *     description: Admins and owners can retrieve all meters. Tenants can retrieve meters for their units.
+ *     description: |
+ *       Admins can retrieve all meters. Other authenticated users can view meters.
+ *       Last updated: June 02, 2025, 08:13 AM +06.
  *     tags: [Meters]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: query
- *         name: unitId
+ *         name: number
  *         schema:
- *           type: integer
- *         description: Unit ID
+ *           type: string
+ *         description: Meter number
  *       - in: query
- *         name: utilityTypeId
+ *         name: status
  *         schema:
- *           type: integer
- *         description: Utility type ID
+ *           type: string
+ *           enum: [active, inactive, maintenance]
+ *         description: Meter status
+ *       - in: query
+ *         name: propertyId
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Filter by property ID
  *       - in: query
  *         name: sortBy
  *         schema:
  *           type: string
- *         description: Sort by query in the form of field:desc/asc (ex. meterNumber:asc)
+ *         description: Sort by query in the form of field:desc/asc (ex. number:asc)
  *       - in: query
  *         name: limit
  *         schema:
@@ -123,14 +144,18 @@ const router = express.Router();
  *         $ref: '#/components/responses/Unauthorized'
  *       "403":
  *         $ref: '#/components/responses/Forbidden'
+ *       "404":
+ *         $ref: '#/components/responses/NotFound'
  */
 
 /**
  * @swagger
  * /meters/{id}:
  *   get:
- *     summary: Get a meter
- *     description: Admins and owners can fetch any meter. Tenants can fetch meters for their units.
+ *     summary: Get a meter by ID
+ *     description: |
+ *       Admins can fetch any meter. Other authenticated users can view meters.
+ *       Last updated: June 02, 2025, 08:13 AM +06.
  *     tags: [Meters]
  *     security:
  *       - bearerAuth: []
@@ -139,8 +164,9 @@ const router = express.Router();
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
- *         description: Meter id
+ *           type: string
+ *           format: uuid
+ *         description: Meter ID
  *     responses:
  *       "200":
  *         description: OK
@@ -156,8 +182,10 @@ const router = express.Router();
  *         $ref: '#/components/responses/NotFound'
  *
  *   patch:
- *     summary: Update a meter
- *     description: Only admins and owners can update meters.
+ *     summary: Update a meter by ID
+ *     description: |
+ *       Only admins can update meters.
+ *       Last updated: June 02, 2025, 08:13 AM +06.
  *     tags: [Meters]
  *     security:
  *       - bearerAuth: []
@@ -166,8 +194,9 @@ const router = express.Router();
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
- *         description: Meter id
+ *           type: string
+ *           format: uuid
+ *         description: Meter ID
  *     requestBody:
  *       required: true
  *       content:
@@ -175,19 +204,26 @@ const router = express.Router();
  *           schema:
  *             type: object
  *             properties:
- *               unitId:
- *                 type: integer
- *                 description: ID of the unit associated with the meter
- *               utilityTypeId:
- *                 type: integer
- *                 description: ID of the utility type (e.g., electricity, water)
- *               meterNumber:
+ *               number:
  *                 type: string
  *                 description: Unique meter number
+ *               propertyId:
+ *                 type: string
+ *                 format: uuid
+ *                 description: ID of the associated property
+ *               utilityTypeId:
+ *                 type: string
+ *                 format: uuid
+ *                 description: ID of the associated utility type
+ *               status:
+ *                 type: string
+ *                 enum: [active, inactive, maintenance]
+ *                 description: Status of the meter
  *             example:
- *               unitId: 2
- *               utilityTypeId: 2
- *               meterNumber: MTR67890
+ *               number: MTR123456
+ *               propertyId: "b567bd64-12ac-4d7c-add8-eec1dad11225"
+ *               utilityTypeId: "123e4567-e89b-12d3-a456-426614174001"
+ *               status: active
  *     responses:
  *       "200":
  *         description: OK
@@ -205,8 +241,10 @@ const router = express.Router();
  *         $ref: '#/components/responses/NotFound'
  *
  *   delete:
- *     summary: Delete a meter
- *     description: Only admins and owners can delete meters.
+ *     summary: Delete a meter by ID
+ *     description: |
+ *       Only admins can delete meters.
+ *       Last updated: June 02, 2025, 08:13 AM +06.
  *     tags: [Meters]
  *     security:
  *       - bearerAuth: []
@@ -215,8 +253,9 @@ const router = express.Router();
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
- *         description: Meter id
+ *           type: string
+ *           format: uuid
+ *         description: Meter ID
  *     responses:
  *       "200":
  *         description: No content
@@ -235,7 +274,7 @@ router
 
 router
   .route('/:id')
-  .get(validate(meterValidation.getMeter), meterController.getMeters)
+  .get(validate(meterValidation.getMeter), meterController.getMeterById)
   .patch(validate(meterValidation.updateMeter), meterController.updateMeterById)
   .delete(validate(meterValidation.deleteMeter), meterController.deleteMeterById);
 

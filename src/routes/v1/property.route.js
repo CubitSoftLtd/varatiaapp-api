@@ -17,7 +17,9 @@ const router = express.Router();
  * /properties:
  *   post:
  *     summary: Create a new property
- *     description: Only owners and managers can create properties.
+ *     description: |
+ *       Only owners and managers can create properties.
+ *       Last updated: June 01, 2025, 9:59 PM +06.
  *     tags: [Properties]
  *     security:
  *       - bearerAuth: []
@@ -30,7 +32,7 @@ const router = express.Router();
  *             required:
  *               - name
  *               - address
- *               - type
+ *               - accountId
  *             properties:
  *               name:
  *                 type: string
@@ -38,14 +40,14 @@ const router = express.Router();
  *               address:
  *                 type: string
  *                 description: Address of the property
- *               type:
+ *               accountId:
  *                 type: string
- *                 enum: [residential, commercial]
- *                 description: Type of property
+ *                 format: uuid
+ *                 description: ID of the associated account
  *             example:
  *               name: Downtown Apartment
  *               address: 123 Main St
- *               type: residential
+ *               accountId: "123e4567-e89b-12d3-a456-426614174000"
  *     responses:
  *       "201":
  *         description: Created
@@ -62,7 +64,9 @@ const router = express.Router();
  *
  *   get:
  *     summary: Get all properties for the user's account
- *     description: Users can retrieve their own properties.
+ *     description: |
+ *       Users can retrieve their own properties.
+ *       Last updated: June 01, 2025, 9:59 PM +06.
  *     tags: [Properties]
  *     security:
  *       - bearerAuth: []
@@ -126,7 +130,9 @@ const router = express.Router();
  * /properties/{id}:
  *   get:
  *     summary: Get a property by ID
- *     description: Users can fetch their own properties.
+ *     description: |
+ *       Users can fetch their own properties.
+ *       Last updated: June 01, 2025, 9:59 PM +06.
  *     tags: [Properties]
  *     security:
  *       - bearerAuth: []
@@ -135,7 +141,8 @@ const router = express.Router();
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
+ *           format: uuid
  *         description: Property ID
  *     responses:
  *       "200":
@@ -153,7 +160,9 @@ const router = express.Router();
  *
  *   patch:
  *     summary: Update a property by ID
- *     description: Only owners and managers can update properties.
+ *     description: |
+ *       Only owners and managers can update properties.
+ *       Last updated: June 01, 2025, 9:59 PM +06.
  *     tags: [Properties]
  *     security:
  *       - bearerAuth: []
@@ -162,7 +171,8 @@ const router = express.Router();
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
+ *           format: uuid
  *         description: Property ID
  *     requestBody:
  *       required: true
@@ -177,9 +187,14 @@ const router = express.Router();
  *               address:
  *                 type: string
  *                 description: Address of the property
+ *               accountId:
+ *                 type: string
+ *                 format: uuid
+ *                 description: ID of the associated account
  *             example:
  *               name: Downtown Apartment Updated
  *               address: 124 Main St
+ *               accountId: "123e4567-e89b-12d3-a456-426614174000"
  *     responses:
  *       "200":
  *         description: OK
@@ -198,7 +213,9 @@ const router = express.Router();
  *
  *   delete:
  *     summary: Delete a property by ID
- *     description: Only owners and managers can delete properties.
+ *     description: |
+ *       Only owners and managers can delete properties.
+ *       Last updated: June 01, 2025, 9:59 PM +06.
  *     tags: [Properties]
  *     security:
  *       - bearerAuth: []
@@ -207,7 +224,8 @@ const router = express.Router();
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
+ *           format: uuid
  *         description: Property ID
  *     responses:
  *       "200":

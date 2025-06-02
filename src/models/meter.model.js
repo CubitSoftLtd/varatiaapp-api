@@ -12,6 +12,16 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         unique: true,
       },
+      propertyId: {
+        type: DataTypes.UUID,
+        allowNull: false,
+        references: {
+          model: 'properties',
+          key: 'id',
+        },
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
+      },
       utilityTypeId: {
         type: DataTypes.UUID,
         allowNull: false,
@@ -35,6 +45,10 @@ module.exports = (sequelize, DataTypes) => {
   );
 
   Meter.associate = (models) => {
+    Meter.belongsTo(models.Property, {
+      foreignKey: 'propertyId',
+      as: 'property',
+    });
     Meter.belongsTo(models.UtilityType, {
       foreignKey: 'utilityTypeId',
       as: 'utilityType',

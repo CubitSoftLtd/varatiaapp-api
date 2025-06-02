@@ -1,14 +1,19 @@
 const httpStatus = require('http-status');
+const pick = require('../utils/pick');
 const catchAsync = require('../utils/catchAsync');
 const { utilityTypeService } = require('../services');
 
 const createUtilityType = catchAsync(async (req, res) => {
+  // eslint-disable-next-line no-console
+  console.log(req.body);
   const utilityType = await utilityTypeService.createUtilityType(req.body);
   res.status(httpStatus.CREATED).send(utilityType);
 });
 
 const getUtilityTypes = catchAsync(async (req, res) => {
-  const utilityTypes = await utilityTypeService.getAllUtilityTypes();
+  const filter = pick(req.query, ['name', 'type']);
+  const options = pick(req.query, ['sortBy', 'limit', 'page']);
+  const utilityTypes = await utilityTypeService.getAllUtilityTypes(filter, options);
   res.send(utilityTypes);
 });
 

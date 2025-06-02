@@ -17,7 +17,9 @@ const router = express.Router();
  * /utility-types:
  *   post:
  *     summary: Create a new utility type
- *     description: Only admins can create utility types.
+ *     description: |
+ *       Only admins can create utility types.
+ *       Last updated: June 01, 2025, 9:02 PM +06.
  *     tags: [UtilityTypes]
  *     security:
  *       - bearerAuth: []
@@ -29,17 +31,23 @@ const router = express.Router();
  *             type: object
  *             required:
  *               - name
- *               - unit
+ *               - unitRate
  *             properties:
  *               name:
  *                 type: string
- *                 description: Name of the utility type
- *               unit:
+ *                 description: Unique name of the utility type
+ *               unitRate:
+ *                 type: number
+ *                 format: float
+ *                 description: Rate per unit (e.g., 12.25, 2.50)
+ *               unitOfMeasurement:
  *                 type: string
  *                 description: Unit of measurement (e.g., kWh, gallons)
+ *                 default: unit
  *             example:
  *               name: Electricity
- *               unit: kWh
+ *               unitRate: 1.25
+ *               unitOfMeasurement: kWh
  *     responses:
  *       "201":
  *         description: Created
@@ -56,7 +64,9 @@ const router = express.Router();
  *
  *   get:
  *     summary: Get all utility types
- *     description: Admins can retrieve all utility types. Other users can view utility types.
+ *     description: |
+ *       Admins can retrieve all utility types. Other users can view utility types.
+ *       Last updated: June 01, 2025, 9:02 PM +06.
  *     tags: [UtilityTypes]
  *     security:
  *       - bearerAuth: []
@@ -67,7 +77,7 @@ const router = express.Router();
  *           type: string
  *         description: Utility type name
  *       - in: query
- *         name: unit
+ *         name: unitOfMeasurement
  *         schema:
  *           type: string
  *         description: Unit of measurement
@@ -124,8 +134,10 @@ const router = express.Router();
  * @swagger
  * /utility-types/{id}:
  *   get:
- *     summary: Get a utility type
- *     description: Admins can fetch any utility type. Other users can view utility types.
+ *     summary: Get a utility type by ID
+ *     description: |
+ *       Admins can fetch any utility type. Other users can view utility types.
+ *       Last updated: June 01, 2025, 9:02 PM +06.
  *     tags: [UtilityTypes]
  *     security:
  *       - bearerAuth: []
@@ -134,8 +146,9 @@ const router = express.Router();
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
- *         description: Utility type id
+ *           type: string
+ *           format: uuid
+ *         description: Utility type ID
  *     responses:
  *       "200":
  *         description: OK
@@ -151,8 +164,10 @@ const router = express.Router();
  *         $ref: '#/components/responses/NotFound'
  *
  *   patch:
- *     summary: Update a utility type
- *     description: Only admins can update utility types.
+ *     summary: Update a utility type by ID
+ *     description: |
+ *       Only admins can update utility types.
+ *       Last updated: June 01, 2025, 9:02 PM +06.
  *     tags: [UtilityTypes]
  *     security:
  *       - bearerAuth: []
@@ -161,8 +176,9 @@ const router = express.Router();
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
- *         description: Utility type id
+ *           type: string
+ *           format: uuid
+ *         description: Utility type ID
  *     requestBody:
  *       required: true
  *       content:
@@ -172,13 +188,18 @@ const router = express.Router();
  *             properties:
  *               name:
  *                 type: string
- *                 description: Name of the utility type
- *               unit:
+ *                 description: Unique name of the utility type
+ *               unitRate:
+ *                 type: number
+ *                 format: float
+ *                 description: Rate per unit (e.g., 12.25, 2.50)
+ *               unitOfMeasurement:
  *                 type: string
  *                 description: Unit of measurement (e.g., kWh, gallons)
  *             example:
  *               name: Electricity Updated
- *               unit: kWh
+ *               unitRate: 1.50
+ *               unitOfMeasurement: kWh
  *     responses:
  *       "200":
  *         description: OK
@@ -196,8 +217,10 @@ const router = express.Router();
  *         $ref: '#/components/responses/NotFound'
  *
  *   delete:
- *     summary: Delete a utility type
- *     description: Only admins can delete utility types.
+ *     summary: Delete a utility type by ID
+ *     description: |
+ *       Only admins can delete utility types.
+ *       Last updated: June 01, 2025, 9:02 PM +06.
  *     tags: [UtilityTypes]
  *     security:
  *       - bearerAuth: []
@@ -206,8 +229,9 @@ const router = express.Router();
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
- *         description: Utility type id
+ *           type: string
+ *           format: uuid
+ *         description: Utility type ID
  *     responses:
  *       "200":
  *         description: No content
@@ -226,7 +250,7 @@ router
 
 router
   .route('/:id')
-  .get(validate(utilityTypeValidation.getUtilityType), utilityTypeController.getUtilityTypes)
+  .get(validate(utilityTypeValidation.getUtilityType), utilityTypeController.getUtilityTypeById)
   .patch(validate(utilityTypeValidation.updateUtilityType), utilityTypeController.updateUtilityTypeById)
   .delete(validate(utilityTypeValidation.deleteUtilityType), utilityTypeController.deleteUtilityTypeById);
 

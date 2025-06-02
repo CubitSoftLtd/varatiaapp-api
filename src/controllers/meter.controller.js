@@ -3,6 +3,8 @@ const catchAsync = require('../utils/catchAsync');
 const { meterService } = require('../services');
 
 const createMeter = catchAsync(async (req, res) => {
+  // eslint-disable-next-line no-console
+  console.log(req);
   const meter = await meterService.createMeter(req.params.propertyId, req.body);
   res.status(httpStatus.CREATED).send(meter);
 });

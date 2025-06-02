@@ -29,6 +29,7 @@ module.exports = (sequelize, DataTypes) => {
   Property.associate = (models) => {
     Property.hasMany(models.Unit, { foreignKey: 'propertyId', as: 'units' });
     Property.hasMany(models.Expense, { foreignKey: 'propertyId', as: 'expenses' });
+    Property.belongsTo(models.Unit, { foreignKey: 'accountId', as: 'account' });
   };
 
   return Property;

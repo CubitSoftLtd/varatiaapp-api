@@ -8,14 +8,14 @@ const createAccount = catchAsync(async (req, res) => {
 
   if (account) {
     // If the account is created successfully, also create a user for this account
-    await userService.createUser({
+    const user = await userService.createUser({
       accountId: account.id,
       email: account.contactEmail,
       name: account.name,
     });
 
-    const verifyEmailToken = await tokenService.generateVerifyEmailToken(req.user);
-    await emailService.sendVerificationEmail(req.user.email, verifyEmailToken);
+    const verifyEmailToken = await tokenService.generateVerifyEmailToken(user);
+    await emailService.sendVerificationEmail(user.email, verifyEmailToken);
   }
 
   res.status(httpStatus.CREATED).send(account);

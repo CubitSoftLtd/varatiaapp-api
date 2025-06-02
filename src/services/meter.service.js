@@ -1,5 +1,5 @@
 const httpStatus = require('http-status');
-const { Meter, Unit } = require('../models');
+const { Meter, Property, Unit, UtilityType } = require('../models');
 const ApiError = require('../utils/ApiError');
 
 /**
@@ -7,14 +7,44 @@ const ApiError = require('../utils/ApiError');
  * @param {Object} meterBody
  * @returns {Promise<Meter>}
  */
-const createMeter = async (meterBody) => {
-  if (meterBody.unitId) {
-    const unit = await Unit.findByPk(meterBody.unitId);
-    if (!unit) {
-      throw new ApiError(httpStatus.NOT_FOUND, 'Unit not found');
-    }
+const createMeter = async (propertyId, meterBody) => {
+  // eslint-disable-next-line no-console
+  console.log(propertyId);
+  // eslint-disable-next-line no-console
+  console.log(meterBody);
+
+  // Validate propertyId
+  const property = await Property.findByPk(meterBody.propertyId);
+  if (!property) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Property not found');
   }
-  return Meter.create(meterBody);
+
+  // Validate utilityTypeId
+  const utilityType = await UtilityType.findByPk(meterBody.utilityTypeId);
+  if (!utilityType) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Utility type not found');
+  }
+
+  // Verify propertyId from params matches body
+  if (propertyId !== meterBody.propertyId) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Property ID in URL and body must match');
+  }
+
+  // Create meter
+  try {
+    const meter = await Meter.create({
+      number: meterBody.number,
+      propertyId: meterBody.propertyId,
+      utilityTypeId: meterBody.utilityTypeId,
+      status: meterBody.status || 'active',
+    });
+    return meter;
+  } catch (error) {
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'Meter number already exists');
+    }
+    throw error;
+  }
 };
 
 /**

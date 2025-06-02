@@ -42,7 +42,6 @@ const getAllProperties = async (filter, options) => {
     limit,
     offset,
     order: sort.length ? sort : [['createdAt', 'DESC']],
-    include: [{ model: Account, as: 'Account' }],
   });
 
   return {
