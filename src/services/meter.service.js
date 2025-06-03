@@ -1,5 +1,5 @@
 const httpStatus = require('http-status');
-const { Meter, Property, Unit, UtilityType } = require('../models');
+const { Meter, Property, UtilityType } = require('../models');
 const ApiError = require('../utils/ApiError');
 
 /**
@@ -7,12 +7,7 @@ const ApiError = require('../utils/ApiError');
  * @param {Object} meterBody
  * @returns {Promise<Meter>}
  */
-const createMeter = async (propertyId, meterBody) => {
-  // eslint-disable-next-line no-console
-  console.log(propertyId);
-  // eslint-disable-next-line no-console
-  console.log(meterBody);
-
+const createMeter = async (meterBody) => {
   // Validate propertyId
   const property = await Property.findByPk(meterBody.propertyId);
   if (!property) {
@@ -23,11 +18,6 @@ const createMeter = async (propertyId, meterBody) => {
   const utilityType = await UtilityType.findByPk(meterBody.utilityTypeId);
   if (!utilityType) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Utility type not found');
-  }
-
-  // Verify propertyId from params matches body
-  if (propertyId !== meterBody.propertyId) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Property ID in URL and body must match');
   }
 
   // Create meter
@@ -72,7 +62,6 @@ const getAllMeters = async (filter, options) => {
     limit,
     offset,
     order: sort.length ? sort : [['createdAt', 'DESC']],
-    include: [{ model: Unit, as: 'Unit' }],
   });
 
   return {
@@ -90,9 +79,7 @@ const getAllMeters = async (filter, options) => {
  * @returns {Promise<Meter>}
  */
 const getMeterById = async (id) => {
-  const meter = await Meter.findByPk(id, {
-    include: [{ model: Unit, as: 'Unit' }],
-  });
+  const meter = await Meter.findByPk(id);
   if (!meter) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Meter not found');
   }
@@ -107,12 +94,6 @@ const getMeterById = async (id) => {
  */
 const updateMeter = async (meterId, updateBody) => {
   const meter = await getMeterById(meterId);
-  if (updateBody.unitId) {
-    const unit = await Unit.findByPk(updateBody.unitId);
-    if (!unit) {
-      throw new ApiError(httpStatus.NOT_FOUND, 'Unit not found');
-    }
-  }
   await meter.update(updateBody);
   return meter;
 };

@@ -1,5 +1,6 @@
 const httpStatus = require('http-status');
-const { MeterReading, Meter, Unit } = require('../models');
+const { Op } = require('sequelize');
+const { MeterReading, Meter, Submeter } = require('../models');
 const ApiError = require('../utils/ApiError');
 
 /**
@@ -12,6 +13,12 @@ const createMeterReading = async (meterReadingBody) => {
     const meter = await Meter.findByPk(meterReadingBody.meterId);
     if (!meter) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Meter not found');
+    }
+  }
+  if (meterReadingBody.submeterId) {
+    const submeter = await Submeter.findByPk(meterReadingBody.submeterId);
+    if (!submeter) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'Sub meter not found');
     }
   }
   return MeterReading.create(meterReadingBody);
@@ -42,7 +49,7 @@ const getAllMeterReadings = async (filter, options) => {
     limit,
     offset,
     order: sort.length ? sort : [['readingDate', 'DESC']],
-    include: [{ model: Meter, as: 'Meter', include: [{ model: Unit, as: 'Unit' }] }],
+    include: [{ model: Meter, as: 'meter' }],
   });
 
   return {
@@ -61,7 +68,7 @@ const getAllMeterReadings = async (filter, options) => {
  */
 const getMeterReadingById = async (id) => {
   const meterReading = await MeterReading.findByPk(id, {
-    include: [{ model: Meter, as: 'Meter', include: [{ model: Unit, as: 'Unit' }] }],
+    include: [{ model: Meter, as: 'meter' }],
   });
   if (!meterReading) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Meter reading not found');
@@ -97,10 +104,49 @@ const deleteMeterReading = async (meterReadingId) => {
   await meterReading.destroy();
 };
 
+const calculateConsumption = async (meterId, startDate, endDate) => {
+  // Find the most recent reading before or on startDate
+  const startReading = await MeterReading.findOne({
+    where: {
+      meterId,
+      readingDate: { [Op.lte]: startDate },
+    },
+    order: [['readingDate', 'DESC']],
+  });
+
+  // Find the most recent reading before or on endDate
+  const endReading = await MeterReading.findOne({
+    where: {
+      meterId,
+      readingDate: { [Op.lte]: endDate },
+    },
+    order: [['readingDate', 'DESC']],
+  });
+
+  // If no readings are found, return 0 consumption
+  if (!startReading || !endReading) {
+    return 0;
+  }
+
+  // Calculate consumption
+  const consumption = parseFloat(endReading.readingValue) - parseFloat(startReading.readingValue);
+
+  // Ensure consumption is not negative
+  if (consumption < 0) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Consumption cannot be negative. Check reading dates and values.');
+  }
+
+  // Update consumption in the endReading record
+  await endReading.update({ consumption });
+
+  return consumption;
+};
+
 module.exports = {
   createMeterReading,
   getAllMeterReadings,
   getMeterReadingById,
   updateMeterReading,
   deleteMeterReading,
+  calculateConsumption,
 };

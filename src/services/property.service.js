@@ -59,9 +59,7 @@ const getAllProperties = async (filter, options) => {
  * @returns {Promise<Property>}
  */
 const getPropertyById = async (id) => {
-  const property = await Property.findByPk(id, {
-    include: [{ model: Account, as: 'Account' }],
-  });
+  const property = await Property.findByPk(id);
   if (!property) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Property not found');
   }

@@ -2,6 +2,7 @@ const express = require('express');
 const validate = require('../../middlewares/validate');
 const unitValidation = require('../../validations/unit.validation');
 const unitController = require('../../controllers/unit.controller');
+const expenseRouter = require('./expense.route');
 
 const router = express.Router();
 
@@ -10,6 +11,36 @@ const router = express.Router();
  * tags:
  *   name: Units
  *   description: Unit management and retrieval
+ */
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Unit:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *           format: uuid
+ *           description: Unique identifier for the unit
+ *         name:
+ *           type: string
+ *           description: Name of the unit (e.g., A101)
+ *         propertyId:
+ *           type: string
+ *           format: uuid
+ *           description: ID of the associated property
+ *         rentAmount:
+ *           type: number
+ *           format: float
+ *           description: Monthly rent amount for the unit
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
  */
 
 /**
@@ -29,23 +60,24 @@ const router = express.Router();
  *             type: object
  *             required:
  *               - propertyId
- *               - unitNumber
- *               - type
+ *               - name
+ *               - rentAmount
  *             properties:
  *               propertyId:
- *                 type: integer
+ *                 type: string
+ *                 format: uuid
  *                 description: ID of the property
- *               unitNumber:
+ *               name:
  *                 type: string
- *                 description: Unique unit number within the property
- *               type:
- *                 type: string
- *                 enum: [apartment, office, retail]
- *                 description: Type of unit
+ *                 description: Name of the unit (e.g., A101)
+ *               rentAmount:
+ *                 type: number
+ *                 format: float
+ *                 description: Monthly rent amount for the unit
  *             example:
- *               propertyId: 1
- *               unitNumber: A101
- *               type: apartment
+ *               propertyId: "550e8400-e29b-41d4-a716-446655440000"
+ *               name: "A101"
+ *               rentAmount: 1200.00
  *     responses:
  *       "201":
  *         description: Created
@@ -70,24 +102,20 @@ const router = express.Router();
  *       - in: query
  *         name: propertyId
  *         schema:
- *           type: integer
- *         description: Property ID
- *       - in: query
- *         name: type
- *         schema:
  *           type: string
- *         description: Unit type
+ *           format: uuid
+ *         description: Property ID
  *       - in: query
  *         name: sortBy
  *         schema:
  *           type: string
- *         description: Sort by query in the form of field:desc/asc (ex. unitNumber:asc)
+ *         description: Sort by query in the form of field:desc/asc (ex. name:asc)
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
  *           minimum: 1
- *         default: 10
+ *           default: 10
  *         description: Maximum number of units
  *       - in: query
  *         name: page
@@ -140,7 +168,8 @@ const router = express.Router();
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
+ *           format: uuid
  *         description: Unit id
  *     responses:
  *       "200":
@@ -167,7 +196,8 @@ const router = express.Router();
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
+ *           format: uuid
  *         description: Unit id
  *     requestBody:
  *       required: true
@@ -176,16 +206,16 @@ const router = express.Router();
  *           schema:
  *             type: object
  *             properties:
- *               unitNumber:
+ *               name:
  *                 type: string
- *                 description: Unique unit number within the property
- *               type:
- *                 type: string
- *                 enum: [apartment, office, retail]
- *                 description: Type of unit
+ *                 description: Name of the unit (e.g., A102)
+ *               rentAmount:
+ *                 type: number
+ *                 format: float
+ *                 description: Monthly rent amount for the unit
  *             example:
- *               unitNumber: A102
- *               type: office
+ *               name: "A102"
+ *               rentAmount: 1300.00
  *     responses:
  *       "200":
  *         description: OK
@@ -213,10 +243,11 @@ const router = express.Router();
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
+ *           format: uuid
  *         description: Unit id
  *     responses:
- *       "200":
+ *       "204":
  *         description: No content
  *       "401":
  *         $ref: '#/components/responses/Unauthorized'
@@ -231,10 +262,26 @@ router
   .post(validate(unitValidation.createUnit), unitController.createUnit)
   .get(validate(unitValidation.getUnits), unitController.getUnits);
 
+/**
+ * GET    /units/:id
+ * PATCH  /units/:id
+ * DELETE /units/:id
+ */
 router
   .route('/:id')
-  .get(validate(unitValidation.getUnit), unitController.getUnits)
+  .get(validate(unitValidation.getUnit), unitController.getUnitById)
   .patch(validate(unitValidation.updateUnit), unitController.updateUnitById)
   .delete(validate(unitValidation.deleteUnit), unitController.deleteUnitById);
+
+/**
+ * Mount expenseRouter under /units/:id/expenses
+ *
+ * - POST   /units/:id/expenses       → create a new unit expense
+ * - GET    /units/:id/expenses       → list all unit expenses
+ * - GET    /units/:id/expenses/:id   → get a single expense by its ID
+ * - PATCH  /units/:id/expenses/:id   → update an expense by its ID
+ * - DELETE /units/:id/expenses/:id   → delete an expense by its ID
+ */
+router.use('/:unitId/expenses', expenseRouter);
 
 module.exports = router;

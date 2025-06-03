@@ -4,7 +4,6 @@ module.exports.accountValidation = require('./account.validation');
 module.exports.propertyValidation = require('./property.validation');
 module.exports.unitValidation = require('./unit.validation');
 module.exports.tenantValidation = require('./tenant.validation');
-module.exports.rentValidation = require('./rent.validation');
 module.exports.billValidation = require('./bill.validation');
 module.exports.paymentValidation = require('./payment.validation');
 module.exports.utilityTypeValidation = require('./utilityType.validation');

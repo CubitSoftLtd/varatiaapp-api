@@ -14,6 +14,96 @@ const router = express.Router();
 
 /**
  * @swagger
+ * components:
+ *   schemas:
+ *     Tenant:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *           format: uuid
+ *           description: Unique identifier for the tenant
+ *         firstName:
+ *           type: string
+ *           description: First name of the tenant
+ *         lastName:
+ *           type: string
+ *           description: Last name of the tenant
+ *         email:
+ *           type: string
+ *           format: email
+ *           description: Email address of the tenant
+ *         phoneNumber:
+ *           type: string
+ *           description: Phone number of the tenant
+ *         emergencyContact:
+ *           type: string
+ *           nullable: true
+ *           description: Emergency contact phone number
+ *         unitId:
+ *           type: string
+ *           format: uuid
+ *           nullable: true
+ *           description: ID of the unit the tenant is assigned to
+ *         leaseStartDate:
+ *           type: string
+ *           format: date-time
+ *           description: Start date of the lease
+ *         leaseEndDate:
+ *           type: string
+ *           format: date-time
+ *           nullable: true
+ *           description: End date of the lease
+ *         depositAmount:
+ *           type: number
+ *           format: float
+ *           description: Deposit amount paid by the tenant
+ *         status:
+ *           type: string
+ *           enum: [active, inactive, evicted]
+ *           description: Status of the tenant
+ *         nationalId:
+ *           type: string
+ *           description: National ID of the tenant
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
+ *     TenancyHistory:
+ *       type: object
+ *       properties:
+ *         tenantId:
+ *           type: string
+ *           format: uuid
+ *           description: ID of the tenant
+ *         firstName:
+ *           type: string
+ *           description: First name of the tenant
+ *         lastName:
+ *           type: string
+ *           description: Last name of the tenant
+ *         unitId:
+ *           type: string
+ *           format: uuid
+ *           description: ID of the unit
+ *         leaseStartDate:
+ *           type: string
+ *           format: date-time
+ *           description: Start date of the lease
+ *         leaseEndDate:
+ *           type: string
+ *           format: date-time
+ *           nullable: true
+ *           description: End Astrophel’s Atreides
+ *         status:
+ *           type: string
+ *           description: Status of the tenant during tenancy
+ */
+
+/**
+ * @swagger
  * /tenants:
  *   post:
  *     summary: Create a new tenant
@@ -28,23 +118,68 @@ const router = express.Router();
  *           schema:
  *             type: object
  *             required:
- *               - name
- *               - contactInfo
+ *               - firstName
+ *               - lastName
+ *               - email
+ *               - phoneNumber
+ *               - leaseStartDate
+ *               - depositAmount
+ *               - nationalId
  *             properties:
- *               name:
+ *               firstName:
  *                 type: string
- *                 description: Name of the tenant
- *               contactInfo:
+ *                 description: First name of the tenant
+ *               lastName:
  *                 type: string
- *                 description: Contact information of the tenant (e.g., email or phone)
+ *                 description: Last name of the tenant
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: Email address of the tenant
+ *               phoneNumber:
+ *                 type: string
+ *                 description: Phone number of the tenant
+ *               emergencyContact:
+ *                 type: string
+ *                 nullable: true
+ *                 description: Emergency contact phone number
  *               unitId:
  *                 type: string
  *                 format: uuid
+ *                 nullable: true
  *                 description: ID of the unit the tenant is assigned to
+ *               leaseStartDate:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Start date of the lease
+ *               leaseEndDate:
+ *                 type: string
+ *                 format: date-time
+ *                 nullable: true
+ *                 description: End date of the lease
+ *               depositAmount:
+ *                 type: number
+ *                 format: float
+ *                 description: Deposit amount paid by the tenant
+ *               status:
+ *                 type: string
+ *                 enum: [active, inactive, evicted]
+ *                 description: Status of the tenant
+ *               nationalId:
+ *                 type: string
+ *                 description: National ID of the tenant
  *             example:
- *               name: John Doe
- *               contactInfo: john.doe@example.com
- *               unitId: 987fcdeb-1234-5678-9abc-def123456789
+ *               firstName: "John"
+ *               lastName: "Doe"
+ *               email: "john.doe@example.com"
+ *               phoneNumber: "+1234567890"
+ *               emergencyContact: "+0987654321"
+ *               unitId: "987fcdeb-1234-5678-9abc-def123456789"
+ *               leaseStartDate: "2025-06-01T00:00:00Z"
+ *               leaseEndDate: "2026-05-31T00:00:00Z"
+ *               depositAmount: 1000.00
+ *               status: "active"
+ *               nationalId: "ABC123-456"
  *     responses:
  *       "201":
  *         description: Created
@@ -67,21 +202,32 @@ const router = express.Router();
  *       - bearerAuth: []
  *     parameters:
  *       - in: query
- *         name: filter
+ *         name: firstName
  *         schema:
  *           type: string
- *         description: JSON string of filter conditions (e.g., {"name":"John"})
+ *         description: Filter by first name
+ *       - in: query
+ *         name: lastName
+ *         schema:
+ *           type: string
+ *         description: Filter by last name
+ *       - in: query
+ *         name: email
+ *         schema:
+ *           type: string
+ *           format: email
+ *         description: Filter by email
  *       - in: query
  *         name: sortBy
  *         schema:
  *           type: string
- *         description: Sort by query in the form of field:desc/asc (ex. name:asc)
+ *         description: Sort by query in the form of field:desc/asc (ex. firstName:asc)
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
  *           minimum: 1
- *         default: 10
+ *           default: 10
  *         description: Maximum number of tenants
  *       - in: query
  *         name: page
@@ -172,20 +318,60 @@ const router = express.Router();
  *           schema:
  *             type: object
  *             properties:
- *               name:
+ *               firstName:
  *                 type: string
- *                 description: Name of the tenant
- *               contactInfo:
+ *                 description: First name of the tenant
+ *               lastName:
  *                 type: string
- *                 description: Contact information of the tenant (e.g., email or phone)
+ *                 description: Last name of the tenant
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: Email address of the tenant
+ *               phoneNumber:
+ *                 type: string
+ *                 description: Phone number of the tenant
+ *               emergencyContact:
+ *                 type: string
+ *                 nullable: true
+ *                 description: Emergency contact phone number
  *               unitId:
  *                 type: string
  *                 format: uuid
+ *                 nullable: true
  *                 description: ID of the unit the tenant is assigned to
+ *               leaseStartDate:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Start date of the lease
+ *               leaseEndDate:
+ *                 type: string
+ *                 format: date-time
+ *                 nullable: true
+ *                 description: End date of the lease
+ *               depositAmount:
+ *                 type: number
+ *                 format: float
+ *                 description: Deposit amount paid by the tenant
+ *               status:
+ *                 type: string
+ *                 enum: [active, inactive, evicted]
+ *                 description: Status of the tenant
+ *               nationalId:
+ *                 type: string
+ *                 description: National ID of the tenant
  *             example:
- *               name: John Doe Updated
- *               contactInfo: john.doe.updated@example.com
- *               unitId: 987fcdeb-1234-5678-9abc-def123456789
+ *               firstName: "John"
+ *               lastName: "Doe Updated"
+ *               email: "john.doe.updated@example.com"
+ *               phoneNumber: "+1234567890"
+ *               emergencyContact: "+0987654321"
+ *               unitId: "987fcdeb-1234-5678-9abc-def123456789"
+ *               leaseStartDate: "2025-06-01T00:00:00Z"
+ *               leaseEndDate: "2026-05-31T00:00:00Z"
+ *               depositAmount: 1200.00
+ *               status: "active"
+ *               nationalId: "XYZ789-012"
  *     responses:
  *       "200":
  *         description: OK
@@ -332,8 +518,8 @@ router
 router
   .route('/:id')
   .get(validate(tenantValidation.getTenant), tenantController.getTenantById)
-  .patch(validate(tenantValidation.updateTenant), tenantController.updateTenant)
-  .delete(validate(tenantValidation.deleteTenant), tenantController.deleteTenant);
+  .patch(validate(tenantValidation.updateTenant), tenantController.updateTenantById)
+  .delete(validate(tenantValidation.deleteTenant), tenantController.deleteTenantById);
 
 router
   .route('/property/:propertyId/unit/:unitId')

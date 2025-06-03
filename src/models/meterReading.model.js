@@ -11,6 +11,10 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.UUID,
         allowNull: false,
       },
+      submeterId: {
+        type: DataTypes.UUID,
+        allowNull: false,
+      },
       readingValue: {
         type: DataTypes.DECIMAL(10, 2),
         allowNull: false,

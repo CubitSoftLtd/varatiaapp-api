@@ -1,7 +1,8 @@
 const httpStatus = require('http-status');
+const { Op } = require('sequelize');
 const { Tenant, Unit, Property, TenancyHistory } = require('../models');
 const ApiError = require('../utils/ApiError');
-const sequelize = require('../models');
+
 /**
  * Create a tenant
  * @param {Object} tenantBody
@@ -42,7 +43,7 @@ const getAllTenants = async (filter, options) => {
     limit,
     offset,
     order: sort.length ? sort : [['createdAt', 'DESC']],
-    include: [{ model: Unit, as: 'Unit', include: [{ model: Property, as: 'Property' }] }],
+    include: [{ model: Unit, as: 'unit', include: [{ model: Property, as: 'property' }] }],
   });
 
   return {
@@ -61,7 +62,7 @@ const getAllTenants = async (filter, options) => {
  */
 const getTenantById = async (id) => {
   const tenant = await Tenant.findByPk(id, {
-    include: [{ model: Unit, as: 'Unit', include: [{ model: Property, as: 'Property' }] }],
+    include: [{ model: Unit, as: 'unit', include: [{ model: Property, as: 'property' }] }],
   });
   if (!tenant) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Tenant not found');
@@ -119,7 +120,7 @@ const getTenantsByUnitAndProperty = async (propertyId, unitId) => {
 
   const tenants = await Tenant.findAll({
     where: { unitId },
-    include: [{ model: Unit, as: 'Unit', include: [{ model: Property, as: 'Property' }] }],
+    include: [{ model: Unit, as: 'unit', include: [{ model: Property, as: 'property' }] }],
   });
 
   return tenants;
@@ -133,20 +134,39 @@ const getTenantsByUnitAndProperty = async (propertyId, unitId) => {
  * @returns {Promise<{ results: TenancyHistory[], totalResults: number }>}
  */
 const getHistoricalTenantsByUnit = async (unitId, startDate, endDate) => {
+  // Validate unit existence
   const unit = await Unit.findByPk(unitId);
   if (!unit) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Unit not found');
   }
 
+  // Validate dates (optional but recommended)
+  if (!startDate || !endDate) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Start date and end date are required');
+  }
+
+  // Ensure dates are in the correct format
+  const parsedStartDate = new Date(startDate);
+  const parsedEndDate = new Date(endDate);
+
+  // eslint-disable-next-line no-restricted-globals
+  if (isNaN(parsedStartDate) || isNaN(parsedEndDate)) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid date format');
+  }
+
+  // Query tenancy histories
   const histories = await TenancyHistory.findAll({
     where: {
       unitId,
-      startDate: { [sequelize.Op.lte]: endDate },
-      [sequelize.Op.or]: [{ endDate: { [sequelize.Op.gte]: startDate } }, { endDate: null }],
+      startDate: { [Op.lte]: parsedEndDate }, // Use Op.lte for <= comparison
+      [Op.or]: [
+        { endDate: { [Op.gte]: parsedStartDate } }, // Use Op.gte for >= comparison
+        { endDate: null },
+      ],
     },
     include: [
-      { model: Tenant, as: 'Tenant' },
-      { model: Unit, as: 'Unit', include: [{ model: Property, as: 'Property' }] },
+      { model: Tenant, as: 'tenant' },
+      { model: Unit, as: 'unit', include: [{ model: Property, as: 'property' }] }, // Fix typo: 'pnit' to 'unit'
     ],
   });
 

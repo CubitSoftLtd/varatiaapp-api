@@ -14,12 +14,46 @@ const router = express.Router();
 
 /**
  * @swagger
+ * components:
+ *   schemas:
+ *     Meter:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *           format: uuid
+ *           description: Unique identifier for the meter
+ *         number:
+ *           type: string
+ *           description: Unique meter number
+ *         propertyId:
+ *           type: string
+ *           format: uuid
+ *           description: ID of the associated property
+ *         utilityTypeId:
+ *           type: string
+ *           format: uuid
+ *           description: ID of the associated utility type
+ *         status:
+ *           type: string
+ *           enum: [active, inactive, maintenance]
+ *           description: Status of the meter
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
+ */
+
+/**
+ * @swagger
  * /meters:
  *   post:
  *     summary: Create a new meter
  *     description: |
  *       Only admins can create new meters. Property ID must be provided in the request body.
- *       Last updated: June 02, 2025, 08:13 AM +06.
+ *       Last updated: June 02, 2025, 04:48 PM +06.
  *     tags: [Meters]
  *     security:
  *       - bearerAuth: []
@@ -75,7 +109,7 @@ const router = express.Router();
  *     summary: Get all meters
  *     description: |
  *       Admins can retrieve all meters. Other authenticated users can view meters.
- *       Last updated: June 02, 2025, 08:13 AM +06.
+ *       Last updated: June 02, 2025, 04:48 PM +06.
  *     tags: [Meters]
  *     security:
  *       - bearerAuth: []
@@ -155,7 +189,7 @@ const router = express.Router();
  *     summary: Get a meter by ID
  *     description: |
  *       Admins can fetch any meter. Other authenticated users can view meters.
- *       Last updated: June 02, 2025, 08:13 AM +06.
+ *       Last updated: June 02, 2025, 04:48 PM +06.
  *     tags: [Meters]
  *     security:
  *       - bearerAuth: []
@@ -185,7 +219,7 @@ const router = express.Router();
  *     summary: Update a meter by ID
  *     description: |
  *       Only admins can update meters.
- *       Last updated: June 02, 2025, 08:13 AM +06.
+ *       Last updated: June 02, 2025, 04:48 PM +06.
  *     tags: [Meters]
  *     security:
  *       - bearerAuth: []
@@ -244,7 +278,7 @@ const router = express.Router();
  *     summary: Delete a meter by ID
  *     description: |
  *       Only admins can delete meters.
- *       Last updated: June 02, 2025, 08:13 AM +06.
+ *       Last updated: June 02, 2025, 04:48 PM +06.
  *     tags: [Meters]
  *     security:
  *       - bearerAuth: []
@@ -257,7 +291,7 @@ const router = express.Router();
  *           format: uuid
  *         description: Meter ID
  *     responses:
- *       "200":
+ *       "204":
  *         description: No content
  *       "401":
  *         $ref: '#/components/responses/Unauthorized'

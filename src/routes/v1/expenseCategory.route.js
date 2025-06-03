@@ -29,15 +29,21 @@ const router = express.Router();
  *             type: object
  *             required:
  *               - name
+ *               - type
  *             properties:
  *               name:
  *                 type: string
  *                 description: Name of the expense category
+ *               type:
+ *                 type: string
+ *                 enum: [utility, personal, tenant_charge]
+ *                 description: Type of the expense category
  *               description:
  *                 type: string
  *                 description: Description of the expense category
  *             example:
  *               name: Maintenance
+ *               type: utility
  *               description: Costs related to property maintenance
  *     responses:
  *       "201":
@@ -65,6 +71,12 @@ const router = express.Router();
  *         schema:
  *           type: string
  *         description: Name of the expense category
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [utility, personal, tenant_charge]
+ *         description: Type of the expense category
  *       - in: query
  *         name: sortBy
  *         schema:
@@ -128,7 +140,8 @@ const router = express.Router();
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
+ *           format: uuid
  *         description: Expense Category ID
  *     responses:
  *       "200":
@@ -155,7 +168,8 @@ const router = express.Router();
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
+ *           format: uuid
  *         description: Expense Category ID
  *     requestBody:
  *       required: true
@@ -167,11 +181,16 @@ const router = express.Router();
  *               name:
  *                 type: string
  *                 description: Name of the expense category
+ *               type:
+ *                 type: string
+ *                 enum: [utility, personal, tenant_charge]
+ *                 description: Type of the expense category
  *               description:
  *                 type: string
  *                 description: Description of the expense category
  *             example:
  *               name: Maintenance Updated
+ *               type: utility
  *               description: Updated costs related to property maintenance
  *     responses:
  *       "200":
@@ -200,7 +219,8 @@ const router = express.Router();
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
+ *           format: uuid
  *         description: Expense Category ID
  *     responses:
  *       "200":

@@ -1,22 +1,18 @@
 const Joi = require('joi');
 
+// Define meter statuses (consistent with the route file)
 const meterStatuses = {
   ACTIVE: 'active',
   INACTIVE: 'inactive',
   MAINTENANCE: 'maintenance',
 };
 
+/**
+ * Validation schema for creating a meter
+ * Last updated: June 02, 2025, 04:49 PM +06
+ */
 const createMeter = {
-  params: Joi.object().keys({
-    propertyId: Joi.string()
-      .uuid({ version: ['uuidv4'] })
-      .required()
-      .messages({
-        'string.base': 'Property ID must be a string',
-        'string.empty': 'Property ID is required',
-        'string.uuid': 'Property ID must be a valid UUID',
-      }),
-  }),
+  params: Joi.object().keys({}),
   body: Joi.object().keys({
     number: Joi.string().required().min(3).max(50).messages({
       'string.base': 'Number must be a string',
@@ -50,17 +46,12 @@ const createMeter = {
   }),
 };
 
+/**
+ * Validation schema for getting all meters
+ * Last updated: June 02, 2025, 04:49 PM +06
+ */
 const getMeters = {
-  params: Joi.object().keys({
-    propertyId: Joi.string()
-      .uuid({ version: ['uuidv4'] })
-      .required()
-      .messages({
-        'string.base': 'Property ID must be a string',
-        'string.empty': 'Property ID is required',
-        'string.uuid': 'Property ID must be a valid UUID',
-      }),
-  }),
+  params: Joi.object().keys({}), // No path parameters
   query: Joi.object().keys({
     number: Joi.string().min(1).max(50).messages({
       'string.base': 'Number must be a string',
@@ -72,6 +63,12 @@ const getMeters = {
       .messages({
         'string.base': 'Status must be a string',
         'any.only': 'Status must be one of: active, inactive, maintenance',
+      }),
+    propertyId: Joi.string()
+      .uuid({ version: ['uuidv4'] })
+      .messages({
+        'string.base': 'Property ID must be a string',
+        'string.uuid': 'Property ID must be a valid UUID',
       }),
     sortBy: Joi.string()
       .pattern(/^[a-zA-Z]+:(asc|desc)$/)
@@ -92,16 +89,12 @@ const getMeters = {
   }),
 };
 
+/**
+ * Validation schema for getting a meter by ID
+ * Last updated: June 02, 2025, 04:49 PM +06
+ */
 const getMeter = {
   params: Joi.object().keys({
-    propertyId: Joi.string()
-      .uuid({ version: ['uuidv4'] })
-      .required()
-      .messages({
-        'string.base': 'Property ID must be a string',
-        'string.empty': 'Property ID is required',
-        'string.uuid': 'Property ID must be a valid UUID',
-      }),
     id: Joi.string()
       .uuid({ version: ['uuidv4'] })
       .required()
@@ -113,16 +106,12 @@ const getMeter = {
   }),
 };
 
+/**
+ * Validation schema for updating a meter by ID
+ * Last updated: June 02, 2025, 04:49 PM +06
+ */
 const updateMeter = {
   params: Joi.object().keys({
-    propertyId: Joi.string()
-      .uuid({ version: ['uuidv4'] })
-      .required()
-      .messages({
-        'string.base': 'Property ID must be a string',
-        'string.empty': 'Property ID is required',
-        'string.uuid': 'Property ID must be a valid UUID',
-      }),
     id: Joi.string()
       .uuid({ version: ['uuidv4'] })
       .required()
@@ -164,16 +153,12 @@ const updateMeter = {
     }),
 };
 
+/**
+ * Validation schema for deleting a meter by ID
+ * Last updated: June 02, 2025, 04:49 PM +06
+ */
 const deleteMeter = {
   params: Joi.object().keys({
-    propertyId: Joi.string()
-      .uuid({ version: ['uuidv4'] })
-      .required()
-      .messages({
-        'string.base': 'Property ID must be a string',
-        'string.empty': 'Property ID is required',
-        'string.uuid': 'Property ID must be a valid UUID',
-      }),
     id: Joi.string()
       .uuid({ version: ['uuidv4'] })
       .required()

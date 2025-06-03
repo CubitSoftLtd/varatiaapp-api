@@ -1,21 +1,22 @@
 const httpStatus = require('http-status');
 const pick = require('../utils/pick');
 const catchAsync = require('../utils/catchAsync');
-const { accountService, userService, emailService, tokenService } = require('../services');
+const { accountService, userService } = require('../services');
 
 const createAccount = catchAsync(async (req, res) => {
   const account = await accountService.createAccount(req.body);
 
+  // TODO: Need to send email
   if (account) {
     // If the account is created successfully, also create a user for this account
-    const user = await userService.createUser({
+    await userService.createUser({
       accountId: account.id,
       email: account.contactEmail,
       name: account.name,
     });
 
-    const verifyEmailToken = await tokenService.generateVerifyEmailToken(user);
-    await emailService.sendVerificationEmail(user.email, verifyEmailToken);
+    // const verifyEmailToken = await tokenService.generateVerifyEmailToken(user);
+    // await emailService.sendVerificationEmail(user.email, verifyEmailToken);
   }
 
   res.status(httpStatus.CREATED).send(account);
@@ -35,12 +36,12 @@ const getAccountById = catchAsync(async (req, res) => {
 });
 
 const updateAccountById = catchAsync(async (req, res) => {
-  const account = await accountService.updateAccountById(req.params.id, req.body);
+  const account = await accountService.updateAccount(req.params.id, req.body);
   res.send(account);
 });
 
 const deleteAccountById = catchAsync(async (req, res) => {
-  await accountService.deleteAccountById(req.params.id);
+  await accountService.deleteAccount(req.params.id);
   res.status(httpStatus.NO_CONTENT).send();
 });
 

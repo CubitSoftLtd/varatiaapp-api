@@ -1,14 +1,17 @@
 const httpStatus = require('http-status');
+const pick = require('../utils/pick');
 const catchAsync = require('../utils/catchAsync');
 const { unitService } = require('../services');
 
 const createUnit = catchAsync(async (req, res) => {
-  const unit = await unitService.createUnit(req.params.propertyId, req.body);
+  const unit = await unitService.createUnit(req.body);
   res.status(httpStatus.CREATED).send(unit);
 });
 
 const getUnits = catchAsync(async (req, res) => {
-  const units = await unitService.getUnitsByPropertyId(req.params.propertyId);
+  const filter = pick(req.query, ['name', 'type']);
+  const options = pick(req.query, ['sortBy', 'limit', 'page']);
+  const units = await unitService.getAllUnits(filter, options);
   res.send(units);
 });
 
@@ -18,12 +21,12 @@ const getUnitById = catchAsync(async (req, res) => {
 });
 
 const updateUnitById = catchAsync(async (req, res) => {
-  const unit = await unitService.updateUnitById(req.params.id, req.body);
+  const unit = await unitService.updateUnit(req.params.id, req.body);
   res.send(unit);
 });
 
 const deleteUnitById = catchAsync(async (req, res) => {
-  await unitService.deleteUnitById(req.params.id);
+  await unitService.deleteUnit(req.params.id);
   res.status(httpStatus.NO_CONTENT).send();
 });
 

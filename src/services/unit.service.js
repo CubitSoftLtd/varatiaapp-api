@@ -42,7 +42,7 @@ const getAllUnits = async (filter, options) => {
     limit,
     offset,
     order: sort.length ? sort : [['createdAt', 'DESC']],
-    include: [{ model: Property, as: 'Property' }],
+    include: [{ model: Property, as: 'property' }],
   });
 
   return {
@@ -61,7 +61,7 @@ const getAllUnits = async (filter, options) => {
  */
 const getUnitById = async (id) => {
   const unit = await Unit.findByPk(id, {
-    include: [{ model: Property, as: 'Property' }],
+    include: [{ model: Property, as: 'property' }],
   });
   if (!unit) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Unit not found');

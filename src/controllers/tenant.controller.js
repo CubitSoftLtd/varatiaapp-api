@@ -43,7 +43,7 @@ const getTenantById = catchAsync(async (req, res) => {
  * @param {Object} req
  * @param {Object} res
  */
-const updateTenant = catchAsync(async (req, res) => {
+const updateTenantById = catchAsync(async (req, res) => {
   const tenant = await tenantService.updateTenant(req.params.id, req.body);
   res.json(tenant);
 });
@@ -53,7 +53,7 @@ const updateTenant = catchAsync(async (req, res) => {
  * @param {Object} req
  * @param {Object} res
  */
-const deleteTenant = catchAsync(async (req, res) => {
+const deleteTenantById = catchAsync(async (req, res) => {
   await tenantService.deleteTenant(req.params.id);
   res.status(httpStatus.NO_CONTENT).send();
 });
@@ -85,8 +85,8 @@ module.exports = {
   createTenant,
   getAllTenants,
   getTenantById,
-  updateTenant,
-  deleteTenant,
+  updateTenantById,
+  deleteTenantById,
   getTenantsByUnitAndProperty,
   getHistoricalTenantsByUnit,
 };

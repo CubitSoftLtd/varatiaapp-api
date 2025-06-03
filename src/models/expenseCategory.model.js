@@ -13,7 +13,7 @@ module.exports = (sequelize, DataTypes) => {
         unique: true,
       },
       type: {
-        type: DataTypes.ENUM('utility', 'personal'),
+        type: DataTypes.ENUM('utility', 'personal', 'tenant_charge'),
         allowNull: false,
       },
     },
@@ -24,7 +24,7 @@ module.exports = (sequelize, DataTypes) => {
   );
 
   ExpenseCategory.associate = (models) => {
-    ExpenseCategory.hasMany(models.Expense, { foreignKey: 'expenseCategoryId', as: 'expenses' });
+    ExpenseCategory.hasMany(models.Expense, { foreignKey: 'categoryId', as: 'expenses' });
   };
 
   return ExpenseCategory;

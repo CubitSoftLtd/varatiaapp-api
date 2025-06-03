@@ -32,6 +32,7 @@ module.exports = (sequelize, DataTypes) => {
 
   TenantHistory.associate = (models) => {
     TenantHistory.belongsTo(models.Tenant, { foreignKey: 'tenantId', as: 'tenant' });
+    TenantHistory.belongsTo(models.Unit, { foreignKey: 'unitId', as: 'unit' });
   };
 
   return TenantHistory;

@@ -28,24 +28,30 @@ const router = express.Router();
  *           schema:
  *             type: object
  *             required:
- *               - unitId
- *               - reading
- *               - date
+ *               - meterId
+ *               - readingValue
+ *               - readingDate
  *             properties:
- *               unitId:
- *                 type: integer
- *                 description: ID of the unit
- *               reading:
+ *               meterId:
+ *                 type: string
+ *                 format: uuid
+ *                 description: ID of the meter
+ *               submeterId:
+ *                 type: string
+ *                 format: uuid
+ *                 description: ID of the submeter (optional)
+ *               readingValue:
  *                 type: number
  *                 description: Meter reading value
- *               date:
+ *               readingDate:
  *                 type: string
  *                 format: date
  *                 description: Date of the meter reading
  *             example:
- *               unitId: 1
- *               reading: 150.5
- *               date: 2025-05-27
+ *               meterId: "123e4567-e89b-12d3-a456-426614174000"
+ *               submeterId: "123e4567-e89b-12d3-a456-426614174001"
+ *               readingValue: 150.50
+ *               readingDate: "2025-05-27"
  *     responses:
  *       "201":
  *         description: Created
@@ -68,15 +74,22 @@ const router = express.Router();
  *       - bearerAuth: []
  *     parameters:
  *       - in: query
- *         name: unitId
+ *         name: meterId
  *         schema:
- *           type: integer
- *         description: Unit ID
+ *           type: string
+ *           format: uuid
+ *         description: Meter ID
+ *       - in: query
+ *         name: submeterId
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Submeter ID
  *       - in: query
  *         name: sortBy
  *         schema:
  *           type: string
- *         description: Sort by query in the form of field:desc/asc (ex. date:asc)
+ *         description: Sort by query in the form of field:desc/asc (ex. readingDate:asc)
  *       - in: query
  *         name: limit
  *         schema:
@@ -135,8 +148,9 @@ const router = express.Router();
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
- *         description: Meter reading id
+ *           type: string
+ *           format: uuid
+ *         description: Meter reading ID
  *     responses:
  *       "200":
  *         description: OK
@@ -162,8 +176,9 @@ const router = express.Router();
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
- *         description: Meter reading id
+ *           type: string
+ *           format: uuid
+ *         description: Meter reading ID
  *     requestBody:
  *       required: true
  *       content:
@@ -171,16 +186,16 @@ const router = express.Router();
  *           schema:
  *             type: object
  *             properties:
- *               reading:
+ *               readingValue:
  *                 type: number
  *                 description: Meter reading value
- *               date:
+ *               readingDate:
  *                 type: string
  *                 format: date
  *                 description: Date of the meter reading
  *             example:
- *               reading: 160.0
- *               date: 2025-06-01
+ *               readingValue: 160.00
+ *               readingDate: "2025-06-01"
  *     responses:
  *       "200":
  *         description: OK
@@ -208,8 +223,9 @@ const router = express.Router();
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
- *         description: Meter reading id
+ *           type: string
+ *           format: uuid
+ *         description: Meter reading ID
  *     responses:
  *       "200":
  *         description: No content
@@ -228,7 +244,10 @@ router
 
 router
   .route('/:id')
-  .get(validate(meterReadingValidation.getMeterReading), meterReadingController.getMeterReadings)
+  .get(
+    validate(meterReadingValidation.getMeterReading),
+    meterReadingController.getMeterReadingById // Fixed typo: getMeterReadings → getMeterReadingById
+  )
   .patch(validate(meterReadingValidation.updateMeterReading), meterReadingController.updateMeterReadingById)
   .delete(validate(meterReadingValidation.deleteMeterReading), meterReadingController.deleteMeterReadingById);
 

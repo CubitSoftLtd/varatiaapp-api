@@ -16,8 +16,6 @@ const MeterReading = require('./meterReading.model');
 const UtilityType = require('./utilityType.model');
 const Expense = require('./expense.model');
 const ExpenseCategory = require('./expenseCategory.model');
-const Rent = require('./rent.model');
-const RentSlip = require('./rentSlip.model');
 const TenancyHistory = require('./tenancyHistory.model');
 const Document = require('./document.model');
 
@@ -49,8 +47,6 @@ const models = {
   UtilityType: UtilityType(sequelize, DataTypes),
   ExpenseCategory: ExpenseCategory(sequelize, DataTypes),
   Expense: Expense(sequelize, DataTypes),
-  Rent: Rent(sequelize, DataTypes),
-  RentSlip: RentSlip(sequelize, DataTypes),
   Bill: Bill(sequelize, DataTypes),
   Payment: Payment(sequelize, DataTypes),
   Document: Document(sequelize, DataTypes),

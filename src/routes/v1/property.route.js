@@ -2,6 +2,7 @@ const express = require('express');
 const validate = require('../../middlewares/validate');
 const propertyValidation = require('../../validations/property.validation');
 const propertyController = require('../../controllers/property.controller');
+const expenseRouter = require('./expense.route'); // Import the expense routes
 
 const router = express.Router();
 
@@ -238,15 +239,35 @@ const router = express.Router();
  *         $ref: '#/components/responses/NotFound'
  */
 
+/**
+ * POST   /properties
+ * GET    /properties
+ */
 router
   .route('/')
   .post(validate(propertyValidation.createProperty), propertyController.createProperty)
   .get(validate(propertyValidation.getProperties), propertyController.getProperties);
 
+/**
+ * GET    /properties/:id
+ * PATCH  /properties/:id
+ * DELETE /properties/:id
+ */
 router
   .route('/:id')
   .get(validate(propertyValidation.getProperty), propertyController.getPropertyById)
   .patch(validate(propertyValidation.updateProperty), propertyController.updatePropertyById)
   .delete(validate(propertyValidation.deleteProperty), propertyController.deletePropertyById);
+
+/**
+ * Mount expenseRouter under /properties/:id/expenses
+ *
+ * - POST   /properties/:id/expenses       → create a new property expense
+ * - GET    /properties/:id/expenses       → list all property expenses
+ * - GET    /properties/:id/expenses/:id   → get a single expense by its ID
+ * - PATCH  /properties/:id/expenses/:id   → update an expense by its ID
+ * - DELETE /properties/:id/expenses/:id   → delete an expense by its ID
+ */
+router.use('/:propertyId/expenses', expenseRouter);
 
 module.exports = router;

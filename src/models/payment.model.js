@@ -7,42 +7,40 @@ module.exports = (sequelize, DataTypes) => {
         defaultValue: DataTypes.UUIDV4,
         primaryKey: true,
       },
-      rentSlipId: {
-        type: DataTypes.UUID,
-        allowNull: true,
-      },
-      tenantId: {
+      billId: {
         type: DataTypes.UUID,
         allowNull: false,
+        references: {
+          model: 'bills',
+          key: 'id',
+        },
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
       },
-      amount: {
+      amountPaid: {
         type: DataTypes.DECIMAL(10, 2),
         allowNull: false,
+        validate: {
+          min: 0.01,
+        },
       },
       paymentDate: {
         type: DataTypes.DATE,
         allowNull: false,
-        defaultValue: DataTypes.NOW,
       },
-      method: {
-        type: DataTypes.ENUM('cash', 'bank_transfer', 'online'),
+      paymentMethod: {
+        type: DataTypes.ENUM('cash', 'credit_card', 'bank_transfer', 'mobile_payment', 'check'),
         allowNull: false,
-      },
-      status: {
-        type: DataTypes.ENUM('completed', 'pending', 'failed'),
-        allowNull: false,
-        defaultValue: 'pending',
       },
     },
     {
       timestamps: true,
-      tableName: 'payments',
+      tableName: 'rent_payments',
     }
   );
 
   Payment.associate = (models) => {
-    Payment.belongsTo(models.RentSlip, { foreignKey: 'rentSlipId', as: 'rentSlip' });
-    Payment.belongsTo(models.Tenant, { foreignKey: 'tenantId', as: 'tenant' });
+    Payment.belongsTo(models.Bill, { foreignKey: 'billId', as: 'bill' });
   };
 
   return Payment;

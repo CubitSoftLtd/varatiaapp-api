@@ -291,7 +291,7 @@ router
 
 router
   .route('/:id')
-  .get(validate(accountValidation.getAccount), accountController.getAccounts)
+  .get(validate(accountValidation.getAccount), accountController.getAccountById)
   .patch(validate(accountValidation.updateAccount), accountController.updateAccountById)
   .delete(validate(accountValidation.deleteAccount), accountController.deleteAccountById);
 

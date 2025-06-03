@@ -1,28 +1,22 @@
 const httpStatus = require('http-status');
-const { ExpenseCategory } = require('../models');
+const { ExpenseCategory, Expense } = require('../models');
 const ApiError = require('../utils/ApiError');
 
-/**
- * Create an expense category
- * @param {Object} expenseCategoryBody
- * @returns {Promise<ExpenseCategory>}
- */
-const createExpenseCategory = async (expenseCategoryBody) => {
-  return ExpenseCategory.create(expenseCategoryBody);
+const createExpenseCategory = async (categoryBody) => {
+  const { name, type } = categoryBody;
+  const existingCategory = await ExpenseCategory.findOne({ where: { name } });
+  if (existingCategory) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Category name already exists');
+  }
+  if (!['utility', 'personal', 'tenant_charge'].includes(type)) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid category type');
+  }
+  return ExpenseCategory.create(categoryBody);
 };
 
-/**
- * Query for expense categories
- * @param {Object} filter - Sequelize filter
- * @param {Object} options - Query options
- * @param {string} [options.sortBy] - Sort option in the format: sortField:(desc|asc)
- * @param {number} [options.limit] - Maximum number of results per page (default = 10)
- * @param {number} [options.page] - Current page (default = 1)
- * @returns {Promise<{ results: ExpenseCategory[], page: number, limit: number, totalPages: number, totalResults: number }>}
- */
 const getAllExpenseCategories = async (filter, options) => {
-  const limit = options.limit && parseInt(options.limit, 10) > 0 ? parseInt(options.limit, 10) : 10;
-  const page = options.page && parseInt(options.page, 10) > 0 ? parseInt(options.page, 10) : 1;
+  const limit = parseInt(options.limit, 10) || 10;
+  const page = parseInt(options.page, 10) || 1;
   const offset = (page - 1) * limit;
 
   const sort = [];
@@ -35,7 +29,7 @@ const getAllExpenseCategories = async (filter, options) => {
     where: filter,
     limit,
     offset,
-    order: sort.length ? sort : [['createdAt', 'DESC']],
+    order: sort.length ? sort : [['name', 'ASC']],
   });
 
   return {
@@ -47,39 +41,34 @@ const getAllExpenseCategories = async (filter, options) => {
   };
 };
 
-/**
- * Get expense category by id
- * @param {string} id
- * @returns {Promise<ExpenseCategory>}
- */
 const getExpenseCategoryById = async (id) => {
-  const expenseCategory = await ExpenseCategory.findByPk(id);
-  if (!expenseCategory) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Expense category not found');
+  const category = await ExpenseCategory.findByPk(id);
+  if (!category) throw new ApiError(httpStatus.NOT_FOUND, 'Expense category not found');
+  return category;
+};
+
+const updateExpenseCategory = async (categoryId, updateBody) => {
+  const category = await getExpenseCategoryById(categoryId);
+  if (updateBody.name && updateBody.name !== category.name) {
+    const existingCategory = await ExpenseCategory.findOne({ where: { name: updateBody.name } });
+    if (existingCategory) {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'Category name already exists');
+    }
   }
-  return expenseCategory;
+  if (updateBody.type && !['utility', 'personal', 'tenant_charge'].includes(updateBody.type)) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid category type');
+  }
+  await category.update(updateBody);
+  return category;
 };
 
-/**
- * Update expense category by id
- * @param {string} expenseCategoryId
- * @param {Object} updateBody
- * @returns {Promise<ExpenseCategory>}
- */
-const updateExpenseCategory = async (expenseCategoryId, updateBody) => {
-  const expenseCategory = await getExpenseCategoryById(expenseCategoryId);
-  await expenseCategory.update(updateBody);
-  return expenseCategory;
-};
-
-/**
- * Delete expense category by id
- * @param {string} expenseCategoryId
- * @returns {Promise<void>}
- */
-const deleteExpenseCategory = async (expenseCategoryId) => {
-  const expenseCategory = await getExpenseCategoryById(expenseCategoryId);
-  await expenseCategory.destroy();
+const deleteExpenseCategory = async (categoryId) => {
+  const category = await getExpenseCategoryById(categoryId);
+  const expenses = await Expense.findAll({ where: { categoryId } });
+  if (expenses.length > 0) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Cannot delete category with associated expenses');
+  }
+  await category.destroy();
 };
 
 module.exports = {
