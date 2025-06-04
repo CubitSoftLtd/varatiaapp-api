@@ -2,6 +2,7 @@ const express = require('express');
 const validate = require('../../middlewares/validate');
 const billValidation = require('../../validations/bill.validation');
 const billController = require('../../controllers/bill.controller');
+const paymentRouter = require('./payment.route');
 
 const router = express.Router();
 
@@ -317,6 +318,6 @@ router
   .patch(validate(billValidation.updateBill), billController.updateBillById)
   .delete(validate(billValidation.deleteBill), billController.deleteBillById);
 
-router.use('/:billId/payments', require('./payment.route'));
+router.use('/:billId/payments', paymentRouter);
 
 module.exports = router;

@@ -241,3 +241,5 @@ router
   .get(validate(paymentValidation.getPayment), paymentController.getPaymentById)
   .patch(validate(paymentValidation.updatePayment), paymentController.updatePaymentById)
   .delete(validate(paymentValidation.deletePayment), paymentController.deletePaymentById);
+
+module.exports = router;
