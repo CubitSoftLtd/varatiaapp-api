@@ -106,6 +106,12 @@ const router = express.Router({ mergeParams: true }); // mergeParams so we can a
  *           format: uuid
  *         description: Expense category ID
  *       - in: query
+ *         name: billId
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Bill ID
+ *       - in: query
  *         name: expenseType
  *         schema:
  *           type: string
@@ -189,6 +195,7 @@ const router = express.Router({ mergeParams: true }); // mergeParams so we can a
  *               - expenseDate
  *               - categoryId
  *               - expenseType
+ *               - billId
  *             properties:
  *               accountId:
  *                 type: string
@@ -209,6 +216,10 @@ const router = express.Router({ mergeParams: true }); // mergeParams so we can a
  *                 type: string
  *                 enum: [tenant_charge]
  *                 description: Type of the expense (must be 'tenant_charge')
+ *               billId:
+ *                 type: string
+ *                 format: uuid
+ *                 description: Bill ID associated with the expense
  *               description:
  *                 type: string
  *                 description: Description of the expense
@@ -218,6 +229,7 @@ const router = express.Router({ mergeParams: true }); // mergeParams so we can a
  *               expenseDate: 2025-05-27
  *               categoryId: 123e4567-e89b-12d3-a456-426614174003
  *               expenseType: tenant_charge
+ *               billId: abcde123-456f-7890-abcd-ef1234567890
  *               description: Late fee for tenant
  *     responses:
  *       "201":
@@ -253,6 +265,12 @@ const router = express.Router({ mergeParams: true }); // mergeParams so we can a
  *           type: string
  *           format: uuid
  *         description: Expense category ID
+ *       - in: query
+ *         name: billId
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Bill ID
  *       - in: query
  *         name: expenseType
  *         schema:
@@ -402,6 +420,12 @@ const router = express.Router({ mergeParams: true }); // mergeParams so we can a
  *           format: uuid
  *         description: Expense category ID
  *       - in: query
+ *         name: billId
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Bill ID
+ *       - in: query
  *         name: expenseType
  *         schema:
  *           type: string
@@ -519,6 +543,10 @@ const router = express.Router({ mergeParams: true }); // mergeParams so we can a
  *                 type: string
  *                 format: uuid
  *                 description: ID of the expense category
+ *               billId:
+ *                 type: string
+ *                 format: uuid
+ *                 description: Bill ID associated with the expense
  *               description:
  *                 type: string
  *                 description: Description of the expense
@@ -526,6 +554,7 @@ const router = express.Router({ mergeParams: true }); // mergeParams so we can a
  *               amount: 550.00
  *               expenseDate: 2025-05-28
  *               categoryId: 123e4567-e89b-12d3-a456-426614174003
+ *               billId: abcde123-456f-7890-abcd-ef1234567890
  *               description: Updated late fee
  *     responses:
  *       "200":

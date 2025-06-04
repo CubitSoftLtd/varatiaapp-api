@@ -3,7 +3,7 @@ const validate = require('../../middlewares/validate');
 const paymentValidation = require('../../validations/payment.validation');
 const paymentController = require('../../controllers/payment.controller');
 
-const router = express.Router();
+const router = express.Router({ mergeParams: true }); // mergeParams to inherit billId from parent route
 
 /**
  * @swagger
@@ -14,13 +14,21 @@ const router = express.Router();
 
 /**
  * @swagger
- * /payments:
+ * /bills/{billId}/payments:
  *   post:
- *     summary: Create a new payment
+ *     summary: Create a new payment for a bill
  *     description: Tenants can create payments for their bills. Admins can create payments on behalf of tenants.
  *     tags: [Payments]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: billId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: UUID of the bill
  *     requestBody:
  *       required: true
  *       content:
@@ -28,24 +36,25 @@ const router = express.Router();
  *           schema:
  *             type: object
  *             required:
- *               - billId
- *               - amount
+ *               - amountPaid
  *               - paymentDate
+ *               - paymentMethod
  *             properties:
- *               billId:
- *                 type: integer
- *                 description: ID of the bill
- *               amount:
+ *               amountPaid:
  *                 type: number
  *                 description: Payment amount
  *               paymentDate:
  *                 type: string
  *                 format: date
  *                 description: Date of the payment
+ *               paymentMethod:
+ *                 type: string
+ *                 enum: [cash, credit_card, bank_transfer, mobile_payment, check]
+ *                 description: Method of payment
  *             example:
- *               billId: 1
- *               amount: 500.00
- *               paymentDate: 2025-05-27
+ *               amountPaid: 500.00
+ *               paymentDate: "2025-05-27"
+ *               paymentMethod: "credit_card"
  *     responses:
  *       "201":
  *         description: Created
@@ -61,69 +70,39 @@ const router = express.Router();
  *         $ref: '#/components/responses/Forbidden'
  *
  *   get:
- *     summary: Get all payments
- *     description: Admins can retrieve all payments. Tenants can retrieve their own payments.
+ *     summary: Get all payments for a specific bill
+ *     description: Retrieves all payments associated with a specific bill ID.
  *     tags: [Payments]
  *     security:
  *       - bearerAuth: []
  *     parameters:
- *       - in: query
+ *       - in: path
  *         name: billId
- *         schema:
- *           type: integer
- *         description: Bill ID
- *       - in: query
- *         name: sortBy
+ *         required: true
  *         schema:
  *           type: string
- *         description: Sort by query in the form of field:desc/asc (ex. paymentDate:asc)
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           minimum: 1
- *         default: 10
- *         description: Maximum number of payments
- *       - in: query
- *         name: page
- *         schema:
- *           type: integer
- *           minimum: 1
- *           default: 1
- *         description: Page number
+ *           format: uuid
+ *         description: UUID of the bill
  *     responses:
  *       "200":
- *         description: OK
+ *         description: A list of payments
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 results:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Payment'
- *                 page:
- *                   type: integer
- *                   example: 1
- *                 limit:
- *                   type: integer
- *                   example: 10
- *                 totalPages:
- *                   type: integer
- *                   example: 1
- *                 totalResults:
- *                   type: integer
- *                   example: 1
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Payment'
  *       "401":
  *         $ref: '#/components/responses/Unauthorized'
  *       "403":
  *         $ref: '#/components/responses/Forbidden'
+ *       "404":
+ *         $ref: '#/components/responses/NotFound'
  */
 
 /**
  * @swagger
- * /payments/{id}:
+ * /bills/{billId}/payments/{id}:
  *   get:
  *     summary: Get a payment
  *     description: Admins can fetch any payment. Tenants can fetch their own payments.
@@ -132,11 +111,19 @@ const router = express.Router();
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
+ *         name: billId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: UUID of the bill
+ *       - in: path
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
- *         description: Payment id
+ *           type: string
+ *           format: uuid
+ *         description: Payment ID
  *     responses:
  *       "200":
  *         description: OK
@@ -159,11 +146,19 @@ const router = express.Router();
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
+ *         name: billId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: UUID of the bill
+ *       - in: path
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
- *         description: Payment id
+ *           type: string
+ *           format: uuid
+ *         description: Payment ID
  *     requestBody:
  *       required: true
  *       content:
@@ -171,16 +166,21 @@ const router = express.Router();
  *           schema:
  *             type: object
  *             properties:
- *               amount:
+ *               amountPaid:
  *                 type: number
  *                 description: Payment amount
  *               paymentDate:
  *                 type: string
  *                 format: date
  *                 description: Date of the payment
+ *               paymentMethod:
+ *                 type: string
+ *                 enum: [cash, credit_card, bank_transfer, mobile_payment, check]
+ *                 description: Method of payment
  *             example:
- *               amount: 550.00
- *               paymentDate: 2025-05-28
+ *               amountPaid: 550.00
+ *               paymentDate: "2025-05-28"
+ *               paymentMethod: "bank_transfer"
  *     responses:
  *       "200":
  *         description: OK
@@ -205,13 +205,21 @@ const router = express.Router();
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
+ *         name: billId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: UUID of the bill
+ *       - in: path
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
- *         description: Payment id
+ *           type: string
+ *           format: uuid
+ *         description: Payment ID
  *     responses:
- *       "200":
+ *       "204":
  *         description: No content
  *       "401":
  *         $ref: '#/components/responses/Unauthorized'
@@ -221,19 +229,15 @@ const router = express.Router();
  *         $ref: '#/components/responses/NotFound'
  */
 
-const { createPayment, getPaymentsByLease, getPaymentById, updatePaymentById, deletePaymentById } = paymentController;
-
-// Base route: /payments
+// Base route: /payments (under /bills/:billId/payments from parent)
 router
   .route('/')
-  .post(validate(paymentValidation.createPayment), createPayment)
-  .get(validate(paymentValidation.getPayments), getPaymentsByLease);
+  .post(validate(paymentValidation.createPayment), paymentController.createPayment)
+  .get(validate(paymentValidation.getPaymentsByBillId), paymentController.getPaymentsByBillId);
 
-// Item route: /payments/:id
+// Item route: /:id (under /bills/:billId/payments/:id from parent)
 router
   .route('/:id')
-  .get(validate(paymentValidation.getPayment), getPaymentById)
-  .patch(validate(paymentValidation.updatePayment), updatePaymentById)
-  .delete(validate(paymentValidation.deletePayment), deletePaymentById);
-
-module.exports = router;
+  .get(validate(paymentValidation.getPayment), paymentController.getPaymentById)
+  .patch(validate(paymentValidation.updatePayment), paymentController.updatePaymentById)
+  .delete(validate(paymentValidation.deletePayment), paymentController.deletePaymentById);

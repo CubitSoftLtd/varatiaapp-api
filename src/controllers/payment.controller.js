@@ -1,5 +1,6 @@
 const httpStatus = require('http-status');
 const catchAsync = require('../utils/catchAsync');
+const pick = require('../utils/pick');
 const { paymentService } = require('../services');
 
 const createPayment = catchAsync(async (req, res) => {
@@ -7,8 +8,15 @@ const createPayment = catchAsync(async (req, res) => {
   res.status(httpStatus.CREATED).send(payment);
 });
 
-const getPaymentsByLease = catchAsync(async (req, res) => {
-  const payments = await paymentService.getPaymentsByLeaseId(req.params.leaseId);
+const getPaymentsByBillId = catchAsync(async (req, res) => {
+  const payments = await paymentService.getPaymentsByBillId(req.params.billId);
+  res.send(payments);
+});
+
+const getAllPayments = catchAsync(async (req, res) => {
+  const filter = pick(req.query, ['limit', 'page', 'sortBy']);
+  const options = pick(filter, ['limit', 'page', 'sortBy']);
+  const payments = await paymentService.getAllPayments(filter, options);
   res.send(payments);
 });
 
@@ -29,7 +37,8 @@ const deletePaymentById = catchAsync(async (req, res) => {
 
 module.exports = {
   createPayment,
-  getPaymentsByLease,
+  getAllPayments,
+  getPaymentsByBillId,
   getPaymentById,
   updatePaymentById,
   deletePaymentById,

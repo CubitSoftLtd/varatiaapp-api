@@ -19,6 +19,10 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.UUID,
         allowNull: true,
       },
+      billId: {
+        type: DataTypes.UUID,
+        allowNull: true,
+      },
       categoryId: {
         type: DataTypes.UUID,
         allowNull: false,
@@ -68,6 +72,17 @@ module.exports = (sequelize, DataTypes) => {
             throw new Error('Personal expenses should not be associated with a unit');
           }
         },
+        billIdRules() {
+          if (this.expenseType === 'tenant_charge' && !this.billId) {
+            throw new Error('Tenant charge expenses must be associated with a bill');
+          }
+          if (this.expenseType === 'personal' && this.billId) {
+            throw new Error('Personal expenses should not be associated with a bill');
+          }
+          if (this.expenseType === 'utility' && this.billId) {
+            throw new Error('Utility expenses should not be associated with a bill');
+          }
+        },
       },
     }
   );
@@ -76,7 +91,10 @@ module.exports = (sequelize, DataTypes) => {
     Expense.belongsTo(models.Property, { foreignKey: 'propertyId', as: 'property' });
     Expense.belongsTo(models.Unit, { foreignKey: 'unitId', as: 'unit' });
     Expense.belongsTo(models.ExpenseCategory, { foreignKey: 'categoryId', as: 'category' });
+    Expense.belongsTo(models.Bill, { foreignKey: 'billId', as: 'bill' });
   };
 
   return Expense;
 };
+
+// Last updated: Wednesday, June 04, 2025, 04:23 PM +06

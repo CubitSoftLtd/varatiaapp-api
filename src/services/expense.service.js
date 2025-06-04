@@ -43,7 +43,10 @@ const createExpense = async (context, expenseBody) => {
   if (expenseType === 'tenant_charge' && !finalUnitId) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Tenant charges must be associated with a unit');
   }
-  // 2) Only tenant_charge can have a billId
+  // 2) Validate billId based on expenseType
+  if (expenseType === 'tenant_charge' && !billId) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Tenant charge expenses must be associated with a bill');
+  }
   if (billId && expenseType !== 'tenant_charge') {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Only tenant charge expenses can be associated with a bill');
   }
@@ -100,7 +103,7 @@ const createExpense = async (context, expenseBody) => {
 /**
  * Query for all expenses matching a filter
  *
- * @param {Object} filterOptions  – may contain { propertyId, unitId, userId, categoryId, expenseType, ... }
+ * @param {Object} filterOptions  – may contain { propertyId, unitId, userId, categoryId, expenseType, billId, ... }
  * @param {Object} options        – { sortBy, limit, page }
  * @returns {Promise<Object>}     – { results, page, limit, totalPages, totalResults }
  */
@@ -124,6 +127,7 @@ const getAllExpenses = async (filterOptions, options) => {
   if (filterOptions.userId) whereClause.userId = filterOptions.userId;
   if (filterOptions.categoryId) whereClause.categoryId = filterOptions.categoryId;
   if (filterOptions.expenseType) whereClause.expenseType = filterOptions.expenseType;
+  if (filterOptions.billId) whereClause.billId = filterOptions.billId;
 
   const { count, rows } = await Expense.findAndCountAll({
     where: whereClause,
@@ -209,6 +213,9 @@ const updateExpense = async (id, updateBody) => {
   }
   if (newBillId && expense.expenseType !== 'tenant_charge') {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Only tenant charge expenses can be associated with a bill');
+  }
+  if (expense.expenseType === 'tenant_charge' && newBillId === null) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Tenant charge expenses must be associated with a bill');
   }
 
   // 3) Existence checks for any updated foreign keys

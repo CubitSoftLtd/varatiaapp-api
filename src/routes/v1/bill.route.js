@@ -317,4 +317,6 @@ router
   .patch(validate(billValidation.updateBill), billController.updateBillById)
   .delete(validate(billValidation.deleteBill), billController.deleteBillById);
 
+router.use('/:billId/payments', require('./payment.route'));
+
 module.exports = router;
