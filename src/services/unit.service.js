@@ -37,6 +37,8 @@ const createUnit = async (unitBody) => {
         bedroomCount: unitBody.bedroomCount,
         bathroomCount: unitBody.bathroomCount,
         squareFootage: unitBody.squareFootage,
+        accountId: unitBody.accountId,
+        isDeleted: false,
       },
       { transaction: t }
     );

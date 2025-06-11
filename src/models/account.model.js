@@ -64,6 +64,12 @@ module.exports = (sequelize, DataTypes) => {
         defaultValue: DataTypes.NOW,
         allowNull: false,
       },
+      isDeleted: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+        comment: 'Soft delete flag',
+      },
     },
     {
       tableName: 'accounts', // Explicitly define the table name

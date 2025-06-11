@@ -46,6 +46,20 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: true,
         comment: 'Area of the unit in square feet/meters',
       },
+      accountId: {
+        type: DataTypes.UUID,
+        allowNull: false,
+        references: { model: 'accounts', key: 'id' },
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
+        comment: 'ID of the account that generated this bill',
+      },
+      isDeleted: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+        comment: 'Soft delete flag',
+      },
     },
     {
       timestamps: true,

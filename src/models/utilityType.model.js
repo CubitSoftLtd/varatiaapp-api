@@ -32,6 +32,14 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: true,
         comment: 'Detailed description of the utility type',
       },
+      accountId: {
+        type: DataTypes.UUID,
+        allowNull: false,
+        references: { model: 'accounts', key: 'id' },
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
+        comment: 'ID of the account that generated this bill',
+      },
       isDeleted: {
         type: DataTypes.BOOLEAN,
         allowNull: false,

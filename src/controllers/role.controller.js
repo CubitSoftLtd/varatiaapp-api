@@ -10,6 +10,10 @@ const getRoles = catchAsync(async (req, res) => {
 const getMyPermissions = catchAsync(async (req, res) => {
   // Validate the roleName from request
   req.roleName = req.user.role.toLowerCase();
+
+  // eslint-disable-next-line no-console
+  console.log(req);
+
   if (!req.roleName) {
     return res.status(httpStatus.BAD_REQUEST).json({ message: 'Role name is required' });
   }
@@ -17,7 +21,7 @@ const getMyPermissions = catchAsync(async (req, res) => {
     return res.status(httpStatus.BAD_REQUEST).json({ message: 'Invalid role name' });
   }
   // Fetch role permissions
-  const roles = await roleService.getRoles(req.roleName);
+  const roles = await roleService.getRoles({ roleName: req.roleName });
   res.status(httpStatus.OK).json(roles);
 });
 

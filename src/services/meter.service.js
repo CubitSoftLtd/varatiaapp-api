@@ -43,6 +43,8 @@ const createMeter = async (meterBody) => {
         installedDate: meterBody.installedDate,
         lastReadingDate: meterBody.lastReadingDate,
         description: meterBody.description,
+        accountId: meterBody.accountId,
+        isDeleted: false,
       },
       { transaction: t }
     );

@@ -58,7 +58,7 @@ const parseInclude = (include) => {
 };
 
 const createTenant = catchAsync(async (req, res) => {
-  const tenant = await tenantService.createTenant(req.body);
+  const tenant = await tenantService.createTenant({ ...req.body, accountId: req.user.accountId });
   res.status(httpStatus.CREATED).send(tenant);
 });
 

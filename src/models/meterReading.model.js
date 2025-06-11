@@ -31,6 +31,14 @@ module.exports = (sequelize, DataTypes) => {
         onUpdate: 'CASCADE',
         comment: 'ID of the associated submeter (null if it is a main meter reading)',
       },
+      accountId: {
+        type: DataTypes.UUID,
+        allowNull: false,
+        references: { model: 'accounts', key: 'id' },
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
+        comment: 'ID of the account that generated this bill',
+      },
       readingValue: {
         type: DataTypes.DECIMAL(18, 6), // Increased precision for utility readings
         allowNull: false,

@@ -55,7 +55,7 @@ const parseInclude = (include) => {
 };
 
 const createUtilityType = catchAsync(async (req, res) => {
-  const utilityType = await utilityTypeService.createUtilityType(req.body);
+  const utilityType = await utilityTypeService.createUtilityType({ ...req.body, accountId: req.user.accountId });
   res.status(httpStatus.CREATED).send(utilityType);
 });
 

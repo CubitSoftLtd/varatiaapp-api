@@ -59,7 +59,7 @@ const parseInclude = (include) => {
 };
 
 const createUnit = catchAsync(async (req, res) => {
-  const unit = await unitService.createUnit(req.body);
+  const unit = await unitService.createUnit({ ...req.body, accountId: req.user.accountId });
   res.status(httpStatus.CREATED).send(unit);
 });
 
@@ -77,7 +77,7 @@ const getUnits = catchAsync(async (req, res) => {
   options.include = parseInclude(req.query.include);
 
   if (req.user.role !== 'super_admin') {
-    filter.accountId = req.user.accountId; // Ensure only properties for the user's account are fetched
+    filter.propertyId = req.params.propertyId; // Ensure only properties for the user's account are fetched
   }
 
   const units = await unitService.getAllUnits(filter, options);

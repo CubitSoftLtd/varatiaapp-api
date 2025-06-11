@@ -8,7 +8,7 @@ const ApiError = require('../utils/ApiError');
  * @returns {Promise<UtilityType>}
  */
 const createUtilityType = async (utilityTypeBody) => {
-  const { name, unitRate, unitOfMeasurement, description } = utilityTypeBody;
+  const { accountId, name, unitRate, unitOfMeasurement, description } = utilityTypeBody;
 
   // Validate required fields
   if (!name || unitRate === undefined || !unitOfMeasurement) {
@@ -25,6 +25,20 @@ const createUtilityType = async (utilityTypeBody) => {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Unit of measurement cannot be empty');
   }
 
+  // Validate accountId
+  if (!accountId) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Account ID is required');
+  }
+  // Check if account exists
+  const account = await UtilityType.sequelize.models.Account.findByPk(accountId);
+  if (!account) {
+    throw new ApiError(httpStatus.NOT_FOUND, `Account not found for ID: ${accountId}`);
+  }
+  // Check if account is active
+  if (!account.isActive) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Cannot create utility type under an inactive account');
+  }
+
   // Check for existing utility type name
   const existingUtilityType = await UtilityType.findOne({ where: { name } });
   if (existingUtilityType) {
@@ -39,6 +53,7 @@ const createUtilityType = async (utilityTypeBody) => {
         unitRate,
         unitOfMeasurement,
         description: description || null,
+        accountId,
         isDeleted: false,
       },
       { transaction: t }

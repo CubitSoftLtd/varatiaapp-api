@@ -30,6 +30,14 @@ module.exports = (sequelize, DataTypes) => {
 
         comment: 'ID of the unit to which this submeter is installed',
       },
+      accountId: {
+        type: DataTypes.UUID,
+        allowNull: false,
+        references: { model: 'accounts', key: 'id' },
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
+        comment: 'ID of the account that generated this bill',
+      },
       number: {
         // Renamed from submeterNumber for consistency with main Meter model
         type: DataTypes.STRING(100), // Specify a reasonable maximum length
@@ -47,6 +55,12 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.DATEONLY,
         allowNull: true,
         comment: 'Date the submeter was installed',
+      },
+      isDeleted: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+        comment: 'Soft delete flag',
       },
     },
     {

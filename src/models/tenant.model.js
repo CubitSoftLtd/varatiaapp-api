@@ -93,6 +93,14 @@ module.exports = (sequelize, DataTypes) => {
         defaultValue: 0.0,
         comment: 'The security deposit amount paid by the tenant',
       },
+      accountId: {
+        type: DataTypes.UUID,
+        allowNull: false,
+        references: { model: 'accounts', key: 'id' },
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
+        comment: 'ID of the account that generated this bill',
+      },
       status: {
         type: DataTypes.ENUM('current', 'prospective', 'past', 'evicted', 'notice'), // More descriptive statuses
         allowNull: false,
@@ -129,6 +137,12 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.TEXT,
         allowNull: true,
         comment: 'Any additional notes about the tenant',
+      },
+      isDeleted: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+        comment: 'Soft delete flag',
       },
     },
     {

@@ -15,6 +15,14 @@ module.exports = (sequelize, DataTypes) => {
         unique: true,
         comment: 'Unique identifier or serial number of the physical meter',
       },
+      accountId: {
+        type: DataTypes.UUID,
+        allowNull: false,
+        references: { model: 'accounts', key: 'id' },
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
+        comment: 'ID of the account that generated this bill',
+      },
       propertyId: {
         type: DataTypes.UUID,
         allowNull: false,
@@ -61,6 +69,12 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.TEXT,
         allowNull: true,
         comment: 'Optional detailed description of the meter',
+      },
+      isDeleted: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+        comment: 'Soft delete flag',
       },
     },
     {

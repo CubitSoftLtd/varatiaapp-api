@@ -66,6 +66,11 @@ const getBills = catchAsync(async (req, res) => {
   ]);
   const options = pick(req.query, ['sortBy', 'limit', 'page']);
   options.include = parseInclude(req.query.include);
+
+  if (req.user.role !== 'super_admin') {
+    filter.accountId = req.user.accountId; // Ensure only bills for the user's account are fetched
+  }
+
   const bills = await billService.getAllBills(filter, options);
   res.send(bills);
 });

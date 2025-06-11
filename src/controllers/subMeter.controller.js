@@ -57,7 +57,7 @@ const parseInclude = (include) => {
 };
 
 const createSubmeter = catchAsync(async (req, res) => {
-  const submeter = await subMeterService.createSubmeter(req.body);
+  const submeter = await subMeterService.createSubmeter({ ...req.body, accountId: req.user.accountId });
   res.status(httpStatus.CREATED).send(submeter);
 });
 

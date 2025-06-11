@@ -33,6 +33,14 @@ module.exports = (sequelize) => {
         onUpdate: 'CASCADE',
         comment: 'ID of the unit the tenant occupied during this period',
       },
+      accountId: {
+        type: DataTypes.UUID,
+        allowNull: false,
+        references: { model: 'accounts', key: 'id' },
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
+        comment: 'ID of the account that generated this bill',
+      },
       startDate: {
         type: DataTypes.DATEONLY, // Use DATEONLY if time component is not crucial for history
         allowNull: false,

@@ -58,7 +58,7 @@ const parseInclude = (include) => {
 };
 
 const createMeter = catchAsync(async (req, res) => {
-  const meter = await meterService.createMeter(req.body);
+  const meter = await meterService.createMeter({ ...req.body, accountId: req.user.accountId });
   res.status(httpStatus.CREATED).send(meter);
 });
 
