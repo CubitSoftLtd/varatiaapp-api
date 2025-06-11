@@ -1,30 +1,71 @@
 const httpStatus = require('http-status');
 const { Op } = require('sequelize');
-const { Tenant, Unit, Property, TenancyHistory } = require('../models');
+const { Tenant, Unit, Property } = require('../models');
 const ApiError = require('../utils/ApiError');
 
 /**
- * Create a tenant
+ * Create a tenant with validation and transaction
  * @param {Object} tenantBody
  * @returns {Promise<Tenant>}
  */
 const createTenant = async (tenantBody) => {
+  // Validate unitId if provided
   if (tenantBody.unitId) {
     const unit = await Unit.findByPk(tenantBody.unitId);
     if (!unit) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Unit not found');
     }
   }
-  return Tenant.create(tenantBody);
+
+  // Check for existing tenant with same email, phoneNumber, or nationalId
+  const existingTenant = await Tenant.findOne({
+    where: {
+      [Op.or]: [
+        { email: tenantBody.email },
+        { phoneNumber: tenantBody.phoneNumber },
+        tenantBody.nationalId ? { nationalId: tenantBody.nationalId } : null,
+      ].filter(Boolean),
+    },
+  });
+  if (existingTenant) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Tenant with this email, phone number, or national ID already exists');
+  }
+
+  // Use a transaction for creating the tenant
+  const tenant = await Tenant.sequelize.transaction(async (t) => {
+    return Tenant.create(
+      {
+        firstName: tenantBody.firstName,
+        lastName: tenantBody.lastName,
+        email: tenantBody.email,
+        phoneNumber: tenantBody.phoneNumber,
+        emergencyContactName: tenantBody.emergencyContactName,
+        emergencyContactPhone: tenantBody.emergencyContactPhone,
+        unitId: tenantBody.unitId,
+        leaseStartDate: tenantBody.leaseStartDate,
+        leaseEndDate: tenantBody.leaseEndDate,
+        depositAmount: tenantBody.depositAmount,
+        status: tenantBody.status || 'current',
+        nationalId: tenantBody.nationalId,
+        moveInDate: tenantBody.moveInDate,
+        moveOutDate: tenantBody.moveOutDate,
+        notes: tenantBody.notes,
+      },
+      { transaction: t }
+    );
+  });
+
+  return tenant;
 };
 
 /**
- * Query for tenants
+ * Query for tenants with pagination, sorting, and optional inclusion of specific columns from associated models
  * @param {Object} filter - Sequelize filter
  * @param {Object} options - Query options
  * @param {string} [options.sortBy] - Sort option in the format: sortField:(desc|asc)
  * @param {number} [options.limit] - Maximum number of results per page (default = 10)
  * @param {number} [options.page] - Current page (default = 1)
+ * @param {Array} [options.include] - Array of objects specifying models and attributes to include
  * @returns {Promise<{ results: Tenant[], page: number, limit: number, totalPages: number, totalResults: number }>}
  */
 const getAllTenants = async (filter, options) => {
@@ -38,12 +79,15 @@ const getAllTenants = async (filter, options) => {
     sort.push([field, order.toUpperCase() === 'DESC' ? 'DESC' : 'ASC']);
   }
 
+  // Use the provided include array or default to an empty array (no associations)
+  const include = options.include || [];
+
   const { count, rows } = await Tenant.findAndCountAll({
     where: filter,
     limit,
     offset,
     order: sort.length ? sort : [['createdAt', 'DESC']],
-    include: [{ model: Unit, as: 'unit', include: [{ model: Property, as: 'property' }] }],
+    include,
   });
 
   return {
@@ -56,14 +100,13 @@ const getAllTenants = async (filter, options) => {
 };
 
 /**
- * Get tenant by id
+ * Get tenant by id with optional inclusion of specific columns from associated models
  * @param {string} id
+ * @param {Array} [include=[]] - Array of objects specifying models and attributes to include
  * @returns {Promise<Tenant>}
  */
-const getTenantById = async (id) => {
-  const tenant = await Tenant.findByPk(id, {
-    include: [{ model: Unit, as: 'unit', include: [{ model: Property, as: 'property' }] }],
-  });
+const getTenantById = async (id, include = []) => {
+  const tenant = await Tenant.findByPk(id, { include });
   if (!tenant) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Tenant not found');
   }
@@ -71,29 +114,65 @@ const getTenantById = async (id) => {
 };
 
 /**
- * Update tenant by id
+ * Update tenant by id with validation
  * @param {string} tenantId
  * @param {Object} updateBody
  * @returns {Promise<Tenant>}
  */
 const updateTenant = async (tenantId, updateBody) => {
   const tenant = await getTenantById(tenantId);
+
+  // Validate unitId if provided
   if (updateBody.unitId) {
     const unit = await Unit.findByPk(updateBody.unitId);
     if (!unit) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Unit not found');
     }
   }
+
+  // Check for uniqueness of email, phoneNumber, or nationalId if updated
+  if (updateBody.email || updateBody.phoneNumber || updateBody.nationalId) {
+    const existingTenant = await Tenant.findOne({
+      where: {
+        [Op.or]: [
+          updateBody.email ? { email: updateBody.email } : null,
+          updateBody.phoneNumber ? { phoneNumber: updateBody.phoneNumber } : null,
+          updateBody.nationalId ? { nationalId: updateBody.nationalId } : null,
+        ].filter(Boolean),
+        id: { [Op.ne]: tenantId },
+      },
+    });
+    if (existingTenant) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        'Another tenant with this email, phone number, or national ID already exists'
+      );
+    }
+  }
+
   await tenant.update(updateBody);
   return tenant;
 };
 
 /**
- * Delete tenant by id
+ * Soft delete tenant by id (set status to inactive)
  * @param {string} tenantId
  * @returns {Promise<void>}
  */
 const deleteTenant = async (tenantId) => {
+  const tenant = await getTenantById(tenantId);
+  if (tenant.status === 'inactive') {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Tenant is already inactive');
+  }
+  await tenant.update({ status: 'inactive' });
+};
+
+/**
+ * Permanently delete tenant by id (hard delete)
+ * @param {string} tenantId
+ * @returns {Promise<void>}
+ */
+const hardDeleteTenant = async (tenantId) => {
   const tenant = await getTenantById(tenantId);
   await tenant.destroy();
 };
@@ -102,9 +181,10 @@ const deleteTenant = async (tenantId) => {
  * Get tenants by unit and property
  * @param {string} propertyId
  * @param {string} unitId
+ * @param {Array} [include=[]] - Array of objects specifying models and attributes to include
  * @returns {Promise<Tenant[]>}
  */
-const getTenantsByUnitAndProperty = async (propertyId, unitId) => {
+const getTenantsByUnitAndProperty = async (propertyId, unitId, include = []) => {
   const property = await Property.findByPk(propertyId);
   if (!property) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Property not found');
@@ -120,7 +200,7 @@ const getTenantsByUnitAndProperty = async (propertyId, unitId) => {
 
   const tenants = await Tenant.findAll({
     where: { unitId },
-    include: [{ model: Unit, as: 'unit', include: [{ model: Property, as: 'property' }] }],
+    include,
   });
 
   return tenants;
@@ -131,21 +211,21 @@ const getTenantsByUnitAndProperty = async (propertyId, unitId) => {
  * @param {string} unitId
  * @param {Date} startDate
  * @param {Date} endDate
- * @returns {Promise<{ results: TenancyHistory[], totalResults: number }>}
+ * @param {Array} [include=[]] - Array of objects specifying models and attributes to include
+ * @returns {Promise<{ results: Tenant[], totalResults: number }>}
  */
-const getHistoricalTenantsByUnit = async (unitId, startDate, endDate) => {
+const getHistoricalTenantsByUnit = async (unitId, startDate, endDate, include = []) => {
   // Validate unit existence
   const unit = await Unit.findByPk(unitId);
   if (!unit) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Unit not found');
   }
 
-  // Validate dates (optional but recommended)
+  // Validate dates
   if (!startDate || !endDate) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Start date and end date are required');
   }
 
-  // Ensure dates are in the correct format
   const parsedStartDate = new Date(startDate);
   const parsedEndDate = new Date(endDate);
 
@@ -154,25 +234,19 @@ const getHistoricalTenantsByUnit = async (unitId, startDate, endDate) => {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid date format');
   }
 
-  // Query tenancy histories
-  const histories = await TenancyHistory.findAll({
+  // Query tenants with lease dates overlapping the range
+  const tenants = await Tenant.findAll({
     where: {
       unitId,
-      startDate: { [Op.lte]: parsedEndDate }, // Use Op.lte for <= comparison
-      [Op.or]: [
-        { endDate: { [Op.gte]: parsedStartDate } }, // Use Op.gte for >= comparison
-        { endDate: null },
-      ],
+      leaseStartDate: { [Op.lte]: parsedEndDate },
+      [Op.or]: [{ leaseEndDate: { [Op.gte]: parsedStartDate } }, { leaseEndDate: null }],
     },
-    include: [
-      { model: Tenant, as: 'tenant' },
-      { model: Unit, as: 'unit', include: [{ model: Property, as: 'property' }] }, // Fix typo: 'pnit' to 'unit'
-    ],
+    include,
   });
 
   return {
-    results: histories,
-    totalResults: histories.length,
+    results: tenants,
+    totalResults: tenants.length,
   };
 };
 
@@ -182,6 +256,7 @@ module.exports = {
   getTenantById,
   updateTenant,
   deleteTenant,
+  hardDeleteTenant,
   getTenantsByUnitAndProperty,
   getHistoricalTenantsByUnit,
 };

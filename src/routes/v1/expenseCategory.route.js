@@ -17,7 +17,9 @@ const router = express.Router();
  * /expense-categories:
  *   post:
  *     summary: Create a new expense category
- *     description: Only admins and owners can create expense categories.
+ *     description: |
+ *       Only admins can create new expense categories.
+ *       Last updated: June 11, 2025, 12:08 PM +06.
  *     tags: [ExpenseCategories]
  *     security:
  *       - bearerAuth: []
@@ -29,22 +31,23 @@ const router = express.Router();
  *             type: object
  *             required:
  *               - name
- *               - type
+ *               - categoryType
  *             properties:
  *               name:
  *                 type: string
  *                 description: Name of the expense category
- *               type:
+ *               categoryType:
  *                 type: string
- *                 enum: [utility, personal, tenant_charge]
- *                 description: Type of the expense category
+ *                 enum: [property_related, tenant_chargeable, administrative, personal]
+ *                 description: General classification of the expense category
  *               description:
  *                 type: string
- *                 description: Description of the expense category
+ *                 description: Detailed description of the expense category
+ *                 nullable: true
  *             example:
- *               name: Maintenance
- *               type: utility
- *               description: Costs related to property maintenance
+ *               name: Repairs
+ *               categoryType: property_related
+ *               description: Costs related to property maintenance and repairs
  *     responses:
  *       "201":
  *         description: Created
@@ -61,7 +64,9 @@ const router = express.Router();
  *
  *   get:
  *     summary: Get all expense categories
- *     description: Admins and owners can retrieve all expense categories. Users can view categories.
+ *     description: |
+ *       Only admins can retrieve all expense categories.
+ *       Last updated: June 11, 2025, 12:08 PM +06.
  *     tags: [ExpenseCategories]
  *     security:
  *       - bearerAuth: []
@@ -70,13 +75,13 @@ const router = express.Router();
  *         name: name
  *         schema:
  *           type: string
- *         description: Name of the expense category
+ *         description: Filter by category name
  *       - in: query
- *         name: type
+ *         name: categoryType
  *         schema:
  *           type: string
- *           enum: [utility, personal, tenant_charge]
- *         description: Type of the expense category
+ *           enum: [property_related, tenant_chargeable, administrative, personal]
+ *         description: Filter by category type
  *       - in: query
  *         name: sortBy
  *         schema:
@@ -96,6 +101,11 @@ const router = express.Router();
  *           minimum: 1
  *           default: 1
  *         description: Page number
+ *       - in: query
+ *         name: include
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of associations and their attributes (ex. expenses:id,amount)
  *     responses:
  *       "200":
  *         description: OK
@@ -131,7 +141,9 @@ const router = express.Router();
  * /expense-categories/{id}:
  *   get:
  *     summary: Get an expense category by ID
- *     description: Admins and owners can fetch any expense category. Users can view categories.
+ *     description: |
+ *       Only admins can fetch expense categories.
+ *       Last updated: June 11, 2025, 12:08 PM +06.
  *     tags: [ExpenseCategories]
  *     security:
  *       - bearerAuth: []
@@ -142,7 +154,12 @@ const router = express.Router();
  *         schema:
  *           type: string
  *           format: uuid
- *         description: Expense Category ID
+ *         description: Expense category ID
+ *       - in: query
+ *         name: include
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of associations and their attributes (ex. expenses:id,amount)
  *     responses:
  *       "200":
  *         description: OK
@@ -159,7 +176,9 @@ const router = express.Router();
  *
  *   patch:
  *     summary: Update an expense category by ID
- *     description: Only admins and owners can update expense categories.
+ *     description: |
+ *       Only admins can update expense categories.
+ *       Last updated: June 11, 2025, 12:08 PM +06.
  *     tags: [ExpenseCategories]
  *     security:
  *       - bearerAuth: []
@@ -170,7 +189,7 @@ const router = express.Router();
  *         schema:
  *           type: string
  *           format: uuid
- *         description: Expense Category ID
+ *         description: Expense category ID
  *     requestBody:
  *       required: true
  *       content:
@@ -181,17 +200,18 @@ const router = express.Router();
  *               name:
  *                 type: string
  *                 description: Name of the expense category
- *               type:
+ *               categoryType:
  *                 type: string
- *                 enum: [utility, personal, tenant_charge]
- *                 description: Type of the expense category
+ *                 enum: [property_related, tenant_chargeable, administrative, personal]
+ *                 description: General classification of the expense category
  *               description:
  *                 type: string
- *                 description: Description of the expense category
+ *                 description: Detailed description of the expense category
+ *                 nullable: true
  *             example:
- *               name: Maintenance Updated
- *               type: utility
- *               description: Updated costs related to property maintenance
+ *               name: Maintenance
+ *               categoryType: property_related
+ *               description: Updated description for maintenance costs
  *     responses:
  *       "200":
  *         description: OK
@@ -209,8 +229,10 @@ const router = express.Router();
  *         $ref: '#/components/responses/NotFound'
  *
  *   delete:
- *     summary: Delete an expense category by ID
- *     description: Only admins and owners can delete expense categories.
+ *     summary: Soft delete an expense category by ID
+ *     description: |
+ *       Marks the expense category as deleted. Only admins can soft delete expense categories.
+ *       Last updated: June 11, 2025, 12:08 PM +06.
  *     tags: [ExpenseCategories]
  *     security:
  *       - bearerAuth: []
@@ -221,9 +243,36 @@ const router = express.Router();
  *         schema:
  *           type: string
  *           format: uuid
- *         description: Expense Category ID
+ *         description: Expense category ID
  *     responses:
- *       "200":
+ *       "204":
+ *         description: No content
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
+ *       "404":
+ *         $ref: '#/components/responses/NotFound'
+ *
+ * /expense-categories/{id}/hard:
+ *   delete:
+ *     summary: Hard delete an expense category by ID
+ *     description: |
+ *       Permanently deletes the expense category. Only admins can perform a hard delete.
+ *       Last updated: June 11, 2025, 12:08 PM +06.
+ *     tags: [ExpenseCategories]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Expense category ID
+ *     responses:
+ *       "204":
  *         description: No content
  *       "401":
  *         $ref: '#/components/responses/Unauthorized'
@@ -243,5 +292,12 @@ router
   .get(validate(expenseCategoryValidation.getExpenseCategory), expenseCategoryController.getExpenseCategoryById)
   .patch(validate(expenseCategoryValidation.updateExpenseCategory), expenseCategoryController.updateExpenseCategoryById)
   .delete(validate(expenseCategoryValidation.deleteExpenseCategory), expenseCategoryController.deleteExpenseCategoryById);
+
+router
+  .route('/:id/hard')
+  .delete(
+    validate(expenseCategoryValidation.deleteExpenseCategory),
+    expenseCategoryController.hardDeleteExpenseCategoryById
+  );
 
 module.exports = router;

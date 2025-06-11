@@ -1,69 +1,62 @@
-// src/controllers/expense.controller.js
-
 const httpStatus = require('http-status');
+const pick = require('../utils/pick');
 const catchAsync = require('../utils/catchAsync');
 const { expenseService } = require('../services');
+const { Account, Property, Unit, Bill, ExpenseCategory } = require('../models');
 
-/**
- * Create a new expense in the given context (property, unit, or user).
- * The URL param will supply exactly one of { propertyId, unitId, userId }.
- */
+// Helper function to parse include query parameter
+const parseInclude = (include) => {
+  if (!include) return [];
+  return include
+    .split('|')
+    .map((item) => {
+      const [model, attributes] = item.split(':');
+      const modelMap = {
+        account: Account,
+        property: Property,
+        unit: Unit,
+        bill: Bill,
+        category: ExpenseCategory,
+      };
+      return {
+        model: modelMap[model],
+        as: model,
+        attributes: attributes.split(','),
+      };
+    })
+    .filter((item) => item.model); // Filter out invalid models
+};
+
 const createExpense = catchAsync(async (req, res) => {
-  // Build context from URL params
-  const context = {};
-  if (req.params.propertyId) context.propertyId = req.params.propertyId;
-  if (req.params.unitId) context.unitId = req.params.unitId;
-  if (req.params.userId) context.userId = req.params.userId;
-
-  const expense = await expenseService.createExpense(context, req.body);
+  const expense = await expenseService.createExpense(req.body);
   res.status(httpStatus.CREATED).send(expense);
 });
 
-/**
- * Get all expenses in the given context (property, unit, or user).
- * Supports query filters: categoryId, expenseType, sortBy, limit, page.
- */
 const getExpenses = catchAsync(async (req, res) => {
-  // Build filterOptions from query + context
-  const filterOptions = {
-    ...(req.query.categoryId && { categoryId: req.query.categoryId }),
-    ...(req.query.expenseType && { expenseType: req.query.expenseType }),
-    ...(req.params.propertyId && { propertyId: req.params.propertyId }),
-    ...(req.params.unitId && { unitId: req.params.unitId }),
-    ...(req.params.userId && { userId: req.params.userId }),
-  };
-
-  const options = {
-    sortBy: req.query.sortBy,
-    limit: req.query.limit,
-    page: req.query.page,
-  };
-
-  const result = await expenseService.getAllExpenses(filterOptions, options);
-  res.send(result);
+  const filter = pick(req.query, ['accountId', 'propertyId', 'unitId', 'billId', 'categoryId', 'amount', 'expenseDate']);
+  const options = pick(req.query, ['sortBy', 'limit', 'page']);
+  options.include = parseInclude(req.query.include);
+  const expenses = await expenseService.getAllExpenses(filter, options);
+  res.send(expenses);
 });
 
-/**
- * Get a single expense by its ID (no context needed here).
- */
 const getExpenseById = catchAsync(async (req, res) => {
-  const expense = await expenseService.getExpenseById(req.params.id);
+  const expense = await expenseService.getExpenseById(req.params.id, parseInclude(req.query.include));
   res.send(expense);
 });
 
-/**
- * Update an existing expense by its ID.
- */
 const updateExpenseById = catchAsync(async (req, res) => {
-  const updated = await expenseService.updateExpense(req.params.id, req.body);
-  res.send(updated);
+  const expense = await expenseService.updateExpense(req.params.id, req.body);
+  res.send(expense);
 });
 
-/**
- * Delete an expense by its ID.
- */
 const deleteExpenseById = catchAsync(async (req, res) => {
   await expenseService.deleteExpense(req.params.id);
+  res.status(httpStatus.NO_CONTENT).send();
+});
+
+const hardDeleteExpenseById = catchAsync(async (req, res) => {
+  await expenseService.hardDeleteExpense(req.params.id);
   res.status(httpStatus.NO_CONTENT).send();
 });
 
@@ -73,4 +66,5 @@ module.exports = {
   getExpenseById,
   updateExpenseById,
   deleteExpenseById,
+  hardDeleteExpenseById,
 };

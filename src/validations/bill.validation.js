@@ -1,76 +1,116 @@
 const Joi = require('joi');
 
-const createBill = {
-  body: Joi.object().keys({
-    tenantId: Joi.string().uuid({ version: 'uuidv4' }).required().messages({
+const billSchema = {
+  tenantId: Joi.string()
+    .uuid({ version: ['uuidv4'] })
+    .required()
+    .messages({
       'string.base': 'Tenant ID must be a string',
       'string.empty': 'Tenant ID is required',
       'string.uuid': 'Tenant ID must be a valid UUID',
     }),
-    unitId: Joi.string().uuid({ version: 'uuidv4' }).required().messages({
+  unitId: Joi.string()
+    .uuid({ version: ['uuidv4'] })
+    .required()
+    .messages({
       'string.base': 'Unit ID must be a string',
       'string.empty': 'Unit ID is required',
       'string.uuid': 'Unit ID must be a valid UUID',
     }),
-    billingPeriod: Joi.string()
-      .required()
-      .pattern(/^\d{4}-\d{2}$/)
-      .messages({
-        'string.base': 'Billing period must be a string',
-        'string.empty': 'Billing period is required',
-        'string.pattern.base': 'Billing period must be in YYYY-MM format',
-      }),
-    rentAmount: Joi.number().precision(2).required().min(0).messages({
-      'number.base': 'Rent amount must be a number',
-      'number.empty': 'Rent amount is required',
-      'number.min': 'Rent amount must be at least 0',
-      'number.precision': 'Rent amount must have at most 2 decimal places',
+  accountId: Joi.string()
+    .uuid({ version: ['uuidv4'] })
+    .required()
+    .messages({
+      'string.base': 'Account ID must be a string',
+      'string.empty': 'Account ID is required',
+      'string.uuid': 'Account ID must be a valid UUID',
     }),
-    totalUtilityAmount: Joi.number().precision(2).required().min(0).messages({
-      'number.base': 'Total utility amount must be a number',
-      'number.empty': 'Total utility amount is required',
-      'number.min': 'Total utility amount must be at least 0',
-      'number.precision': 'Total utility amount must have at most 2 decimal places',
-    }),
-    dueDate: Joi.date().required().messages({
-      'date.base': 'Due date must be a valid date',
-      'date.empty': 'Due date is required',
-    }),
-    paymentStatus: Joi.string().valid('unpaid', 'partially_paid', 'paid', 'overdue').default('unpaid').messages({
-      'string.base': 'Payment status must be a string',
-      'any.only': 'Payment status must be one of: unpaid, partially_paid, paid, overdue',
-    }),
-    paymentDate: Joi.date().allow(null).messages({
-      'date.base': 'Payment date must be a valid date',
-    }),
-    notes: Joi.string().allow(null, '').messages({
-      'string.base': 'Notes must be a string',
-    }),
+  billingPeriodStart: Joi.date().required().messages({
+    'date.base': 'Billing period start must be a valid date',
+    'any.required': 'Billing period start is required',
   }),
+  billingPeriodEnd: Joi.date().required().messages({
+    'date.base': 'Billing period end must be a valid date',
+    'any.required': 'Billing period end is required',
+  }),
+  rentAmount: Joi.number().min(0).precision(2).required().messages({
+    'number.base': 'Rent amount must be a number',
+    'number.min': 'Rent amount cannot be negative',
+    'number.precision': 'Rent amount must have at most 2 decimal places',
+    'any.required': 'Rent amount is required',
+  }),
+  dueDate: Joi.date().required().messages({
+    'date.base': 'Due date must be a valid date',
+    'any.required': 'Due date is required',
+  }),
+  issueDate: Joi.date().messages({
+    'date.base': 'Issue date must be a valid date',
+  }),
+  paymentStatus: Joi.string().valid('unpaid', 'partially_paid', 'paid', 'overdue', 'cancelled').messages({
+    'string.base': 'Payment status must be a string',
+    'any.only': 'Invalid payment status',
+  }),
+  notes: Joi.string().allow(null, '').messages({
+    'string.base': 'Notes must be a string',
+  }),
+};
+
+const createBill = {
+  body: Joi.object()
+    .keys(billSchema)
+    .custom((value, helpers) => {
+      if (new Date(value.billingPeriodStart) > new Date(value.billingPeriodEnd)) {
+        return helpers.error('date.order', {
+          message: 'Billing period start must be before or equal to end',
+        });
+      }
+      if (new Date(value.dueDate) < new Date(value.issueDate || new Date())) {
+        return helpers.error('date.order', {
+          message: 'Due date must be on or after issue date',
+        });
+      }
+      return value;
+    })
+    .messages({
+      'date.order': '{{#message}}',
+    }),
 };
 
 const getBills = {
   query: Joi.object().keys({
-    tenantId: Joi.string().uuid({ version: 'uuidv4' }).messages({
-      'string.base': 'Tenant ID must be a string',
-      'string.uuid': 'Tenant ID must be a valid UUID',
-    }),
-    unitId: Joi.string().uuid({ version: 'uuidv4' }).messages({
-      'string.base': 'Unit ID must be a string',
-      'string.uuid': 'Unit ID must be a valid UUID',
-    }),
-    billingPeriod: Joi.string()
-      .pattern(/^\d{4}-\d{2}$/)
+    tenantId: Joi.string()
+      .uuid({ version: ['uuidv4'] })
       .messages({
-        'string.base': 'Billing period must be a string',
-        'string.pattern.base': 'Billing period must be in YYYY-MM format',
+        'string.base': 'Tenant ID must be a string',
+        'string.uuid': 'Tenant ID must be a valid UUID',
       }),
-    paymentStatus: Joi.string().valid('unpaid', 'partially_paid', 'paid', 'overdue').messages({
+    unitId: Joi.string()
+      .uuid({ version: ['uuidv4'] })
+      .messages({
+        'string.base': 'Unit ID must be a string',
+        'string.uuid': 'Unit ID must be a valid UUID',
+      }),
+    accountId: Joi.string()
+      .uuid({ version: ['uuidv4'] })
+      .messages({
+        'string.base': 'Account ID must be a string',
+        'string.uuid': 'Account ID must be a valid UUID',
+      }),
+    billingPeriodStart: Joi.date().messages({
+      'date.base': 'Billing period start must be a valid date',
+    }),
+    billingPeriodEnd: Joi.date().messages({
+      'date.base': 'Billing period end must be a valid date',
+    }),
+    dueDate: Joi.date().messages({
+      'date.base': 'Due date must be a valid date',
+    }),
+    paymentStatus: Joi.string().valid('unpaid', 'partially_paid', 'paid', 'overdue', 'cancelled').messages({
       'string.base': 'Payment status must be a string',
-      'any.only': 'Payment status must be one of: unpaid, partially_paid, paid, overdue',
+      'any.only': 'Invalid payment status',
     }),
     sortBy: Joi.string()
-      .pattern(/^[a-zA-Z]+:(asc|desc)$/i)
+      .pattern(/^[a-zA-Z]+:(asc|desc)$/)
       .messages({
         'string.base': 'SortBy must be a string',
         'string.pattern.base': 'SortBy must be in the format "field:asc" or "field:desc"',
@@ -90,61 +130,107 @@ const getBills = {
 
 const getBill = {
   params: Joi.object().keys({
-    id: Joi.string().uuid({ version: 'uuidv4' }).required().messages({
-      'string.base': 'ID must be a string',
-      'string.empty': 'ID is required',
-      'string.uuid': 'ID must be a valid UUID',
-    }),
+    id: Joi.string()
+      .uuid({ version: ['uuidv4'] })
+      .required()
+      .messages({
+        'string.base': 'ID must be a string',
+        'string.empty': 'ID is required',
+        'string.uuid': 'ID must be a valid UUID',
+      }),
   }),
 };
 
 const updateBill = {
   params: Joi.object().keys({
-    id: Joi.string().uuid({ version: 'uuidv4' }).required().messages({
-      'string.base': 'ID must be a string',
-      'string.empty': 'ID is required',
-      'string.uuid': 'ID must be a valid UUID',
-    }),
+    id: Joi.string()
+      .uuid({ version: ['uuidv4'] })
+      .required()
+      .messages({
+        'string.base': 'ID must be a string',
+        'string.empty': 'ID is required',
+        'string.uuid': 'ID must be a valid UUID',
+      }),
   }),
   body: Joi.object()
     .keys({
-      rentAmount: Joi.number().precision(2).min(0).messages({
-        'number.base': 'Rent amount must be a number',
-        'number.min': 'Rent amount must be at least 0',
-        'number.precision': 'Rent amount must have at most 2 decimal places',
+      tenantId: Joi.string()
+        .uuid({ version: ['uuidv4'] })
+        .messages({
+          'string.base': 'Tenant ID must be a string',
+          'string.uuid': 'Tenant ID must be a valid UUID',
+        }),
+      unitId: Joi.string()
+        .uuid({ version: ['uuidv4'] })
+        .messages({
+          'string.base': 'Unit ID must be a string',
+          'string.uuid': 'Unit ID must be a valid UUID',
+        }),
+      accountId: Joi.string()
+        .uuid({ version: ['uuidv4'] })
+        .messages({
+          'string.base': 'Account ID must be a string',
+          'string.uuid': 'Account ID must be a valid UUID',
+        }),
+      billingPeriodStart: Joi.date().messages({
+        'date.base': 'Billing period start must be a valid date',
       }),
-      totalUtilityAmount: Joi.number().precision(2).min(0).messages({
-        'number.base': 'Total utility amount must be a number',
-        'number.min': 'Total utility amount must be at least 0',
-        'number.precision': 'Total utility amount must have at most 2 decimal places',
+      billingPeriodEnd: Joi.date().messages({
+        'date.base': 'Billing period end must be a valid date',
+      }),
+      rentAmount: Joi.number().min(0).precision(2).messages({
+        'number.base': 'Rent amount must be a number',
+        'number.min': 'Rent amount cannot be negative',
+        'number.precision': 'Rent amount must have at most 2 decimal places',
       }),
       dueDate: Joi.date().messages({
         'date.base': 'Due date must be a valid date',
       }),
-      paymentStatus: Joi.string().valid('unpaid', 'partially_paid', 'paid', 'overdue').messages({
-        'string.base': 'Payment status must be a string',
-        'any.only': 'Payment status must be one of: unpaid, partially_paid, paid, overdue',
+      issueDate: Joi.date().messages({
+        'date.base': 'Issue date must be a valid date',
       }),
-      paymentDate: Joi.date().allow(null).messages({
-        'date.base': 'Payment date must be a valid date',
+      paymentStatus: Joi.string().valid('unpaid', 'partially_paid', 'paid', 'overdue', 'cancelled').messages({
+        'string.base': 'Payment status must be a string',
+        'any.only': 'Invalid payment status',
       }),
       notes: Joi.string().allow(null, '').messages({
         'string.base': 'Notes must be a string',
       }),
     })
     .min(1)
+    .custom((value, helpers) => {
+      if (
+        value.billingPeriodStart &&
+        value.billingPeriodEnd &&
+        new Date(value.billingPeriodStart) > new Date(value.billingPeriodEnd)
+      ) {
+        return helpers.error('date.order', {
+          message: 'Billing period start must be before or equal to end date',
+        });
+      }
+      if (value.dueDate && value.issueDate && new Date(value.dueDate) < new Date(value.issueDate)) {
+        return helpers.error('date.order', {
+          message: 'Due date must be on or after issue date',
+        });
+      }
+      return value;
+    })
     .messages({
       'object.min': 'At least one field must be provided for update',
+      'date.order': '{{#message}}',
     }),
 };
 
 const deleteBill = {
   params: Joi.object().keys({
-    id: Joi.string().uuid({ version: 'uuidv4' }).required().messages({
-      'string.base': 'ID must be a string',
-      'string.empty': 'ID is required',
-      'string.uuid': 'ID must be a valid UUID',
-    }),
+    id: Joi.string()
+      .uuid({ version: ['uuidv4'] })
+      .required()
+      .messages({
+        'string.base': 'ID must be a string',
+        'string.empty': 'ID is required',
+        'string.uuid': 'ID must be a valid UUID',
+      }),
   }),
 };
 

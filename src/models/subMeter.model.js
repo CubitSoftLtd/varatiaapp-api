@@ -6,41 +6,65 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.UUID,
         defaultValue: DataTypes.UUIDV4,
         primaryKey: true,
+        allowNull: false, // Primary keys must be non-nullable
+        comment: 'Unique identifier for the submeter',
       },
       meterId: {
         type: DataTypes.UUID,
         allowNull: false,
         references: {
-          model: 'meters',
+          model: 'meters', // References the 'meters' table
           key: 'id',
         },
-        onDelete: 'CASCADE',
+        onDelete: 'CASCADE', // If the parent meter is deleted, submeters are also deleted
         onUpdate: 'CASCADE',
+        comment: 'ID of the main meter to which this submeter is connected',
       },
       unitId: {
         type: DataTypes.UUID,
         allowNull: false,
         references: {
-          model: 'units',
+          model: 'units', // References the 'units' table
           key: 'id',
         },
-        onDelete: 'RESTRICT',
-        onUpdate: 'CASCADE',
+
+        comment: 'ID of the unit to which this submeter is installed',
       },
-      submeterNumber: {
-        type: DataTypes.STRING,
+      number: {
+        // Renamed from submeterNumber for consistency with main Meter model
+        type: DataTypes.STRING(100), // Specify a reasonable maximum length
         allowNull: false,
-        unique: true,
+        unique: true, // Unique across all submeters
+        comment: 'Unique identifier or serial number for the submeter',
       },
       status: {
-        type: DataTypes.ENUM('active', 'inactive', 'maintenance'),
+        type: DataTypes.ENUM('active', 'inactive', 'maintenance', 'retired'), // Added 'retired' for completeness
         allowNull: false,
         defaultValue: 'active',
+        comment: 'Current operational status of the submeter',
+      },
+      installedDate: {
+        type: DataTypes.DATEONLY,
+        allowNull: true,
+        comment: 'Date the submeter was installed',
       },
     },
     {
       timestamps: true,
       tableName: 'submeters',
+      modelName: 'submeter',
+      indexes: [
+        {
+          // Ensure a submeter number is unique within its main meter (more common scenario)
+          // If submeter numbers are unique globally, keep 'unique: true' on the 'number' field itself.
+          unique: true,
+          fields: ['number', 'meterId'],
+          name: 'idx_unique_submeter_number_per_meter',
+        },
+        {
+          fields: ['unitId'], // Index for faster lookups by unit
+        },
+      ],
     }
   );
 

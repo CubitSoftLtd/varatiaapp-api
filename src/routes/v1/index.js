@@ -16,7 +16,6 @@ const expenseCategoryRoute = require('./expenseCategory.route');
 // Removed direct mounting of expenseRoute under /expenses
 const reportingRoute = require('./reporting.route');
 const notificationRoute = require('./notification.route');
-const adminRoute = require('./admin.route');
 const config = require('../../config/config');
 
 const router = express.Router();
@@ -37,7 +36,6 @@ const defaultRoutes = [
   { path: '/expense-categories', route: expenseCategoryRoute },
   { path: '/reports', route: reportingRoute },
   { path: '/notifications', route: notificationRoute },
-  { path: '/admin', route: adminRoute },
 ];
 
 const devRoutes = [{ path: '/docs', route: docsRoute }];

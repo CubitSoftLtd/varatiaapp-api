@@ -1,7 +1,7 @@
 const express = require('express');
 const validate = require('../../middlewares/validate');
-const subMeterValidation = require('../../validations/subMeter.validation');
-const subMeterController = require('../../controllers/subMeter.controller');
+const submeterValidation = require('../../validations/subMeter.validation');
+const submeterController = require('../../controllers/subMeter.controller');
 
 const router = express.Router();
 
@@ -9,49 +9,17 @@ const router = express.Router();
  * @swagger
  * tags:
  *   name: Submeters
- *   description: Sub-meter management and retrieval
+ *   description: Submeter management and retrieval
  */
 
 /**
  * @swagger
- * components:
- *   schemas:
- *     Submeter:
- *       type: object
- *       properties:
- *         id:
- *           type: string
- *           format: uuid
- *           description: Unique identifier for the sub-meter
- *         meterId:
- *           type: string
- *           format: uuid
- *           description: ID of the parent meter
- *         unitId:
- *           type: string
- *           format: uuid
- *           description: ID of the unit associated with the sub-meter
- *         submeterNumber:
- *           type: string
- *           description: Unique sub-meter number
- *         status:
- *           type: string
- *           enum: [active, inactive, maintenance]
- *           description: Status of the sub-meter
- *         createdAt:
- *           type: string
- *           format: date-time
- *         updatedAt:
- *           type: string
- *           format: date-time
- */
-
-/**
- * @swagger
- * /sub-meters:
+ * /submeters:
  *   post:
- *     summary: Create a new sub-meter
- *     description: Only admins and owners can create sub-meters.
+ *     summary: Create a new submeter
+ *     description: |
+ *       Only admins can create new submeters.
+ *       Last updated: June 11, 2025, 10:51 AM +06.
  *     tags: [Submeters]
  *     security:
  *       - bearerAuth: []
@@ -62,30 +30,37 @@ const router = express.Router();
  *           schema:
  *             type: object
  *             required:
+ *               - number
  *               - meterId
  *               - unitId
- *               - submeterNumber
  *             properties:
+ *               number:
+ *                 type: string
+ *                 description: Unique identifier or serial number of the submeter
  *               meterId:
  *                 type: string
  *                 format: uuid
- *                 description: ID of the parent meter
+ *                 description: ID of the main meter to which this submeter is connected
  *               unitId:
  *                 type: string
  *                 format: uuid
- *                 description: ID of the unit associated with the sub-meter
- *               submeterNumber:
- *                 type: string
- *                 description: Unique sub-meter number
+ *                 description: ID of the unit to which this submeter is installed
  *               status:
  *                 type: string
- *                 enum: [active, inactive, maintenance]
- *                 description: Status of the sub-meter
+ *                 enum: [active, inactive, maintenance, retired]
+ *                 description: Current operational status of the submeter
+ *                 default: active
+ *               installedDate:
+ *                 type: string
+ *                 format: date
+ *                 description: Date the submeter was installed
+ *                 nullable: true
  *             example:
- *               meterId: "550e8400-e29b-41d4-a716-446655440000"
- *               unitId: "987fcdeb-1234-5678-9abc-def123456789"
- *               submeterNumber: "SUBMTR12345"
- *               status: "active"
+ *               number: SUB123456
+ *               meterId: 123e4567-e89b-12d3-a456-426614174000
+ *               unitId: 789c1234-d56e-78f9-g012-345678901234
+ *               status: active
+ *               installedDate: 2025-01-01
  *     responses:
  *       "201":
  *         description: Created
@@ -101,18 +76,31 @@ const router = express.Router();
  *         $ref: '#/components/responses/Forbidden'
  *
  *   get:
- *     summary: Get all sub-meters
- *     description: Admins and owners can retrieve all sub-meters. Tenants can retrieve sub-meters for their units.
+ *     summary: Get all submeters
+ *     description: |
+ *       Only admins can retrieve all submeters.
+ *       Last updated: June 11, 2025, 10:51 AM +06.
  *     tags: [Submeters]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: query
+ *         name: number
+ *         schema:
+ *           type: string
+ *         description: Submeter number
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [active, inactive, maintenance, retired]
+ *         description: Submeter status
+ *       - in: query
  *         name: meterId
  *         schema:
  *           type: string
  *           format: uuid
- *         description: Parent meter ID
+ *         description: Meter ID
  *       - in: query
  *         name: unitId
  *         schema:
@@ -123,14 +111,14 @@ const router = express.Router();
  *         name: sortBy
  *         schema:
  *           type: string
- *         description: Sort by query in the form of field:desc/asc (ex. submeterNumber:asc)
+ *         description: Sort by query in the form of field:desc/asc (ex. number:asc)
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
  *           minimum: 1
- *           default: 10
- *         description: Maximum number of sub-meters
+ *         default: 10
+ *         description: Maximum number of submeters
  *       - in: query
  *         name: page
  *         schema:
@@ -138,6 +126,11 @@ const router = express.Router();
  *           minimum: 1
  *           default: 1
  *         description: Page number
+ *       - in: query
+ *         name: include
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of associations and their attributes (ex. meter:id,number|unit:id,name)
  *     responses:
  *       "200":
  *         description: OK
@@ -170,10 +163,12 @@ const router = express.Router();
 
 /**
  * @swagger
- * /sub-meters/{id}:
+ * /submeters/{id}:
  *   get:
- *     summary: Get a sub-meter
- *     description: Admins and owners can fetch any sub-meter. Tenants can fetch sub-meters for their units.
+ *     summary: Get a submeter by ID
+ *     description: |
+ *       Only admins can fetch any submeter. Account owners can fetch submeters for their units.
+ *       Last updated: June 11, 2025, 10:51 AM +06.
  *     tags: [Submeters]
  *     security:
  *       - bearerAuth: []
@@ -184,7 +179,12 @@ const router = express.Router();
  *         schema:
  *           type: string
  *           format: uuid
- *         description: Sub-meter ID
+ *         description: Submeter ID
+ *       - in: query
+ *         name: include
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of associations and their attributes (ex. meter:id,number|unit:id,name)
  *     responses:
  *       "200":
  *         description: OK
@@ -200,8 +200,10 @@ const router = express.Router();
  *         $ref: '#/components/responses/NotFound'
  *
  *   patch:
- *     summary: Update a sub-meter
- *     description: Only admins and owners can update sub-meters.
+ *     summary: Update a submeter by ID
+ *     description: |
+ *       Only admins can update any submeter. Account owners can update submeters for their units.
+ *       Last updated: June 11, 2025, 10:51 AM +06.
  *     tags: [Submeters]
  *     security:
  *       - bearerAuth: []
@@ -212,7 +214,7 @@ const router = express.Router();
  *         schema:
  *           type: string
  *           format: uuid
- *         description: Sub-meter ID
+ *         description: Submeter ID
  *     requestBody:
  *       required: true
  *       content:
@@ -220,26 +222,32 @@ const router = express.Router();
  *           schema:
  *             type: object
  *             properties:
+ *               number:
+ *                 type: string
+ *                 description: Unique identifier or serial number of the submeter
  *               meterId:
  *                 type: string
  *                 format: uuid
- *                 description: ID of the parent meter
+ *                 description: ID of the main meter to which this submeter is connected
  *               unitId:
  *                 type: string
  *                 format: uuid
- *                 description: ID of the unit associated with the sub-meter
- *               submeterNumber:
- *                 type: string
- *                 description: Unique sub-meter number
+ *                 description: ID of the unit to which this submeter is installed
  *               status:
  *                 type: string
- *                 enum: [active, inactive, maintenance]
- *                 description: Status of the sub-meter
+ *                 enum: [active, inactive, maintenance, retired]
+ *                 description: Current operational status of the submeter
+ *               installedDate:
+ *                 type: string
+ *                 format: date
+ *                 description: Date the submeter was installed
+ *                 nullable: true
  *             example:
- *               meterId: "550e8400-e29b-41d4-a716-446655440000"
- *               unitId: "987fcdeb-1234-5678-9abc-def123456789"
- *               submeterNumber: "SUBMTR67890"
- *               status: "maintenance"
+ *               number: SUB123456-UPDATED
+ *               meterId: 123e4567-e89b-12d3-a456-426614174000
+ *               unitId: 789c1234-d56e-78f9-g012-345678901234
+ *               status: maintenance
+ *               installedDate: 2025-01-01
  *     responses:
  *       "200":
  *         description: OK
@@ -257,8 +265,10 @@ const router = express.Router();
  *         $ref: '#/components/responses/NotFound'
  *
  *   delete:
- *     summary: Delete a sub-meter
- *     description: Only admins and owners can delete sub-meters.
+ *     summary: Soft delete a submeter by ID
+ *     description: |
+ *       Marks the submeter as inactive. Only admins can soft delete any submeter. Account owners can soft delete submeters for their units.
+ *       Last updated: June 11, 2025, 10:51 AM +06.
  *     tags: [Submeters]
  *     security:
  *       - bearerAuth: []
@@ -269,7 +279,34 @@ const router = express.Router();
  *         schema:
  *           type: string
  *           format: uuid
- *         description: Sub-meter ID
+ *         description: Submeter ID
+ *     responses:
+ *       "204":
+ *         description: No content
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
+ *       "404":
+ *         $ref: '#/components/responses/NotFound'
+ *
+ * /submeters/{id}/hard:
+ *   delete:
+ *     summary: Hard delete a submeter by ID
+ *     description: |
+ *       Permanently deletes the submeter. Only admins can perform a hard delete.
+ *       Last updated: June 11, 2025, 10:51 AM +06.
+ *     tags: [Submeters]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Submeter ID
  *     responses:
  *       "204":
  *         description: No content
@@ -283,13 +320,15 @@ const router = express.Router();
 
 router
   .route('/')
-  .post(validate(subMeterValidation.createSubmeter), subMeterController.createSubmeter)
-  .get(validate(subMeterValidation.getSubmeters), subMeterController.getSubmeters);
+  .post(validate(submeterValidation.createSubmeter), submeterController.createSubmeter)
+  .get(validate(submeterValidation.getSubmeters), submeterController.getSubmeters);
 
 router
   .route('/:id')
-  .get(validate(subMeterValidation.getSubmeter), subMeterController.getSubmeterById)
-  .patch(validate(subMeterValidation.updateSubmeter), subMeterController.updateSubmeterById)
-  .delete(validate(subMeterValidation.deleteSubmeter), subMeterController.deleteSubmeterById);
+  .get(validate(submeterValidation.getSubmeter), submeterController.getSubmeterById)
+  .patch(validate(submeterValidation.updateSubmeter), submeterController.updateSubmeterById)
+  .delete(validate(submeterValidation.deleteSubmeter), submeterController.deleteSubmeterById);
+
+router.route('/:id/hard').delete(validate(submeterValidation.deleteSubmeter), submeterController.hardDeleteSubmeterById);
 
 module.exports = router;

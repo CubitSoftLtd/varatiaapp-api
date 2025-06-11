@@ -18,8 +18,8 @@ const router = express.Router();
  *   post:
  *     summary: Create a new utility type
  *     description: |
- *       Only admins can create utility types.
- *       Last updated: June 01, 2025, 9:02 PM +06.
+ *       Only admins can create new utility types.
+ *       Last updated: June 11, 2025, 12:14 PM +06.
  *     tags: [UtilityTypes]
  *     security:
  *       - bearerAuth: []
@@ -32,22 +32,26 @@ const router = express.Router();
  *             required:
  *               - name
  *               - unitRate
+ *               - unitOfMeasurement
  *             properties:
  *               name:
  *                 type: string
- *                 description: Unique name of the utility type
+ *                 description: Name of the utility type (e.g., Electricity, Water)
  *               unitRate:
  *                 type: number
- *                 format: float
- *                 description: Rate per unit (e.g., 12.25, 2.50)
+ *                 description: Default rate per unit of measurement
  *               unitOfMeasurement:
  *                 type: string
- *                 description: Unit of measurement (e.g., kWh, gallons)
- *                 default: unit
+ *                 description: Standard unit of measurement (e.g., kWh, m³)
+ *               description:
+ *                 type: string
+ *                 description: Detailed description of the utility type
+ *                 nullable: true
  *             example:
  *               name: Electricity
- *               unitRate: 1.25
+ *               unitRate: 0.123456
  *               unitOfMeasurement: kWh
+ *               description: Cost per kilowatt-hour for electricity usage
  *     responses:
  *       "201":
  *         description: Created
@@ -65,8 +69,8 @@ const router = express.Router();
  *   get:
  *     summary: Get all utility types
  *     description: |
- *       Admins can retrieve all utility types. Other users can view utility types.
- *       Last updated: June 01, 2025, 9:02 PM +06.
+ *       Only admins can retrieve all utility types.
+ *       Last updated: June 11, 2025, 12:14 PM +06.
  *     tags: [UtilityTypes]
  *     security:
  *       - bearerAuth: []
@@ -75,12 +79,12 @@ const router = express.Router();
  *         name: name
  *         schema:
  *           type: string
- *         description: Utility type name
+ *         description: Filter by utility type name
  *       - in: query
  *         name: unitOfMeasurement
  *         schema:
  *           type: string
- *         description: Unit of measurement
+ *         description: Filter by unit of measurement
  *       - in: query
  *         name: sortBy
  *         schema:
@@ -100,6 +104,11 @@ const router = express.Router();
  *           minimum: 1
  *           default: 1
  *         description: Page number
+ *       - in: query
+ *         name: include
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of associations and their attributes (ex. meters:id,serialNumber)
  *     responses:
  *       "200":
  *         description: OK
@@ -136,8 +145,8 @@ const router = express.Router();
  *   get:
  *     summary: Get a utility type by ID
  *     description: |
- *       Admins can fetch any utility type. Other users can view utility types.
- *       Last updated: June 01, 2025, 9:02 PM +06.
+ *       Only admins can fetch utility types.
+ *       Last updated: June 11, 2025, 12:14 PM +06.
  *     tags: [UtilityTypes]
  *     security:
  *       - bearerAuth: []
@@ -149,6 +158,11 @@ const router = express.Router();
  *           type: string
  *           format: uuid
  *         description: Utility type ID
+ *       - in: query
+ *         name: include
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of associations and their attributes (ex. meters:id,serialNumber)
  *     responses:
  *       "200":
  *         description: OK
@@ -167,7 +181,7 @@ const router = express.Router();
  *     summary: Update a utility type by ID
  *     description: |
  *       Only admins can update utility types.
- *       Last updated: June 01, 2025, 9:02 PM +06.
+ *       Last updated: June 11, 2025, 12:14 PM +06.
  *     tags: [UtilityTypes]
  *     security:
  *       - bearerAuth: []
@@ -188,18 +202,22 @@ const router = express.Router();
  *             properties:
  *               name:
  *                 type: string
- *                 description: Unique name of the utility type
+ *                 description: Name of the utility type
  *               unitRate:
  *                 type: number
- *                 format: float
- *                 description: Rate per unit (e.g., 12.25, 2.50)
+ *                 description: Default rate per unit of measurement
  *               unitOfMeasurement:
  *                 type: string
- *                 description: Unit of measurement (e.g., kWh, gallons)
+ *                 description: Standard unit of measurement
+ *               description:
+ *                 type: string
+ *                 description: Detailed description of the utility type
+ *                 nullable: true
  *             example:
- *               name: Electricity Updated
- *               unitRate: 1.50
- *               unitOfMeasurement: kWh
+ *               name: Water
+ *               unitRate: 1.234567
+ *               unitOfMeasurement: m³
+ *               description: Updated cost per cubic meter for water usage
  *     responses:
  *       "200":
  *         description: OK
@@ -217,10 +235,10 @@ const router = express.Router();
  *         $ref: '#/components/responses/NotFound'
  *
  *   delete:
- *     summary: Delete a utility type by ID
+ *     summary: Soft delete a utility type by ID
  *     description: |
- *       Only admins can delete utility types.
- *       Last updated: June 01, 2025, 9:02 PM +06.
+ *       Marks the utility type as deleted. Only admins can soft delete utility types.
+ *       Last updated: June 11, 2025, 12:14 PM +06.
  *     tags: [UtilityTypes]
  *     security:
  *       - bearerAuth: []
@@ -233,7 +251,34 @@ const router = express.Router();
  *           format: uuid
  *         description: Utility type ID
  *     responses:
- *       "200":
+ *       "204":
+ *         description: No content
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
+ *       "404":
+ *         $ref: '#/components/responses/NotFound'
+ *
+ * /utility-types/{id}/hard:
+ *   delete:
+ *     summary: Hard delete a utility type by ID
+ *     description: |
+ *       Permanently deletes the utility type. Only admins can perform a hard delete.
+ *       Last updated: June 11, 2025, 12:14 PM +06.
+ *     tags: [UtilityTypes]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Utility type ID
+ *     responses:
+ *       "204":
  *         description: No content
  *       "401":
  *         $ref: '#/components/responses/Unauthorized'
@@ -253,5 +298,9 @@ router
   .get(validate(utilityTypeValidation.getUtilityType), utilityTypeController.getUtilityTypeById)
   .patch(validate(utilityTypeValidation.updateUtilityType), utilityTypeController.updateUtilityTypeById)
   .delete(validate(utilityTypeValidation.deleteUtilityType), utilityTypeController.deleteUtilityTypeById);
+
+router
+  .route('/:id/hard')
+  .delete(validate(utilityTypeValidation.deleteUtilityType), utilityTypeController.hardDeleteUtilityTypeById);
 
 module.exports = router;

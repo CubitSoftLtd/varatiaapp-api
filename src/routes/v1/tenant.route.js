@@ -14,100 +14,12 @@ const router = express.Router();
 
 /**
  * @swagger
- * components:
- *   schemas:
- *     Tenant:
- *       type: object
- *       properties:
- *         id:
- *           type: string
- *           format: uuid
- *           description: Unique identifier for the tenant
- *         firstName:
- *           type: string
- *           description: First name of the tenant
- *         lastName:
- *           type: string
- *           description: Last name of the tenant
- *         email:
- *           type: string
- *           format: email
- *           description: Email address of the tenant
- *         phoneNumber:
- *           type: string
- *           description: Phone number of the tenant
- *         emergencyContact:
- *           type: string
- *           nullable: true
- *           description: Emergency contact phone number
- *         unitId:
- *           type: string
- *           format: uuid
- *           nullable: true
- *           description: ID of the unit the tenant is assigned to
- *         leaseStartDate:
- *           type: string
- *           format: date-time
- *           description: Start date of the lease
- *         leaseEndDate:
- *           type: string
- *           format: date-time
- *           nullable: true
- *           description: End date of the lease
- *         depositAmount:
- *           type: number
- *           format: float
- *           description: Deposit amount paid by the tenant
- *         status:
- *           type: string
- *           enum: [active, inactive, evicted]
- *           description: Status of the tenant
- *         nationalId:
- *           type: string
- *           description: National ID of the tenant
- *         createdAt:
- *           type: string
- *           format: date-time
- *         updatedAt:
- *           type: string
- *           format: date-time
- *     TenancyHistory:
- *       type: object
- *       properties:
- *         tenantId:
- *           type: string
- *           format: uuid
- *           description: ID of the tenant
- *         firstName:
- *           type: string
- *           description: First name of the tenant
- *         lastName:
- *           type: string
- *           description: Last name of the tenant
- *         unitId:
- *           type: string
- *           format: uuid
- *           description: ID of the unit
- *         leaseStartDate:
- *           type: string
- *           format: date-time
- *           description: Start date of the lease
- *         leaseEndDate:
- *           type: string
- *           format: date-time
- *           nullable: true
- *           description: End Astrophel’s Atreides
- *         status:
- *           type: string
- *           description: Status of the tenant during tenancy
- */
-
-/**
- * @swagger
  * /tenants:
  *   post:
  *     summary: Create a new tenant
- *     description: Only admins and owners can create tenants.
+ *     description: |
+ *       Only admins can create new tenants.
+ *       Last updated: June 11, 2025, 11:11 AM +06.
  *     tags: [Tenants]
  *     security:
  *       - bearerAuth: []
@@ -124,62 +36,84 @@ const router = express.Router();
  *               - phoneNumber
  *               - leaseStartDate
  *               - depositAmount
- *               - nationalId
  *             properties:
  *               firstName:
  *                 type: string
- *                 description: First name of the tenant
+ *                 description: Tenant's first name
  *               lastName:
  *                 type: string
- *                 description: Last name of the tenant
+ *                 description: Tenant's last name
  *               email:
  *                 type: string
  *                 format: email
- *                 description: Email address of the tenant
+ *                 description: Tenant's primary email address
  *               phoneNumber:
  *                 type: string
- *                 description: Phone number of the tenant
- *               emergencyContact:
+ *                 description: Tenant's primary phone number
+ *               emergencyContactName:
  *                 type: string
+ *                 description: Name of the emergency contact person
  *                 nullable: true
- *                 description: Emergency contact phone number
+ *               emergencyContactPhone:
+ *                 type: string
+ *                 description: Phone number for the emergency contact
+ *                 nullable: true
  *               unitId:
  *                 type: string
  *                 format: uuid
- *                 nullable: true
  *                 description: ID of the unit the tenant is assigned to
+ *                 nullable: true
  *               leaseStartDate:
  *                 type: string
- *                 format: date-time
- *                 description: Start date of the lease
+ *                 format: date
+ *                 description: Date the tenant's lease agreement started
  *               leaseEndDate:
  *                 type: string
- *                 format: date-time
+ *                 format: date
+ *                 description: Date the tenant's lease agreement ends
  *                 nullable: true
- *                 description: End date of the lease
  *               depositAmount:
  *                 type: number
- *                 format: float
- *                 description: Deposit amount paid by the tenant
+ *                 description: Security deposit amount paid by the tenant
  *               status:
  *                 type: string
- *                 enum: [active, inactive, evicted]
- *                 description: Status of the tenant
+ *                 enum: [current, prospective, past, evicted, notice, inactive]
+ *                 description: Current status of the tenant
+ *                 default: current
  *               nationalId:
  *                 type: string
- *                 description: National ID of the tenant
+ *                 description: National identification number
+ *                 nullable: true
+ *               moveInDate:
+ *                 type: string
+ *                 format: date
+ *                 description: Actual date the tenant moved in
+ *                 nullable: true
+ *               moveOutDate:
+ *                 type: string
+ *                 format: date
+ *                 description: Actual date the tenant moved out
+ *                 nullable: true
+ *               notes:
+ *                 type: string
+ *                 description: Additional notes about the tenant
+ *                 nullable: true
  *             example:
- *               firstName: "John"
- *               lastName: "Doe"
- *               email: "john.doe@example.com"
- *               phoneNumber: "+1234567890"
- *               emergencyContact: "+0987654321"
- *               unitId: "987fcdeb-1234-5678-9abc-def123456789"
- *               leaseStartDate: "2025-06-01T00:00:00Z"
- *               leaseEndDate: "2026-05-31T00:00:00Z"
- *               depositAmount: 1000.00
- *               status: "active"
- *               nationalId: "ABC123-456"
+ *               firstName: John
+ *               lastName: Doe
+ *               email: john.doe@example.com
+ *               phoneNumber: +1234567890
+ *               emergencyContactName: Jane Doe
+ *               emergencyContactPhone: +0987654321
+ *               unitId: 123e4567-e89b-12d3-a456-426614174000
+ *               leaseStartDate: 2025-01-01
+ *               leaseEndDate: 2025-12-31
+ *               depositAmount: 1500.00
+ *               status: current
+ *               nationalId: 123456789
+ *               moveInDate: 2025-01-01
+ *               moveOutDate: null
+ *               notes: Reliable tenant
  *     responses:
  *       "201":
  *         description: Created
@@ -196,7 +130,9 @@ const router = express.Router();
  *
  *   get:
  *     summary: Get all tenants
- *     description: Admins and owners can retrieve all tenants. Tenants can retrieve their own details.
+ *     description: |
+ *       Only admins can retrieve all tenants.
+ *       Last updated: June 11, 2025, 11:11 AM +06.
  *     tags: [Tenants]
  *     security:
  *       - bearerAuth: []
@@ -205,18 +141,34 @@ const router = express.Router();
  *         name: firstName
  *         schema:
  *           type: string
- *         description: Filter by first name
+ *         description: Tenant's first name
  *       - in: query
  *         name: lastName
  *         schema:
  *           type: string
- *         description: Filter by last name
+ *         description: Tenant's last name
  *       - in: query
  *         name: email
  *         schema:
  *           type: string
- *           format: email
- *         description: Filter by email
+ *         description: Tenant's email
+ *       - in: query
+ *         name: phoneNumber
+ *         schema:
+ *           type: string
+ *         description: Tenant's phone number
+ *       - in: query
+ *         name: unitId
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Unit ID
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [current, prospective, past, evicted, notice, inactive]
+ *         description: Tenant status
  *       - in: query
  *         name: sortBy
  *         schema:
@@ -227,7 +179,7 @@ const router = express.Router();
  *         schema:
  *           type: integer
  *           minimum: 1
- *           default: 10
+ *         default: 10
  *         description: Maximum number of tenants
  *       - in: query
  *         name: page
@@ -236,6 +188,11 @@ const router = express.Router();
  *           minimum: 1
  *           default: 1
  *         description: Page number
+ *       - in: query
+ *         name: include
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of associations and their attributes (ex. unit:id,name|bills:id,amount)
  *     responses:
  *       "200":
  *         description: OK
@@ -270,8 +227,10 @@ const router = express.Router();
  * @swagger
  * /tenants/{id}:
  *   get:
- *     summary: Get a tenant
- *     description: Admins and owners can fetch any tenant. Tenants can fetch their own details.
+ *     summary: Get a tenant by ID
+ *     description: |
+ *       Only admins can fetch any tenant. Account owners can fetch tenants for their units.
+ *       Last updated: June 11, 2025, 11:11 AM +06.
  *     tags: [Tenants]
  *     security:
  *       - bearerAuth: []
@@ -283,6 +242,11 @@ const router = express.Router();
  *           type: string
  *           format: uuid
  *         description: Tenant ID
+ *       - in: query
+ *         name: include
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of associations and their attributes (ex. unit:id,name|bills:id,amount)
  *     responses:
  *       "200":
  *         description: OK
@@ -298,8 +262,10 @@ const router = express.Router();
  *         $ref: '#/components/responses/NotFound'
  *
  *   patch:
- *     summary: Update a tenant
- *     description: Only admins and owners can update tenant details.
+ *     summary: Update a tenant by ID
+ *     description: |
+ *       Only admins can update any tenant. Account owners can update tenants for their units.
+ *       Last updated: June 11, 2025, 11:11 AM +06.
  *     tags: [Tenants]
  *     security:
  *       - bearerAuth: []
@@ -320,58 +286,70 @@ const router = express.Router();
  *             properties:
  *               firstName:
  *                 type: string
- *                 description: First name of the tenant
+ *                 description: Tenant's first name
  *               lastName:
  *                 type: string
- *                 description: Last name of the tenant
+ *                 description: Tenant's last name
  *               email:
  *                 type: string
  *                 format: email
- *                 description: Email address of the tenant
+ *                 description: Tenant's primary email address
  *               phoneNumber:
  *                 type: string
- *                 description: Phone number of the tenant
- *               emergencyContact:
+ *                 description: Tenant's primary phone number
+ *               emergencyContactName:
  *                 type: string
+ *                 description: Name of the emergency contact person
  *                 nullable: true
- *                 description: Emergency contact phone number
+ *               emergencyContactPhone:
+ *                 type: string
+ *                 description: Phone number for the emergency contact
+ *                 nullable: true
  *               unitId:
  *                 type: string
  *                 format: uuid
- *                 nullable: true
  *                 description: ID of the unit the tenant is assigned to
+ *                 nullable: true
  *               leaseStartDate:
  *                 type: string
- *                 format: date-time
- *                 description: Start date of the lease
+ *                 format: date
+ *                 description: Date the tenant's lease agreement started
  *               leaseEndDate:
  *                 type: string
- *                 format: date-time
+ *                 format: date
+ *                 description: Date the tenant's lease agreement ends
  *                 nullable: true
- *                 description: End date of the lease
  *               depositAmount:
  *                 type: number
- *                 format: float
- *                 description: Deposit amount paid by the tenant
+ *                 description: Security deposit amount paid by the tenant
  *               status:
  *                 type: string
- *                 enum: [active, inactive, evicted]
- *                 description: Status of the tenant
+ *                 enum: [current, prospective, past, evicted, notice, inactive]
+ *                 description: Current status of the tenant
  *               nationalId:
  *                 type: string
- *                 description: National ID of the tenant
+ *                 description: National identification number
+ *                 nullable: true
+ *               moveInDate:
+ *                 type: string
+ *                 format: date
+ *                 description: Actual date the tenant moved in
+ *                 nullable: true
+ *               moveOutDate:
+ *                 type: string
+ *                 format: date
+ *                 description: Actual date the tenant moved out
+ *                 nullable: true
+ *               notes:
+ *                 type: string
+ *                 description: Additional notes about the tenant
+ *                 nullable: true
  *             example:
- *               firstName: "John"
- *               lastName: "Doe Updated"
- *               email: "john.doe.updated@example.com"
- *               phoneNumber: "+1234567890"
- *               emergencyContact: "+0987654321"
- *               unitId: "987fcdeb-1234-5678-9abc-def123456789"
- *               leaseStartDate: "2025-06-01T00:00:00Z"
- *               leaseEndDate: "2026-05-31T00:00:00Z"
- *               depositAmount: 1200.00
- *               status: "active"
- *               nationalId: "XYZ789-012"
+ *               firstName: John
+ *               lastName: Smith
+ *               email: john.smith@example.com
+ *               phoneNumber: +1234567891
+ *               status: notice
  *     responses:
  *       "200":
  *         description: OK
@@ -389,8 +367,10 @@ const router = express.Router();
  *         $ref: '#/components/responses/NotFound'
  *
  *   delete:
- *     summary: Delete a tenant
- *     description: Only admins and owners can delete tenants.
+ *     summary: Soft delete a tenant by ID
+ *     description: |
+ *       Marks the tenant as inactive. Only admins can soft delete any tenant. Account owners can soft delete tenants for their units.
+ *       Last updated: June 11, 2025, 11:11 AM +06.
  *     tags: [Tenants]
  *     security:
  *       - bearerAuth: []
@@ -411,14 +391,40 @@ const router = express.Router();
  *         $ref: '#/components/responses/Forbidden'
  *       "404":
  *         $ref: '#/components/responses/NotFound'
- */
-
-/**
- * @swagger
+ *
+ * /tenants/{id}/hard:
+ *   delete:
+ *     summary: Hard delete a tenant by ID
+ *     description: |
+ *       Permanently deletes the tenant. Only admins can perform a hard delete.
+ *       Last updated: June 11, 2025, 11:11 AM +06.
+ *     tags: [Tenants]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Tenant ID
+ *     responses:
+ *       "204":
+ *         description: No content
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
+ *       "404":
+ *         $ref: '#/components/responses/NotFound'
+ *
  * /tenants/property/{propertyId}/unit/{unitId}:
  *   get:
- *     summary: Get tenants by unit and property
- *     description: Admins and owners can fetch tenants assigned to a specific unit in a property.
+ *     summary: Get tenants by property and unit
+ *     description: |
+ *       Retrieves tenants assigned to a specific unit within a property.
+ *       Last updated: June 11, 2025, 11:11 AM +06.
  *     tags: [Tenants]
  *     security:
  *       - bearerAuth: []
@@ -437,6 +443,11 @@ const router = express.Router();
  *           type: string
  *           format: uuid
  *         description: Unit ID
+ *       - in: query
+ *         name: include
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of associations and their attributes (ex. unit:id,name|bills:id,amount)
  *     responses:
  *       "200":
  *         description: OK
@@ -454,14 +465,13 @@ const router = express.Router();
  *         $ref: '#/components/responses/Forbidden'
  *       "404":
  *         $ref: '#/components/responses/NotFound'
- */
-
-/**
- * @swagger
- * /tenants/history/unit/{unitId}:
+ *
+ * /tenants/unit/{unitId}/history:
  *   get:
  *     summary: Get historical tenants for a unit
- *     description: Admins and owners can fetch historical tenants for a unit within a date range.
+ *     description: |
+ *       Retrieves historical tenants for a unit within a date range.
+ *       Last updated: June 11, 2025, 11:11 AM +06.
  *     tags: [Tenants]
  *     security:
  *       - bearerAuth: []
@@ -475,16 +485,23 @@ const router = express.Router();
  *         description: Unit ID
  *       - in: query
  *         name: startDate
+ *         required: true
  *         schema:
  *           type: string
  *           format: date
- *         description: Start date for the tenancy history (e.g., 2024-01-01)
+ *         description: Start date of the range
  *       - in: query
  *         name: endDate
+ *         required: true
  *         schema:
  *           type: string
  *           format: date
- *         description: End date for the tenancy history (e.g., 2025-12-31)
+ *         description: End date of the range
+ *       - in: query
+ *         name: include
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of associations and their attributes (ex. unit:id,name)
  *     responses:
  *       "200":
  *         description: OK
@@ -496,7 +513,7 @@ const router = express.Router();
  *                 results:
  *                   type: array
  *                   items:
- *                     $ref: '#/components/schemas/TenancyHistory'
+ *                     $ref: '#/components/schemas/Tenant'
  *                 totalResults:
  *                   type: integer
  *                   example: 1
@@ -513,7 +530,7 @@ const router = express.Router();
 router
   .route('/')
   .post(validate(tenantValidation.createTenant), tenantController.createTenant)
-  .get(validate(tenantValidation.getTenants), tenantController.getAllTenants);
+  .get(validate(tenantValidation.getTenants), tenantController.getTenants);
 
 router
   .route('/:id')
@@ -521,12 +538,14 @@ router
   .patch(validate(tenantValidation.updateTenant), tenantController.updateTenantById)
   .delete(validate(tenantValidation.deleteTenant), tenantController.deleteTenantById);
 
+router.route('/:id/hard').delete(validate(tenantValidation.deleteTenant), tenantController.hardDeleteTenantById);
+
 router
   .route('/property/:propertyId/unit/:unitId')
   .get(validate(tenantValidation.getTenantsByUnitAndProperty), tenantController.getTenantsByUnitAndProperty);
 
 router
-  .route('/history/unit/:unitId')
+  .route('/unit/:unitId/history')
   .get(validate(tenantValidation.getHistoricalTenantsByUnit), tenantController.getHistoricalTenantsByUnit);
 
 module.exports = router;

@@ -14,21 +14,15 @@ const router = express.Router({ mergeParams: true }); // mergeParams to inherit 
 
 /**
  * @swagger
- * /bills/{billId}/payments:
+ * /payments:
  *   post:
- *     summary: Create a new payment for a bill
- *     description: Tenants can create payments for their bills. Admins can create payments on behalf of tenants.
+ *     summary: Create a new payment
+ *     description: |
+ *       Only admins can create new payments.
+ *       Last updated: June 11, 2025, 12:34 PM +06.
  *     tags: [Payments]
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: billId
- *         required: true
- *         schema:
- *           type: string
- *           format: uuid
- *         description: UUID of the bill
  *     requestBody:
  *       required: true
  *       content:
@@ -36,25 +30,52 @@ const router = express.Router({ mergeParams: true }); // mergeParams to inherit 
  *           schema:
  *             type: object
  *             required:
+ *               - billId
+ *               - accountId
  *               - amountPaid
- *               - paymentDate
  *               - paymentMethod
  *             properties:
+ *               billId:
+ *                 type: string
+ *                 format: uuid
+ *                 description: ID of the bill
+ *               tenantId:
+ *                 type: string
+ *                 format: uuid
+ *                 description: ID of the tenant (optional)
+ *                 nullable: true
+ *               accountId:
+ *                 type: string
+ *                 format: uuid
+ *                 description: ID of the account
  *               amountPaid:
  *                 type: number
- *                 description: Payment amount
+ *                 description: Amount paid
  *               paymentDate:
  *                 type: string
- *                 format: date
- *                 description: Date of the payment
+ *                 format: date-time
+ *                 description: Date and time of payment
  *               paymentMethod:
  *                 type: string
- *                 enum: [cash, credit_card, bank_transfer, mobile_payment, check]
- *                 description: Method of payment
+ *                 enum: [cash, credit_card, bank_transfer, mobile_payment, check, online]
+ *                 description: Payment method
+ *               transactionId:
+ *                 type: string
+ *                 description: External transaction ID
+ *                 nullable: true
+ *               notes:
+ *                 type: string
+ *                 description: Additional notes
+ *                 nullable: true
  *             example:
+ *               billId: 123e4567-e89b-12d3-a456-426614174000
+ *               tenantId: 223e4567-e89b-12d3-a456-426614174001
+ *               accountId: 323e4567-e89b-12d3-a456-426614174002
  *               amountPaid: 500.00
- *               paymentDate: "2025-05-27"
- *               paymentMethod: "credit_card"
+ *               paymentDate: 2025-06-11T12:00:00Z
+ *               paymentMethod: credit_card
+ *               transactionId: TXN123456
+ *               notes: Partial payment for June rent
  *     responses:
  *       "201":
  *         description: Created
@@ -70,53 +91,110 @@ const router = express.Router({ mergeParams: true }); // mergeParams to inherit 
  *         $ref: '#/components/responses/Forbidden'
  *
  *   get:
- *     summary: Get all payments for a specific bill
- *     description: Retrieves all payments associated with a specific bill ID.
+ *     summary: Get all payments
+ *     description: |
+ *       Only admins can retrieve all payments.
+ *       Last updated: June 11, 2025, 12:34 PM +06.
  *     tags: [Payments]
  *     security:
  *       - bearerAuth: []
  *     parameters:
- *       - in: path
+ *       - in: query
  *         name: billId
- *         required: true
  *         schema:
  *           type: string
  *           format: uuid
- *         description: UUID of the bill
+ *         description: Filter by bill ID
+ *       - in: query
+ *         name: tenantId
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Filter by tenant ID
+ *       - in: query
+ *         name: accountId
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Filter by account ID
+ *       - in: query
+ *         name: paymentDate
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: Filter by payment date
+ *       - in: query
+ *         name: paymentMethod
+ *         schema:
+ *           type: string
+ *           enum: [cash, credit_card, bank_transfer, mobile_payment, check, online]
+ *         description: Filter by payment method
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *         description: Sort by query in the form of field:desc/asc (ex. paymentDate:desc)
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *         default: 10
+ *         description: Maximum number of payments
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: include
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of associations and attributes (ex. bill:id,totalAmount|tenant:id,notes)
  *     responses:
  *       "200":
- *         description: A list of payments
+ *         description: OK
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Payment'
+ *               type: object
+ *               properties:
+ *                 results:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Payment'
+ *                 page:
+ *                   type: integer
+ *                   example: 1
+ *                 limit:
+ *                   type: integer
+ *                   example: 10
+ *                 totalPages:
+ *                   type: integer
+ *                   example: 1
+ *                 totalResults:
+ *                   type: integer
+ *                   example: 1
  *       "401":
  *         $ref: '#/components/responses/Unauthorized'
  *       "403":
  *         $ref: '#/components/responses/Forbidden'
- *       "404":
- *         $ref: '#/components/responses/NotFound'
  */
 
 /**
  * @swagger
- * /bills/{billId}/payments/{id}:
+ * /payments/{id}:
  *   get:
- *     summary: Get a payment
- *     description: Admins can fetch any payment. Tenants can fetch their own payments.
+ *     summary: Get a payment by ID
+ *     description: |
+ *       Only admins can fetch payments.
+ *       Last updated: June 11, 2025, 12:34 PM +06.
  *     tags: [Payments]
  *     security:
  *       - bearerAuth: []
  *     parameters:
- *       - in: path
- *         name: billId
- *         required: true
- *         schema:
- *           type: string
- *           format: uuid
- *         description: UUID of the bill
  *       - in: path
  *         name: id
  *         required: true
@@ -124,6 +202,11 @@ const router = express.Router({ mergeParams: true }); // mergeParams to inherit 
  *           type: string
  *           format: uuid
  *         description: Payment ID
+ *       - in: query
+ *         name: include
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of associations and attributes (ex. bill:id,totalAmount|tenant:id,notes)
  *     responses:
  *       "200":
  *         description: OK
@@ -139,19 +222,14 @@ const router = express.Router({ mergeParams: true }); // mergeParams to inherit 
  *         $ref: '#/components/responses/NotFound'
  *
  *   patch:
- *     summary: Update a payment
- *     description: Only admins can update payments.
+ *     summary: Update a payment by ID
+ *     description: |
+ *       Only admins can update payments. billId cannot be updated.
+ *       Last updated: June 11, 2025, 12:34 PM +06.
  *     tags: [Payments]
  *     security:
  *       - bearerAuth: []
  *     parameters:
- *       - in: path
- *         name: billId
- *         required: true
- *         schema:
- *           type: string
- *           format: uuid
- *         description: UUID of the bill
  *       - in: path
  *         name: id
  *         required: true
@@ -166,21 +244,34 @@ const router = express.Router({ mergeParams: true }); // mergeParams to inherit 
  *           schema:
  *             type: object
  *             properties:
+ *               tenantId:
+ *                 type: string
+ *                 format: uuid
+ *                 description: ID of the tenant (optional)
+ *                 nullable: true
  *               amountPaid:
  *                 type: number
- *                 description: Payment amount
+ *                 description: Amount paid
  *               paymentDate:
  *                 type: string
- *                 format: date
- *                 description: Date of the payment
+ *                 format: date-time
+ *                 description: Date and time of payment
  *               paymentMethod:
  *                 type: string
- *                 enum: [cash, credit_card, bank_transfer, mobile_payment, check]
- *                 description: Method of payment
+ *                 enum: [cash, credit_card, bank_transfer, mobile_payment, check, online]
+ *                 description: Payment method
+ *               transactionId:
+ *                 type: string
+ *                 description: External transaction ID
+ *                 nullable: true
+ *               notes:
+ *                 type: string
+ *                 description: Additional notes
+ *                 nullable: true
  *             example:
- *               amountPaid: 550.00
- *               paymentDate: "2025-05-28"
- *               paymentMethod: "bank_transfer"
+ *               amountPaid: 600.00
+ *               paymentMethod: bank_transfer
+ *               notes: Updated payment amount
  *     responses:
  *       "200":
  *         description: OK
@@ -198,19 +289,14 @@ const router = express.Router({ mergeParams: true }); // mergeParams to inherit 
  *         $ref: '#/components/responses/NotFound'
  *
  *   delete:
- *     summary: Delete a payment
- *     description: Only admins can delete payments.
+ *     summary: Soft delete a payment by ID
+ *     description: |
+ *       Marks the payment as deleted. Only admins can soft delete payments.
+ *       Last updated: June 11, 2025, 12:34 PM +06.
  *     tags: [Payments]
  *     security:
  *       - bearerAuth: []
  *     parameters:
- *       - in: path
- *         name: billId
- *         required: true
- *         schema:
- *           type: string
- *           format: uuid
- *         description: UUID of the bill
  *       - in: path
  *         name: id
  *         required: true
@@ -227,19 +313,85 @@ const router = express.Router({ mergeParams: true }); // mergeParams to inherit 
  *         $ref: '#/components/responses/Forbidden'
  *       "404":
  *         $ref: '#/components/responses/NotFound'
+ *
+ * /payments/{id}/hard:
+ *   delete:
+ *     summary: Hard delete a payment by ID
+ *     description: |
+ *       Permanently deletes the payment. Only admins can perform a hard delete.
+ *       Last updated: June 11, 2025, 12:34 PM +06.
+ *     tags: [Payments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Payment ID
+ *     responses:
+ *       "204":
+ *         description: No content
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
+ *       "404":
+ *         $ref: '#/components/responses/NotFound'
+ *
+ * /bills/{billId}/payments:
+ *   get:
+ *     summary: Get all payments for a bill
+ *     description: |
+ *       Only admins can retrieve payments for a specific bill.
+ *       Last updated: June 11, 2025, 12:34 PM +06.
+ *     tags: [Payments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: billId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Bill ID
+ *       - in: query
+ *         name: include
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of associations and attributes (ex. bill:id,totalAmount|tenant:id,notes)
+ *     responses:
+ *       "200":
+ *         description: OK
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Payment'
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
+ *       "404":
+ *         $ref: '#/components/responses/NotFound'
  */
 
-// Base route: /payments (under /bills/:billId/payments from parent)
 router
   .route('/')
   .post(validate(paymentValidation.createPayment), paymentController.createPayment)
+  .get(validate(paymentValidation.getPayments), paymentController.getPayments)
   .get(validate(paymentValidation.getPaymentsByBillId), paymentController.getPaymentsByBillId);
 
-// Item route: /:id (under /bills/:billId/payments/:id from parent)
 router
   .route('/:id')
   .get(validate(paymentValidation.getPayment), paymentController.getPaymentById)
   .patch(validate(paymentValidation.updatePayment), paymentController.updatePaymentById)
   .delete(validate(paymentValidation.deletePayment), paymentController.deletePaymentById);
+
+router.route('/:id/hard').delete(validate(paymentValidation.deletePayment), paymentController.hardDeletePaymentById);
 
 module.exports = router;

@@ -1,92 +1,90 @@
 const httpStatus = require('http-status');
+const pick = require('../utils/pick');
 const catchAsync = require('../utils/catchAsync');
 const { tenantService } = require('../services');
+const { Unit, Bill, Payment } = require('../models');
 
-/**
- * Create a tenant
- * @param {Object} req
- * @param {Object} res
- */
+// Helper function to parse include query parameter
+const parseInclude = (include) => {
+  if (!include) return [];
+  return include
+    .split('|')
+    .map((item) => {
+      const [model, attributes] = item.split(':');
+      const modelMap = {
+        unit: Unit,
+        bills: Bill,
+        payments: Payment,
+      };
+      return {
+        model: modelMap[model],
+        as: model,
+        attributes: attributes.split(','),
+      };
+    })
+    .filter((item) => item.model); // Filter out invalid models
+};
+
 const createTenant = catchAsync(async (req, res) => {
   const tenant = await tenantService.createTenant(req.body);
-  res.status(httpStatus.CREATED).json(tenant);
+  res.status(httpStatus.CREATED).send(tenant);
 });
 
-/**
- * Query tenants
- * @param {Object} req
- * @param {Object} res
- */
-const getAllTenants = catchAsync(async (req, res) => {
-  const filter = req.query.filter ? JSON.parse(req.query.filter) : {};
-  const options = {
-    sortBy: req.query.sortBy,
-    limit: req.query.limit,
-    page: req.query.page,
-  };
-  const result = await tenantService.getAllTenants(filter, options);
-  res.json(result);
+const getTenants = catchAsync(async (req, res) => {
+  const filter = pick(req.query, ['firstName', 'lastName', 'email', 'phoneNumber', 'unitId', 'status']);
+  const options = pick(req.query, ['sortBy', 'limit', 'page']);
+  options.include = parseInclude(req.query.include);
+  const tenants = await tenantService.getAllTenants(filter, options);
+  res.send(tenants);
 });
 
-/**
- * Get tenant by ID
- * @param {Object} req
- * @param {Object} res
- */
 const getTenantById = catchAsync(async (req, res) => {
-  const tenant = await tenantService.getTenantById(req.params.id);
-  res.json(tenant);
+  const tenant = await tenantService.getTenantById(req.params.id, parseInclude(req.query.include));
+  res.send(tenant);
 });
 
-/**
- * Update tenant by ID
- * @param {Object} req
- * @param {Object} res
- */
 const updateTenantById = catchAsync(async (req, res) => {
   const tenant = await tenantService.updateTenant(req.params.id, req.body);
-  res.json(tenant);
+  res.send(tenant);
 });
 
-/**
- * Delete tenant by ID
- * @param {Object} req
- * @param {Object} res
- */
 const deleteTenantById = catchAsync(async (req, res) => {
   await tenantService.deleteTenant(req.params.id);
   res.status(httpStatus.NO_CONTENT).send();
 });
 
-/**
- * Get tenants by unit and property
- * @param {Object} req
- * @param {Object} res
- */
-const getTenantsByUnitAndProperty = catchAsync(async (req, res) => {
-  const { propertyId, unitId } = req.params;
-  const tenants = await tenantService.getTenantsByUnitAndProperty(propertyId, unitId);
-  res.json(tenants);
+const hardDeleteTenantById = catchAsync(async (req, res) => {
+  await tenantService.hardDeleteTenant(req.params.id);
+  res.status(httpStatus.NO_CONTENT).send();
 });
 
-/**
- * Get historical tenants for a unit
- * @param {Object} req
- * @param {Object} res
- */
+const getTenantsByUnitAndProperty = catchAsync(async (req, res) => {
+  const tenants = await tenantService.getTenantsByUnitAndProperty(
+    req.params.propertyId,
+    req.params.unitId,
+    parseInclude(req.query.include)
+  );
+  res.send(tenants);
+});
+
 const getHistoricalTenantsByUnit = catchAsync(async (req, res) => {
-  const { unitId } = req.params;
   const { startDate, endDate } = req.query;
-  const result = await tenantService.getHistoricalTenantsByUnit(unitId, new Date(startDate), new Date(endDate));
-  res.json(result);
+  const tenants = await tenantService.getHistoricalTenantsByUnit(
+    req.params.unitId,
+    startDate,
+    endDate,
+    parseInclude(req.query.include)
+  );
+  res.send(tenants);
 });
 
 module.exports = {
   createTenant,
-  getAllTenants,
+  getTenants,
   getTenantById,
   updateTenantById,
   deleteTenantById,
+  hardDeleteTenantById,
   getTenantsByUnitAndProperty,
   getHistoricalTenantsByUnit,
 };

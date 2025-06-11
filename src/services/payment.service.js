@@ -1,188 +1,253 @@
-const { Op } = require('sequelize');
 const httpStatus = require('http-status');
-const { Payment, Bill } = require('../models');
+const { Op } = require('sequelize');
+const { Payment, Bill, Tenant, Account } = require('../models');
 const ApiError = require('../utils/ApiError');
 
-/**
- * Create a new payment
- * @param {Object} paymentData - Payment data including billId, amountPaid, paymentDate, and paymentMethod
- * @returns {Promise<Payment>} - Created payment object
- */
-const createPayment = async (paymentData) => {
-  const { billId, amountPaid, paymentDate, paymentMethod } = paymentData;
+const validMethods = ['cash', 'credit_card', 'bank_transfer', 'mobile_payment', 'check', 'online'];
 
-  // Validate amountPaid
+const createPayment = async (paymentData) => {
+  const { billId, tenantId, accountId, amountPaid, paymentDate, paymentMethod, transactionId, notes } = paymentData;
+
+  if (!billId || !accountId || !amountPaid || !paymentMethod) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Required fields: billId, accountId, amountPaid, paymentMethod');
+  }
+
   if (amountPaid <= 0) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Payment amount must be greater than 0');
   }
 
-  // Validate paymentDate
-  /* eslint-disable-next-line no-restricted-globals */
-  if (paymentDate && isNaN(Date.parse(paymentDate))) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid payment date');
+  if (!validMethods.includes(paymentMethod)) {
+    throw new ApiError(httpStatus.BAD_REQUEST, `Invalid payment method. Must be one of: ${validMethods.join(', ')}`);
   }
 
-  // Verify bill exists
   const bill = await Bill.findByPk(billId);
-  if (!bill) throw new ApiError(httpStatus.NOT_FOUND, 'Bill not found');
+  if (!bill || bill.isDeleted) {
+    throw new ApiError(httpStatus.NOT_FOUND, `Bill not found for ID: ${billId}`);
+  }
 
-  // Calculate total payments including the new one
-  const payments = await Payment.findAll({ where: { billId } });
+  if (bill.paymentStatus === 'cancelled') {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Cannot add payment to a cancelled bill');
+  }
+
+  if (tenantId) {
+    const tenant = await Tenant.findByPk(tenantId);
+    if (!tenant) {
+      throw new ApiError(httpStatus.NOT_FOUND, `Tenant not found for ID: ${tenantId}`);
+    }
+    if (bill.tenantId !== tenantId) {
+      throw new ApiError(httpStatus.BAD_REQUEST, `Tenant ID ${tenantId} does not match bill's tenant ID`);
+    }
+  }
+
+  const account = await Account.findByPk(accountId);
+  if (!account) {
+    throw new ApiError(httpStatus.NOT_FOUND, `Account not found for ID: ${accountId}`);
+  }
+  if (bill.accountId !== accountId) {
+    throw new ApiError(httpStatus.BAD_REQUEST, `Account ID ${accountId} does not match bill's account ID`);
+  }
+
+  if (transactionId) {
+    const existingPayment = await Payment.findOne({ where: { transactionId, isDeleted: false } });
+    if (existingPayment) {
+      throw new ApiError(httpStatus.BAD_REQUEST, `Transaction ID ${transactionId} is already used`);
+    }
+  }
+
+  const payments = await Payment.findAll({ where: { billId, isDeleted: false } });
   const totalPaid = payments.reduce((sum, p) => sum + parseFloat(p.amountPaid), 0) + parseFloat(amountPaid);
   if (totalPaid > parseFloat(bill.totalAmount)) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Total payment exceeds bill amount');
   }
 
-  // Create payment
-  const payment = await Payment.create({
-    billId,
-    amountPaid,
-    paymentDate: paymentDate || new Date(),
-    paymentMethod,
-  });
+  return Payment.sequelize.transaction(async (t) => {
+    const payment = await Payment.create(
+      {
+        billId,
+        tenantId: tenantId || null,
+        accountId,
+        amountPaid,
+        paymentDate: paymentDate || new Date(),
+        paymentMethod,
+        transactionId: transactionId || null,
+        notes: notes || null,
+        isDeleted: false,
+      },
+      { transaction: t }
+    );
 
-  // Update bill status
-  let newStatus;
-  if (totalPaid >= parseFloat(bill.totalAmount)) {
-    newStatus = 'paid';
-  } else if (totalPaid > 0) {
-    newStatus = 'partially_paid';
-  } else {
-    newStatus = 'unpaid';
-  }
-  const paymentDateUpdate = newStatus === 'paid' ? payment.paymentDate : bill.paymentDate;
-  await bill.update({
-    paymentStatus: newStatus,
-    paymentDate: paymentDateUpdate,
-  });
+    const newAmountPaid = parseFloat(bill.amountPaid) + parseFloat(amountPaid);
+    let newStatus = 'unpaid';
+    if (newAmountPaid >= parseFloat(bill.totalAmount)) newStatus = 'paid';
+    else if (newAmountPaid > 0) newStatus = 'partially_paid';
+    if (newStatus !== 'paid' && new Date(bill.dueDate) < new Date()) newStatus = 'overdue';
 
-  return payment;
+    await bill.update({ amountPaid: newAmountPaid, paymentStatus: newStatus }, { transaction: t });
+    return payment;
+  });
 };
 
-/**
- * Get all payments based on filter and options
- * @param {Object} filter - Sequelize filter object
- * @param {Object} options - Sequelize query options
- * @returns {Promise<Payment[]>} - Array of payment objects
- */
 const getAllPayments = async (filter, options) => {
-  return Payment.findAll({
-    where: filter,
-    ...options,
-    include: [{ model: Bill }],
+  const limit = Math.max(parseInt(options.limit, 10) || 10, 1);
+  const page = Math.max(parseInt(options.page, 10) || 1, 1);
+  const offset = (page - 1) * limit;
+
+  const sort = [];
+  if (options.sortBy) {
+    const [field, order] = options.sortBy.split(':');
+    sort.push([field, order.toUpperCase() === 'DESC' ? 'DESC' : 'ASC']);
+  }
+
+  const include = options.include || [];
+
+  const { count, rows } = await Payment.findAndCountAll({
+    where: { ...filter, isDeleted: false },
+    limit,
+    offset,
+    order: sort.length ? sort : [['paymentDate', 'DESC']],
+    include,
   });
+
+  return {
+    results: rows,
+    page,
+    limit,
+    totalPages: Math.ceil(count / limit),
+    totalResults: count,
+  };
 };
 
-/**
- * Get payments by bill ID
- * @param {string} billId - UUID of the bill
- * @returns {Promise<Payment[]>} - Array of payment objects
- */
-const getPaymentsByBillId = async (billId) => {
+const getPaymentsByBillId = async (billId, include = []) => {
   const bill = await Bill.findByPk(billId);
-  if (!bill) {
+  if (!bill || bill.isDeleted) {
     throw new ApiError(httpStatus.NOT_FOUND, `Bill not found for ID: ${billId}`);
   }
-
-  const payments = await Payment.findAll({
-    where: { billId },
+  return Payment.findAll({
+    where: { billId, isDeleted: false },
     order: [['paymentDate', 'DESC']],
-    include: [{ model: Bill, as: 'bill' }],
+    include,
   });
-  return payments;
 };
 
-/**
- * Get a payment by ID
- * @param {string} paymentId - UUID of the payment
- * @returns {Promise<Payment>} - Payment object
- */
-const getPaymentById = async (paymentId) => {
-  const payment = await Payment.findByPk(paymentId, { include: [{ model: Bill }] });
-  if (!payment) throw new ApiError(httpStatus.NOT_FOUND, 'Payment not found');
+const getPaymentById = async (paymentId, include = []) => {
+  const payment = await Payment.findByPk(paymentId, { include });
+  if (!payment) {
+    throw new ApiError(httpStatus.NOT_FOUND, `Payment not found for ID: ${paymentId}`);
+  }
   return payment;
 };
 
-/**
- * Update a payment
- * @param {string} paymentId - UUID of the payment to update
- * @param {Object} updateBody - Fields to update (e.g., amountPaid, paymentDate)
- * @returns {Promise<Payment>} - Updated payment object
- */
 const updatePayment = async (paymentId, updateBody) => {
   const payment = await getPaymentById(paymentId);
+  const { tenantId, amountPaid, paymentDate, paymentMethod, transactionId, notes, billId } = updateBody;
 
-  // Validate amountPaid if provided
-  if (updateBody.amountPaid) {
-    if (updateBody.amountPaid <= 0) {
-      throw new ApiError(httpStatus.BAD_REQUEST, 'Payment amount must be greater than 0');
-    }
-    const payments = await Payment.findAll({
-      where: { billId: payment.billId, id: { [Op.ne]: paymentId } },
+  if (billId) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Cannot update billId of a payment');
+  }
+
+  const bill = await Bill.findByPk(payment.billId);
+  if (bill.paymentStatus === 'cancelled') {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Cannot update payment for a cancelled bill');
+  }
+
+  if (tenantId !== undefined && tenantId !== null) {
+    const tenant = await Tenant.findByPk(tenantId);
+    if (!tenant) throw new ApiError(httpStatus.NOT_FOUND, `Tenant not found for ID: ${tenantId}`);
+    if (bill.tenantId !== tenantId)
+      throw new ApiError(httpStatus.BAD_REQUEST, `Tenant ID ${tenantId} does not match bill's tenant ID`);
+  }
+
+  if (amountPaid !== undefined) {
+    if (amountPaid <= 0) throw new ApiError(httpStatus.BAD_REQUEST, 'Payment amount must be greater than 0');
+    const otherPayments = await Payment.findAll({
+      where: { billId: payment.billId, id: { [Op.ne]: paymentId }, isDeleted: false },
     });
-    const totalPaid = payments.reduce((sum, p) => sum + parseFloat(p.amountPaid), 0) + parseFloat(updateBody.amountPaid);
-    const bill = await Bill.findByPk(payment.billId);
+    const totalOtherPaid = otherPayments.reduce((sum, p) => sum + parseFloat(p.amountPaid), 0);
+    const totalPaid = totalOtherPaid + parseFloat(amountPaid);
     if (totalPaid > parseFloat(bill.totalAmount)) {
       throw new ApiError(httpStatus.BAD_REQUEST, 'Total payment exceeds bill amount');
     }
   }
 
-  // Validate paymentDate if provided
-  /* eslint-disable-next-line no-restricted-globals */
-  if (updateBody.paymentDate && isNaN(Date.parse(updateBody.paymentDate))) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid payment date');
+  if (paymentMethod && !validMethods.includes(paymentMethod)) {
+    throw new ApiError(httpStatus.BAD_REQUEST, `Invalid payment method. Must be one of: ${validMethods.join(', ')}`);
   }
 
-  // Update payment
-  await payment.update(updateBody);
-
-  // Recalculate total payments and update bill status
-  /* eslint-disable-next-line no-restricted-globals */
-  const allPayments = await Payment.findAll({ where: { billId: payment.billId } });
-  const totalPaid = allPayments.reduce((sum, p) => sum + parseFloat(p.amountPaid), 0);
-  const bill = await Bill.findByPk(payment.billId);
-  let newStatus;
-  if (totalPaid >= parseFloat(bill.totalAmount)) {
-    newStatus = 'paid';
-  } else if (totalPaid > 0) {
-    newStatus = 'partially_paid';
-  } else {
-    newStatus = 'unpaid';
+  if (transactionId !== undefined && transactionId !== payment.transactionId) {
+    const existingPayment = await Payment.findOne({ where: { transactionId, isDeleted: false } });
+    if (existingPayment) {
+      throw new ApiError(httpStatus.BAD_REQUEST, `Transaction ID ${transactionId} is already used`);
+    }
   }
-  const paymentDateUpdate = newStatus === 'paid' ? payment.paymentDate : bill.paymentDate;
-  await bill.update({
-    paymentStatus: newStatus,
-    paymentDate: paymentDateUpdate,
+
+  return Payment.sequelize.transaction(async (t) => {
+    await payment.update(
+      {
+        tenantId: tenantId ?? payment.tenantId,
+        amountPaid: amountPaid ?? payment.amountPaid,
+        paymentDate: paymentDate || payment.paymentDate,
+        paymentMethod: paymentMethod || payment.paymentMethod,
+        transactionId: transactionId ?? payment.transactionId,
+        notes: notes ?? payment.notes,
+      },
+      { transaction: t }
+    );
+
+    const allPayments = await Payment.findAll({ where: { billId: payment.billId, isDeleted: false } });
+    const totalPaid = allPayments.reduce((sum, p) => sum + parseFloat(p.amountPaid), 0);
+    let newStatus = 'unpaid';
+    if (totalPaid >= parseFloat(bill.totalAmount)) newStatus = 'paid';
+    else if (totalPaid > 0) newStatus = 'partially_paid';
+    if (newStatus !== 'paid' && new Date(bill.dueDate) < new Date()) newStatus = 'overdue';
+
+    await bill.update({ amountPaid: totalPaid, paymentStatus: newStatus }, { transaction: t });
+    return payment;
   });
-
-  return payment;
 };
 
-/**
- * Delete a payment
- * @param {string} paymentId - UUID of the payment to delete
- * @returns {Promise<void>}
- */
 const deletePayment = async (paymentId) => {
   const payment = await getPaymentById(paymentId);
-  await payment.destroy();
-
-  // Recalculate total payments and update bill status
-  const payments = await Payment.findAll({ where: { billId: payment.billId } });
-  const totalPaid = payments.reduce((sum, p) => sum + parseFloat(p.amountPaid), 0);
-  const bill = await Bill.findByPk(payment.billId);
-  let newStatus;
-  if (totalPaid >= parseFloat(bill.totalAmount)) {
-    newStatus = 'paid';
-  } else if (totalPaid > 0) {
-    newStatus = 'partially_paid';
-  } else {
-    newStatus = 'unpaid';
+  if (!payment) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Payment is already deleted');
   }
-  const paymentDateUpdate = newStatus === 'paid' ? null : bill.paymentDate;
-  await bill.update({
-    paymentStatus: newStatus,
-    paymentDate: paymentDateUpdate,
+
+  const bill = await Bill.findByPk(payment.billId);
+  if (bill.paymentStatus === 'cancelled') {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Cannot delete payment for a cancelled bill');
+  }
+
+  return Payment.sequelize.transaction(async (t) => {
+    await payment.update({ isDeleted: true }, { transaction: t });
+
+    const payments = await Payment.findAll({ where: { billId: payment.billId, isDeleted: false } });
+    const totalPaid = payments.reduce((sum, p) => sum + parseFloat(p.amountPaid), 0);
+    let newStatus = 'unpaid';
+    if (totalPaid >= parseFloat(bill.totalAmount)) newStatus = 'paid';
+    else if (totalPaid > 0) newStatus = 'partially_paid';
+    if (newStatus !== 'paid' && new Date(bill.dueDate) < new Date()) newStatus = 'overdue';
+
+    await bill.update({ amountPaid: totalPaid, paymentStatus: newStatus }, { transaction: t });
+  });
+};
+
+const hardDeletePayment = async (paymentId) => {
+  const payment = await getPaymentById(paymentId);
+  const bill = await Bill.findByPk(payment.billId);
+  if (bill.paymentStatus === 'cancelled') {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Cannot delete payment for a cancelled bill');
+  }
+
+  return Payment.sequelize.transaction(async (t) => {
+    await payment.destroy({ transaction: t });
+
+    const payments = await Payment.findAll({ where: { billId: payment.billId, isDeleted: false } });
+    const totalPaid = payments.reduce((sum, p) => sum + parseFloat(p.amountPaid), 0);
+    let newStatus = 'unpaid';
+    if (totalPaid >= parseFloat(bill.totalAmount)) newStatus = 'paid';
+    else if (totalPaid > 0) newStatus = 'partially_paid';
+    if (newStatus !== 'paid' && new Date(bill.dueDate) < new Date()) newStatus = 'overdue';
+
+    await bill.update({ amountPaid: totalPaid, paymentStatus: newStatus }, { transaction: t });
   });
 };
 
@@ -193,4 +258,5 @@ module.exports = {
   getPaymentById,
   updatePayment,
   deletePayment,
+  hardDeletePayment,
 };

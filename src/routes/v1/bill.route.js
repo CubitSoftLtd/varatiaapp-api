@@ -19,8 +19,8 @@ const router = express.Router();
  *   post:
  *     summary: Create a new bill
  *     description: |
- *       Only admins and owners can create bills. Total amount is computed as rentAmount + totalUtilityAmount.
- *       Last updated: June 02, 2025, 10:50 PM +06.
+ *       Only admins can create new bills.
+ *       Last updated: June 11, 2025, 12:24 PM +06.
  *     tags: [Bills]
  *     security:
  *       - bearerAuth: []
@@ -33,9 +33,10 @@ const router = express.Router();
  *             required:
  *               - tenantId
  *               - unitId
- *               - billingPeriod
+ *               - accountId
+ *               - billingPeriodStart
+ *               - billingPeriodEnd
  *               - rentAmount
- *               - totalUtilityAmount
  *               - dueDate
  *             properties:
  *               tenantId:
@@ -46,41 +47,43 @@ const router = express.Router();
  *                 type: string
  *                 format: uuid
  *                 description: ID of the unit
- *               billingPeriod:
+ *               accountId:
  *                 type: string
- *                 description: Billing period in YYYY-MM format
+ *                 format: uuid
+ *                 description: ID of the account
+ *               billingPeriodStart:
+ *                 type: string
+ *                 format: date
+ *                 description: Start date of the billing period
+ *               billingPeriodEnd:
+ *                 type: string
+ *                 format: date
+ *                 description: End date of the billing period
  *               rentAmount:
  *                 type: number
- *                 description: Base rent amount
- *               totalUtilityAmount:
- *                 type: number
- *                 description: Total utility amount
+ *                 description: Rent amount for the period
  *               dueDate:
  *                 type: string
  *                 format: date
- *                 description: Due date for the bill payment
- *               paymentStatus:
- *                 type: string
- *                 enum: [unpaid, partially_paid, paid, overdue]
- *                 description: Payment status of the bill
- *                 default: unpaid
- *               paymentDate:
+ *                 description: Due date for the bill
+ *               issueDate:
  *                 type: string
  *                 format: date
- *                 description: Date of payment, if paid
+ *                 description: Issue date of the bill
  *               notes:
  *                 type: string
  *                 description: Additional notes for the bill
+ *                 nullable: true
  *             example:
- *               tenantId: "123e4567-e89b-12d3-a456-426614174001"
- *               unitId: "123e4567-e89b-12d3-a456-426614174002"
- *               billingPeriod: "2025-06"
+ *               tenantId: 123e4567-e89b-12d3-a456-426614174000
+ *               unitId: 223e4567-e89b-12d3-a456-426614174001
+ *               accountId: 323e4567-e89b-12d3-a456-426614174002
+ *               billingPeriodStart: 2025-06-01
+ *               billingPeriodEnd: 2025-06-30
  *               rentAmount: 1000.00
- *               totalUtilityAmount: 50.00
- *               dueDate: "2025-07-01"
- *               paymentStatus: "unpaid"
- *               paymentDate: null
- *               notes: "June bill"
+ *               dueDate: 2025-07-05
+ *               issueDate: 2025-06-01
+ *               notes: Monthly rent and utilities
  *     responses:
  *       "201":
  *         description: Created
@@ -94,14 +97,12 @@ const router = express.Router();
  *         $ref: '#/components/responses/Unauthorized'
  *       "403":
  *         $ref: '#/components/responses/Forbidden'
- *       "404":
- *         $ref: '#/components/responses/NotFound'
  *
  *   get:
  *     summary: Get all bills
  *     description: |
- *       Admins and owners can retrieve all bills. Tenants can retrieve their own bills.
- *       Last updated: June 02, 2025, 10:50 PM +06.
+ *       Only admins can retrieve all bills.
+ *       Last updated: June 11, 2025, 12:24 PM +06.
  *     tags: [Bills]
  *     security:
  *       - bearerAuth: []
@@ -111,29 +112,48 @@ const router = express.Router();
  *         schema:
  *           type: string
  *           format: uuid
- *         description: Tenant ID
+ *         description: Filter by tenant ID
  *       - in: query
  *         name: unitId
  *         schema:
  *           type: string
  *           format: uuid
- *         description: Unit ID
+ *         description: Filter by unit ID
  *       - in: query
- *         name: billingPeriod
+ *         name: accountId
  *         schema:
  *           type: string
- *         description: Billing period in YYYY-MM format
+ *           format: uuid
+ *         description: Filter by account ID
+ *       - in: query
+ *         name: billingPeriodStart
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter by billing period start date
+ *       - in: query
+ *         name: billingPeriodEnd
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter by billing period end date
+ *       - in: query
+ *         name: dueDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Filter by due date
  *       - in: query
  *         name: paymentStatus
  *         schema:
  *           type: string
- *           enum: [unpaid, partially_paid, paid, overdue]
- *         description: Payment status
+ *           enum: [unpaid, partially_paid, paid, overdue, cancelled]
+ *         description: Filter by payment status
  *       - in: query
  *         name: sortBy
  *         schema:
  *           type: string
- *         description: Sort by query in the form of field:desc/asc (ex. dueDate:asc)
+ *         description: Sort by query in the form of field:desc/asc (ex. dueDate:desc)
  *       - in: query
  *         name: limit
  *         schema:
@@ -148,6 +168,11 @@ const router = express.Router();
  *           minimum: 1
  *           default: 1
  *         description: Page number
+ *       - in: query
+ *         name: include
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of associations and attributes (ex. tenant:id,notes|payments:id,amount)
  *     responses:
  *       "200":
  *         description: OK
@@ -176,8 +201,6 @@ const router = express.Router();
  *         $ref: '#/components/responses/Unauthorized'
  *       "403":
  *         $ref: '#/components/responses/Forbidden'
- *       "404":
- *         $ref: '#/components/responses/NotFound'
  */
 
 /**
@@ -186,8 +209,8 @@ const router = express.Router();
  *   get:
  *     summary: Get a bill by ID
  *     description: |
- *       Admins and owners can fetch any bill. Tenants can fetch their own bills.
- *       Last updated: June 02, 2025, 10:50 PM +06.
+ *       Only admins can fetch bills.
+ *       Last updated: June 11, 2025, 12:24 PM +06.
  *     tags: [Bills]
  *     security:
  *       - bearerAuth: []
@@ -199,6 +222,11 @@ const router = express.Router();
  *           type: string
  *           format: uuid
  *         description: Bill ID
+ *       - in: query
+ *         name: include
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of associations and attributes (ex. tenant:id,notes|payments:id,amount)
  *     responses:
  *       "200":
  *         description: OK
@@ -216,8 +244,8 @@ const router = express.Router();
  *   patch:
  *     summary: Update a bill by ID
  *     description: |
- *       Only admins and owners can update bills.
- *       Last updated: June 02, 2025, 10:50 PM +06.
+ *       Only admins can update bills. Total amount, amount paid, and payment status are calculated automatically.
+ *       Last updated: June 11, 2025, 12:24 PM +06.
  *     tags: [Bills]
  *     security:
  *       - bearerAuth: []
@@ -236,34 +264,49 @@ const router = express.Router();
  *           schema:
  *             type: object
  *             properties:
+ *               tenantId:
+ *                 type: string
+ *                 format: uuid
+ *                 description: ID of the tenant
+ *               unitId:
+ *                 type: string
+ *                 format: uuid
+ *                 description: ID of the unit
+ *               accountId:
+ *                 type: string
+ *                 format: uuid
+ *                 description: ID of the account
+ *               billingPeriodStart:
+ *                 type: string
+ *                 format: date
+ *                 description: Start date of the billing period
+ *               billingPeriodEnd:
+ *                 type: string
+ *                 format: date
+ *                 description: End date of the billing period
  *               rentAmount:
  *                 type: number
- *                 description: Base rent amount
- *               totalUtilityAmount:
- *                 type: number
- *                 description: Total utility amount
+ *                 description: Rent amount for the period
  *               dueDate:
  *                 type: string
  *                 format: date
- *                 description: Due date for the bill payment
- *               paymentStatus:
- *                 type: string
- *                 enum: [unpaid, partially_paid, paid, overdue]
- *                 description: Payment status of the bill
- *               paymentDate:
+ *                 description: Due date for the bill
+ *               issueDate:
  *                 type: string
  *                 format: date
- *                 description: Date of payment, if paid
+ *                 description: Issue date of the bill
+ *               paymentStatus:
+ *                 type: string
+ *                 enum: [unpaid, partially_paid, paid, overdue, cancelled]
+ *                 description: Payment status of the bill
  *               notes:
  *                 type: string
  *                 description: Additional notes for the bill
+ *                 nullable: true
  *             example:
- *               rentAmount: 1050.00
- *               totalUtilityAmount: 60.00
- *               dueDate: "2025-07-01"
- *               paymentStatus: "partially_paid"
- *               paymentDate: "2025-06-25"
- *               notes: "Updated June bill"
+ *               rentAmount: 1100.00
+ *               dueDate: 2025-07-10
+ *               notes: Updated rent amount
  *     responses:
  *       "200":
  *         description: OK
@@ -281,10 +324,37 @@ const router = express.Router();
  *         $ref: '#/components/responses/NotFound'
  *
  *   delete:
- *     summary: Delete a bill by ID
+ *     summary: Soft delete a bill by ID
  *     description: |
- *       Only admins and owners can delete bills.
- *       Last updated: June 02, 2025, 10:50 PM +06.
+ *       Marks the bill as deleted. Only admins can soft delete bills.
+ *       Last updated: June 11, 2025, 12:24 PM +06.
+ *     tags: [Bills]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Bill ID
+ *     responses:
+ *       "204":
+ *         description: No content
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
+ *       "404":
+ *         $ref: '#/components/responses/NotFound'
+ *
+ * /bills/{id}/hard:
+ *   delete:
+ *     summary: Hard delete a bill by ID
+ *     description: |
+ *       Permanently deletes the bill. Only admins can perform a hard delete.
+ *       Last updated: June 11, 2025, 12:24 PM +06.
  *     tags: [Bills]
  *     security:
  *       - bearerAuth: []
@@ -317,6 +387,8 @@ router
   .get(validate(billValidation.getBill), billController.getBillById)
   .patch(validate(billValidation.updateBill), billController.updateBillById)
   .delete(validate(billValidation.deleteBill), billController.deleteBillById);
+
+router.route('/:id/hard').delete(validate(billValidation.deleteBill), billController.hardDeleteBillById);
 
 router.use('/:billId/payments', paymentRouter);
 

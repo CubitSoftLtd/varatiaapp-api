@@ -1,29 +1,58 @@
 const httpStatus = require('http-status');
+const { Sequelize } = require('sequelize');
 const { Property, Account } = require('../models');
 const ApiError = require('../utils/ApiError');
 
 /**
- * Create a property
+ * Create a property with validation and transaction
  * @param {Object} propertyBody
  * @returns {Promise<Property>}
  */
 const createProperty = async (propertyBody) => {
-  if (propertyBody.accountId) {
-    const account = await Account.findByPk(propertyBody.accountId);
-    if (!account) {
-      throw new ApiError(httpStatus.NOT_FOUND, 'Account not found');
-    }
+  // Validate accountId
+  const account = await Account.findByPk(propertyBody.accountId);
+  if (!account) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Account not found');
   }
-  return Property.create(propertyBody);
+
+  // Check for existing property with same name and accountId
+  const existingProperty = await Property.findOne({
+    where: {
+      name: propertyBody.name,
+      accountId: propertyBody.accountId,
+    },
+  });
+  if (existingProperty) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Property name already exists for this account');
+  }
+
+  // Use a transaction for creating the property
+  const property = await Property.sequelize.transaction(async (t) => {
+    return Property.create(
+      {
+        name: propertyBody.name,
+        address: propertyBody.address,
+        accountId: propertyBody.accountId,
+        type: propertyBody.type,
+        yearBuilt: propertyBody.yearBuilt,
+        totalUnits: propertyBody.totalUnits,
+        isActive: true,
+      },
+      { transaction: t }
+    );
+  });
+
+  return property;
 };
 
 /**
- * Query for properties
+ * Query for properties with pagination, sorting, and optional inclusion of specific columns from associated models
  * @param {Object} filter - Sequelize filter
  * @param {Object} options - Query options
  * @param {string} [options.sortBy] - Sort option in the format: sortField:(desc|asc)
  * @param {number} [options.limit] - Maximum number of results per page (default = 10)
  * @param {number} [options.page] - Current page (default = 1)
+ * @param {Array} [options.include] - Array of objects specifying models and attributes to include
  * @returns {Promise<{ results: Property[], page: number, limit: number, totalPages: number, totalResults: number }>}
  */
 const getAllProperties = async (filter, options) => {
@@ -37,11 +66,15 @@ const getAllProperties = async (filter, options) => {
     sort.push([field, order.toUpperCase() === 'DESC' ? 'DESC' : 'ASC']);
   }
 
+  // Use the provided include array or default to an empty array (no associations)
+  const include = options.include || [];
+
   const { count, rows } = await Property.findAndCountAll({
     where: filter,
     limit,
     offset,
     order: sort.length ? sort : [['createdAt', 'DESC']],
+    include,
   });
 
   return {
@@ -54,12 +87,13 @@ const getAllProperties = async (filter, options) => {
 };
 
 /**
- * Get property by id
+ * Get property by id with optional inclusion of specific columns from associated models
  * @param {string} id
+ * @param {Array} [include=[]] - Array of objects specifying models and attributes to include
  * @returns {Promise<Property>}
  */
-const getPropertyById = async (id) => {
-  const property = await Property.findByPk(id);
+const getPropertyById = async (id, include = []) => {
+  const property = await Property.findByPk(id, { include });
   if (!property) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Property not found');
   }
@@ -67,29 +101,59 @@ const getPropertyById = async (id) => {
 };
 
 /**
- * Update property by id
+ * Update property by id with validation
  * @param {string} propertyId
  * @param {Object} updateBody
  * @returns {Promise<Property>}
  */
 const updateProperty = async (propertyId, updateBody) => {
   const property = await getPropertyById(propertyId);
+
+  // Validate accountId if provided
   if (updateBody.accountId) {
     const account = await Account.findByPk(updateBody.accountId);
     if (!account) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Account not found');
     }
   }
+
+  // Check for name uniqueness within account if either is updated
+  if (updateBody.name || updateBody.accountId) {
+    const existingProperty = await Property.findOne({
+      where: {
+        name: updateBody.name || property.name,
+        accountId: updateBody.accountId || property.accountId,
+        id: { [Sequelize.Op.ne]: propertyId },
+      },
+    });
+    if (existingProperty) {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'Property name already exists for this account');
+    }
+  }
+
   await property.update(updateBody);
   return property;
 };
 
 /**
- * Delete property by id
+ * Soft delete property by id (set isActive to false)
  * @param {string} propertyId
  * @returns {Promise<void>}
  */
 const deleteProperty = async (propertyId) => {
+  const property = await getPropertyById(propertyId);
+  if (!property.isActive) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Property is already inactive');
+  }
+  await property.update({ isActive: false });
+};
+
+/**
+ * Permanently delete property by id (hard delete)
+ * @param {string} propertyId
+ * @returns {Promise<void>}
+ */
+const hardDeleteProperty = async (propertyId) => {
   const property = await getPropertyById(propertyId);
   await property.destroy();
 };
@@ -100,4 +164,5 @@ module.exports = {
   getPropertyById,
   updateProperty,
   deleteProperty,
+  hardDeleteProperty,
 };

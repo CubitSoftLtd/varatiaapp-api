@@ -2,7 +2,6 @@ const express = require('express');
 const validate = require('../../middlewares/validate');
 const unitValidation = require('../../validations/unit.validation');
 const unitController = require('../../controllers/unit.controller');
-const expenseRouter = require('./expense.route');
 
 const router = express.Router();
 
@@ -15,40 +14,12 @@ const router = express.Router();
 
 /**
  * @swagger
- * components:
- *   schemas:
- *     Unit:
- *       type: object
- *       properties:
- *         id:
- *           type: string
- *           format: uuid
- *           description: Unique identifier for the unit
- *         name:
- *           type: string
- *           description: Name of the unit (e.g., A101)
- *         propertyId:
- *           type: string
- *           format: uuid
- *           description: ID of the associated property
- *         rentAmount:
- *           type: number
- *           format: float
- *           description: Monthly rent amount for the unit
- *         createdAt:
- *           type: string
- *           format: date-time
- *         updatedAt:
- *           type: string
- *           format: date-time
- */
-
-/**
- * @swagger
  * /units:
  *   post:
  *     summary: Create a new unit
- *     description: Only admins and owners can create units.
+ *     description: |
+ *       Only admins can create new units.
+ *       Last updated: June 11, 2025, 11:55 AM +06.
  *     tags: [Units]
  *     security:
  *       - bearerAuth: []
@@ -59,25 +30,45 @@ const router = express.Router();
  *           schema:
  *             type: object
  *             required:
- *               - propertyId
  *               - name
+ *               - propertyId
  *               - rentAmount
  *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Name or number of the unit
  *               propertyId:
  *                 type: string
  *                 format: uuid
- *                 description: ID of the property
- *               name:
- *                 type: string
- *                 description: Name of the unit (e.g., A101)
+ *                 description: ID of the property to which this unit belongs
  *               rentAmount:
  *                 type: number
- *                 format: float
- *                 description: Monthly rent amount for the unit
+ *                 description: Base monthly rent amount for this unit
+ *               status:
+ *                 type: string
+ *                 enum: [occupied, vacant, maintenance, inactive]
+ *                 description: Current occupancy status of the unit
+ *                 default: vacant
+ *               bedroomCount:
+ *                 type: integer
+ *                 description: Number of bedrooms in the unit
+ *                 nullable: true
+ *               bathroomCount:
+ *                 type: number
+ *                 description: Number of bathrooms in the unit
+ *                 nullable: true
+ *               squareFootage:
+ *                 type: number
+ *                 description: Area of the unit in square feet/meters
+ *                 nullable: true
  *             example:
- *               propertyId: "550e8400-e29b-41d4-a716-446655440000"
- *               name: "A101"
+ *               name: Apt 101
+ *               propertyId: 123e4567-e89b-12d3-a456-426614174000
  *               rentAmount: 1200.00
+ *               status: vacant
+ *               bedroomCount: 2
+ *               bathroomCount: 1.5
+ *               squareFootage: 800.00
  *     responses:
  *       "201":
  *         description: Created
@@ -94,17 +85,30 @@ const router = express.Router();
  *
  *   get:
  *     summary: Get all units
- *     description: Admins and owners can retrieve all units. Tenants can retrieve units they are associated with.
+ *     description: |
+ *       Only admins can retrieve all units.
+ *       Last updated: June 11, 2025, 11:55 AM +06.
  *     tags: [Units]
  *     security:
  *       - bearerAuth: []
  *     parameters:
+ *       - in: query
+ *         name: name
+ *         schema:
+ *           type: string
+ *         description: Unit name
  *       - in: query
  *         name: propertyId
  *         schema:
  *           type: string
  *           format: uuid
  *         description: Property ID
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [occupied, vacant, maintenance, inactive]
+ *         description: Unit status
  *       - in: query
  *         name: sortBy
  *         schema:
@@ -115,7 +119,7 @@ const router = express.Router();
  *         schema:
  *           type: integer
  *           minimum: 1
- *           default: 10
+ *         default: 10
  *         description: Maximum number of units
  *       - in: query
  *         name: page
@@ -124,6 +128,11 @@ const router = express.Router();
  *           minimum: 1
  *           default: 1
  *         description: Page number
+ *       - in: query
+ *         name: include
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of associations and their attributes (ex. property:id,name|tenants:id,firstName)
  *     responses:
  *       "200":
  *         description: OK
@@ -158,8 +167,10 @@ const router = express.Router();
  * @swagger
  * /units/{id}:
  *   get:
- *     summary: Get a unit
- *     description: Admins and owners can fetch any unit. Tenants can fetch units they are associated with.
+ *     summary: Get a unit by ID
+ *     description: |
+ *       Only admins can fetch any unit. Account owners can fetch units for their properties.
+ *       Last updated: June 11, 2025, 11:55 AM +06.
  *     tags: [Units]
  *     security:
  *       - bearerAuth: []
@@ -170,7 +181,12 @@ const router = express.Router();
  *         schema:
  *           type: string
  *           format: uuid
- *         description: Unit id
+ *         description: Unit ID
+ *       - in: query
+ *         name: include
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of associations and their attributes (ex. property:id,name|tenants:id,firstName)
  *     responses:
  *       "200":
  *         description: OK
@@ -186,8 +202,10 @@ const router = express.Router();
  *         $ref: '#/components/responses/NotFound'
  *
  *   patch:
- *     summary: Update a unit
- *     description: Only admins and owners can update units.
+ *     summary: Update a unit by ID
+ *     description: |
+ *       Only admins can update any unit. Account owners can update units for their properties.
+ *       Last updated: June 11, 2025, 11:55 AM +06.
  *     tags: [Units]
  *     security:
  *       - bearerAuth: []
@@ -198,7 +216,7 @@ const router = express.Router();
  *         schema:
  *           type: string
  *           format: uuid
- *         description: Unit id
+ *         description: Unit ID
  *     requestBody:
  *       required: true
  *       content:
@@ -208,14 +226,35 @@ const router = express.Router();
  *             properties:
  *               name:
  *                 type: string
- *                 description: Name of the unit (e.g., A102)
+ *                 description: Name or number of the unit
+ *               propertyId:
+ *                 type: string
+ *                 format: uuid
+ *                 description: ID of the property to which this unit belongs
  *               rentAmount:
  *                 type: number
- *                 format: float
- *                 description: Monthly rent amount for the unit
+ *                 description: Base monthly rent amount for this unit
+ *               status:
+ *                 type: string
+ *                 enum: [occupied, vacant, maintenance, inactive]
+ *                 description: Current occupancy status of the unit
+ *               bedroomCount:
+ *                 type: integer
+ *                 description: Number of bedrooms in the unit
+ *                 nullable: true
+ *               bathroomCount:
+ *                 type: number
+ *                 description: Number of bathrooms in the unit
+ *                 nullable: true
+ *               squareFootage:
+ *                 type: number
+ *                 description: Area of the unit in square feet/meters
+ *                 nullable: true
  *             example:
- *               name: "A102"
+ *               name: Apt 102
  *               rentAmount: 1300.00
+ *               status: occupied
+ *               bedroomCount: 3
  *     responses:
  *       "200":
  *         description: OK
@@ -233,8 +272,10 @@ const router = express.Router();
  *         $ref: '#/components/responses/NotFound'
  *
  *   delete:
- *     summary: Delete a unit
- *     description: Only admins and owners can delete units.
+ *     summary: Soft delete a unit by ID
+ *     description: |
+ *       Marks the unit as inactive. Only admins can soft delete any unit. Account owners can soft delete units for their properties.
+ *       Last updated: June 11, 2025, 11:55 AM +06.
  *     tags: [Units]
  *     security:
  *       - bearerAuth: []
@@ -245,7 +286,34 @@ const router = express.Router();
  *         schema:
  *           type: string
  *           format: uuid
- *         description: Unit id
+ *         description: Unit ID
+ *     responses:
+ *       "204":
+ *         description: No content
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
+ *       "404":
+ *         $ref: '#/components/responses/NotFound'
+ *
+ * /units/{id}/hard:
+ *   delete:
+ *     summary: Hard delete a unit by ID
+ *     description: |
+ *       Permanently deletes the unit and its associated data. Only admins can perform a hard delete.
+ *       Last updated: June 11, 2025, 11:55 AM +06.
+ *     tags: [Units]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Unit ID
  *     responses:
  *       "204":
  *         description: No content
@@ -262,26 +330,12 @@ router
   .post(validate(unitValidation.createUnit), unitController.createUnit)
   .get(validate(unitValidation.getUnits), unitController.getUnits);
 
-/**
- * GET    /units/:id
- * PATCH  /units/:id
- * DELETE /units/:id
- */
 router
   .route('/:id')
   .get(validate(unitValidation.getUnit), unitController.getUnitById)
   .patch(validate(unitValidation.updateUnit), unitController.updateUnitById)
   .delete(validate(unitValidation.deleteUnit), unitController.deleteUnitById);
 
-/**
- * Mount expenseRouter under /units/:id/expenses
- *
- * - POST   /units/:id/expenses       → create a new unit expense
- * - GET    /units/:id/expenses       → list all unit expenses
- * - GET    /units/:id/expenses/:id   → get a single expense by its ID
- * - PATCH  /units/:id/expenses/:id   → update an expense by its ID
- * - DELETE /units/:id/expenses/:id   → delete an expense by its ID
- */
-router.use('/:unitId/expenses', expenseRouter);
+router.route('/:id/hard').delete(validate(unitValidation.deleteUnit), unitController.hardDeleteUnitById);
 
 module.exports = router;

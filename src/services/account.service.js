@@ -1,23 +1,40 @@
 const httpStatus = require('http-status');
-const { Account } = require('../models');
+const { Sequelize } = require('sequelize');
+const { Account, User, Property, Payment, Expense } = require('../models');
 const ApiError = require('../utils/ApiError');
 
 /**
- * Create an account
+ * Create an account with additional validation and transaction
  * @param {Object} accountBody
  * @returns {Promise<Account>}
  */
 const createAccount = async (accountBody) => {
-  return Account.create(accountBody);
+  // Check for existing account with same name or email
+  const existingAccount = await Account.findOne({
+    where: {
+      [Sequelize.Op.or]: [{ name: accountBody.name }, { contactEmail: accountBody.contactEmail }],
+    },
+  });
+  if (existingAccount) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Account name or contact email already exists');
+  }
+
+  // Use a transaction for creating the account
+  const account = await Account.sequelize.transaction(async (t) => {
+    return Account.create(accountBody, { transaction: t });
+  });
+
+  return account;
 };
 
 /**
- * Query for accounts
+ * Query for accounts with pagination, sorting, and optional associations
  * @param {Object} filter - Sequelize filter
  * @param {Object} options - Query options
  * @param {string} [options.sortBy] - Sort option in the format: sortField:(desc|asc)
  * @param {number} [options.limit] - Maximum number of results per page (default = 10)
  * @param {number} [options.page] - Current page (default = 1)
+ * @param {boolean} [options.includeAssociations] - Include related models (default = false)
  * @returns {Promise<{ results: Account[], page: number, limit: number, totalPages: number, totalResults: number }>}
  */
 const getAllAccounts = async (filter, options) => {
@@ -31,11 +48,15 @@ const getAllAccounts = async (filter, options) => {
     sort.push([field, order.toUpperCase() === 'DESC' ? 'DESC' : 'ASC']);
   }
 
+  // Use the provided include array or default to an empty array (no associations)
+  const include = options.include || [];
+
   const { count, rows } = await Account.findAndCountAll({
     where: filter,
     limit,
     offset,
     order: sort.length ? sort : [['createdAt', 'DESC']],
+    include,
   });
 
   return {
@@ -48,12 +69,22 @@ const getAllAccounts = async (filter, options) => {
 };
 
 /**
- * Get account by id
+ * Get account by id with optional associations
  * @param {string} id
+ * @param {boolean} [includeAssociations=false] - Include related models
  * @returns {Promise<Account>}
  */
-const getAccountById = async (id) => {
-  const account = await Account.findByPk(id);
+const getAccountById = async (id, includeAssociations = false) => {
+  const include = includeAssociations
+    ? [
+        { model: User, as: 'users' },
+        { model: Property, as: 'properties' },
+        { model: Payment, as: 'payments' },
+        { model: Expense, as: 'expenses' },
+      ]
+    : [];
+
+  const account = await Account.findByPk(id, { include });
   if (!account) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Account not found');
   }
@@ -61,23 +92,53 @@ const getAccountById = async (id) => {
 };
 
 /**
- * Update account by id
+ * Update account by id with validation
  * @param {string} accountId
  * @param {Object} updateBody
  * @returns {Promise<Account>}
  */
 const updateAccount = async (accountId, updateBody) => {
   const account = await getAccountById(accountId);
+
+  // Check for conflicts with other accounts if name or email is being updated
+  if (updateBody.name || updateBody.contactEmail) {
+    const existingAccount = await Account.findOne({
+      where: {
+        [Sequelize.Op.or]: [
+          { name: updateBody.name || account.name },
+          { contactEmail: updateBody.contactEmail || account.contactEmail },
+        ],
+        id: { [Sequelize.Op.ne]: accountId },
+      },
+    });
+    if (existingAccount) {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'Account name or contact email already exists');
+    }
+  }
+
   await account.update(updateBody);
   return account;
 };
 
 /**
- * Delete account by id
+ * Soft delete account by id (set isActive to false)
  * @param {string} accountId
  * @returns {Promise<void>}
  */
 const deleteAccount = async (accountId) => {
+  const account = await getAccountById(accountId);
+  if (!account.isActive) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Account is already inactive');
+  }
+  await account.update({ isActive: false });
+};
+
+/**
+ * Permanently delete account by id (hard delete)
+ * @param {string} accountId
+ * @returns {Promise<void>}
+ */
+const hardDeleteAccount = async (accountId) => {
   const account = await getAccountById(accountId);
   await account.destroy();
 };
@@ -88,4 +149,5 @@ module.exports = {
   getAccountById,
   updateAccount,
   deleteAccount,
+  hardDeleteAccount,
 };

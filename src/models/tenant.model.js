@@ -6,82 +6,143 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.UUID,
         defaultValue: DataTypes.UUIDV4,
         primaryKey: true,
+        allowNull: false, // Primary keys must be non-nullable
+        comment: 'Unique identifier for the tenant',
       },
       firstName: {
-        type: DataTypes.STRING,
+        type: DataTypes.STRING(100), // Specify reasonable length
         allowNull: false,
+        comment: "Tenant's first name",
       },
       lastName: {
-        type: DataTypes.STRING,
+        type: DataTypes.STRING(100), // Specify reasonable length
         allowNull: false,
+        comment: "Tenant's last name",
+      },
+      fullName: {
+        // Add a virtual field for full name (derived, not stored)
+        type: DataTypes.VIRTUAL,
+        get() {
+          return `${this.firstName || ''} ${this.lastName || ''}`.trim();
+        },
       },
       email: {
-        type: DataTypes.STRING,
+        type: DataTypes.STRING(255),
         allowNull: false,
+        unique: true, // Email should be unique for each tenant
         validate: {
           isEmail: true,
         },
+        comment: "Tenant's primary email address",
       },
       phoneNumber: {
-        type: DataTypes.STRING,
+        type: DataTypes.STRING(50), // Accommodate various phone formats
         allowNull: false,
+        unique: true, // Phone number should typically be unique for each tenant
         validate: {
+          // A more robust regex for phone numbers might be needed depending on internationalization
           is: {
-            args: /^\+?[0-9\s\-()]{10,20}$/,
-            msg: 'Phone number must be valid and contain 10 to 20 characters (digits, spaces, +, -, and parentheses allowed)',
+            args: /^\+?[0-9\s\-.()]{7,25}$/, // Adjusted regex for common international formats, 7-25 chars
+            msg: 'Phone number must be valid (7-25 characters, digits, spaces, +, -, and parentheses allowed)',
           },
         },
+        comment: "Tenant's primary phone number",
       },
-      emergencyContact: {
-        type: DataTypes.STRING,
+      emergencyContactName: {
+        // Separating name and number for clarity
+        type: DataTypes.STRING(255),
+        allowNull: true,
+        comment: 'Name of the emergency contact person',
+      },
+      emergencyContactPhone: {
+        type: DataTypes.STRING(50),
         allowNull: true,
         validate: {
           is: {
-            args: /^\+?[0-9\s\-()]{10,20}$/,
-            msg: 'Emergency contact must be a valid phone number (10-20 characters, digits, spaces, +, -, () allowed)',
+            args: /^\+?[0-9\s\-.()]{7,25}$/,
+            msg: 'Emergency contact phone must be a valid phone number (7-25 characters, digits, spaces, +, -, () allowed)',
           },
         },
+        comment: 'Phone number for the emergency contact',
       },
       unitId: {
         type: DataTypes.UUID,
-        allowNull: true,
+        allowNull: true, // Tenant might not be currently assigned to a unit (e.g., prospective tenant)
         references: {
-          model: 'units',
+          model: 'units', // References the 'units' table
           key: 'id',
         },
-        onDelete: 'SET NULL',
+        onDelete: 'SET NULL', // If a unit is deleted, tenant's unitId becomes null (tenant can still exist)
         onUpdate: 'CASCADE',
+        comment: 'ID of the unit the tenant is currently occupying or assigned to',
       },
       leaseStartDate: {
-        type: DataTypes.DATE,
+        type: DataTypes.DATEONLY, // Use DATEONLY if you only need the date
         allowNull: false,
+        comment: "Date the tenant's lease agreement started",
       },
       leaseEndDate: {
-        type: DataTypes.DATE,
-        allowNull: true,
+        type: DataTypes.DATEONLY, // Use DATEONLY
+        // type: DataTypes.DATE, // Change back to DATE if time component is needed
+        allowNull: true, // Lease might be month-to-month or open-ended
+        comment: "Date the tenant's lease agreement is scheduled to end (null for open-ended leases)",
       },
       depositAmount: {
-        type: DataTypes.DECIMAL(10, 2),
+        type: DataTypes.DECIMAL(18, 2), // Increased precision for currency
         allowNull: false,
         defaultValue: 0.0,
+        comment: 'The security deposit amount paid by the tenant',
       },
       status: {
-        type: DataTypes.ENUM('active', 'inactive', 'evicted'),
+        type: DataTypes.ENUM('current', 'prospective', 'past', 'evicted', 'notice'), // More descriptive statuses
         allowNull: false,
-        defaultValue: 'active',
+        defaultValue: 'current',
+        comment: 'Current status of the tenant in the property management system',
       },
       nationalId: {
-        type: DataTypes.STRING,
-        allowNull: false,
+        type: DataTypes.STRING(50), // Specify reasonable length, e.g., for NID, SSN, Passport
+        allowNull: true, // Made allowNull true, as not all tenants might have this info or it's sensitive
+        unique: true, // National ID should be unique if provided
         validate: {
-          notEmpty: true,
-          is: /^[A-Za-z0-9\-/]{5,20}$/,
+          notEmpty: {
+            msg: 'National ID cannot be empty if provided',
+          },
+          // Regex should be specific to the expected format (e.g., NID for Bangladesh)
+          args: /^[A-Za-z0-9\-/]{5,50}$/, // General alphanumeric, hyphen, slash, 5-50 chars
         },
+        comment: 'National identification number (e.g., NID, Passport number)',
+      },
+      moveInDate: {
+        type: DataTypes.DATEONLY,
+        allowNull: true,
+        comment: 'Actual date the tenant moved into the unit',
+      },
+      moveOutDate: {
+        type: DataTypes.DATEONLY,
+        allowNull: true,
+        comment: 'Actual date the tenant moved out of the unit',
+      },
+      notes: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        comment: 'Any additional notes about the tenant',
       },
     },
     {
       timestamps: true,
       tableName: 'tenants',
+      modelName: 'tenant', // Optional: explicitly define model name
+      indexes: [
+        {
+          fields: ['unitId'], // Index for faster lookups by unit
+        },
+        {
+          fields: ['leaseStartDate', 'leaseEndDate'], // Index for date range queries
+        },
+        {
+          fields: ['status'], // Index for filtering by status
+        },
+      ],
     }
   );
 

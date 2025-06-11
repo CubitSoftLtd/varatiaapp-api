@@ -4,38 +4,68 @@ const subscriptionTypes = {
   FREE: 'free',
   BASIC: 'basic',
   PREMIUM: 'premium',
+  ENTERPRISE: 'enterprise',
 };
+
+// Reusable ID param schema for UUID v4
+const idParamSchema = Joi.object().keys({
+  id: Joi.string()
+    .uuid({ version: ['uuidv4'] })
+    .required()
+    .messages({
+      'string.base': 'ID must be a string',
+      'string.empty': 'ID is required',
+      'string.uuid': 'ID must be a valid UUID',
+    }),
+});
 
 const createAccount = {
   body: Joi.object().keys({
-    name: Joi.string().required().min(3).max(100).messages({
+    name: Joi.string().trim().required().min(3).max(255).messages({
       'string.base': 'Name must be a string',
       'string.empty': 'Name is required',
       'string.min': 'Name must be at least 3 characters long',
-      'string.max': 'Name cannot exceed 100 characters',
+      'string.max': 'Name cannot exceed 255 characters',
     }),
     subscriptionType: Joi.string()
       .valid(...Object.values(subscriptionTypes))
-      .default('free')
+      .default(subscriptionTypes.FREE)
       .messages({
         'string.base': 'Subscription type must be a string',
-        'any.only': 'Subscription type must be one of: free, basic, premium',
+        'any.only': `Subscription type must be one of: ${Object.values(subscriptionTypes).join(', ')}`,
       }),
-    contactName: Joi.string().required().min(3).max(100).messages({
+    contactName: Joi.string().trim().required().min(3).max(255).messages({
       'string.base': 'Contact name must be a string',
       'string.empty': 'Contact name is required',
       'string.min': 'Contact name must be at least 3 characters long',
-      'string.max': 'Contact name cannot exceed 100 characters',
+      'string.max': 'Contact name cannot exceed 255 characters',
     }),
-    contactEmail: Joi.string().required().email().messages({
+    contactEmail: Joi.string().trim().required().email().messages({
       'string.base': 'Contact email must be a string',
       'string.empty': 'Contact email is required',
       'string.email': 'Contact email must be a valid email address',
     }),
-    contactPhone: Joi.string().allow(null).min(5).max(20).messages({
-      'string.base': 'Contact phone must be a string',
-      'string.min': 'Contact phone must be at least 5 characters long',
-      'string.max': 'Contact phone cannot exceed 20 characters',
+    contactPhone: Joi.string()
+      .trim()
+      .pattern(/^\+?[0-9\s-]{5,50}$/)
+      .required()
+      .messages({
+        'string.base': 'Contact phone must be a string',
+        'string.empty': 'Contact phone is required',
+        'string.pattern.base': 'Contact phone must contain only numbers, spaces, dashes, or a leading plus',
+        'any.required': 'Contact phone is required',
+      }),
+    adminFirstName: Joi.string().trim().required().min(3).max(15).messages({
+      'string.base': 'Admin user first name must be a string',
+      'string.empty': 'Admin user first name is required',
+      'string.min': 'Admin user first name must be at least 3 characters long',
+      'string.max': 'Admin user first name cannot exceed 15 characters',
+    }),
+    adminLastName: Joi.string().trim().required().min(3).max(15).messages({
+      'string.base': 'Admin user last name must be a string',
+      'string.empty': 'Admin user last name is required',
+      'string.min': 'Admin user last name must be at least 3 characters long',
+      'string.max': 'Admin user last name cannot exceed 15 characters',
     }),
     isActive: Joi.boolean().default(true).messages({
       'boolean.base': 'isActive must be a boolean',
@@ -48,22 +78,23 @@ const createAccount = {
 
 const getAccounts = {
   query: Joi.object().keys({
-    name: Joi.string().min(1).max(100).messages({
+    name: Joi.string().trim().min(1).max(255).messages({
       'string.base': 'Name must be a string',
       'string.min': 'Name must be at least 1 character long',
-      'string.max': 'Name cannot exceed 100 characters',
+      'string.max': 'Name cannot exceed 255 characters',
     }),
     subscriptionType: Joi.string()
       .valid(...Object.values(subscriptionTypes))
       .messages({
         'string.base': 'Subscription type must be a string',
-        'any.only': 'Subscription type must be one of: free, basic, premium',
+        'any.only': `Subscription type must be one of: ${Object.values(subscriptionTypes).join(', ')}`,
       }),
     sortBy: Joi.string()
       .pattern(/^[a-zA-Z]+:(asc|desc)$/)
       .messages({
         'string.base': 'SortBy must be a string',
-        'string.pattern.base': 'SortBy must be in the format "field:asc" or "field:desc"',
+        'string.pattern.base':
+          'SortBy must be one or more fields in the format "field:asc" or "field:desc", comma-separated',
       }),
     limit: Joi.number().integer().min(1).default(10).messages({
       'number.base': 'Limit must be a number',
@@ -79,56 +110,40 @@ const getAccounts = {
 };
 
 const getAccount = {
-  params: Joi.object().keys({
-    id: Joi.string()
-      .uuid({ version: ['uuidv4'] })
-      .required()
-      .messages({
-        'string.base': 'ID must be a string',
-        'string.empty': 'ID is required',
-        'string.uuid': 'ID must be a valid UUID',
-      }),
-  }),
+  params: idParamSchema,
 };
 
 const updateAccount = {
-  params: Joi.object().keys({
-    id: Joi.string()
-      .uuid({ version: ['uuidv4'] })
-      .required()
-      .messages({
-        'string.base': 'ID must be a string',
-        'string.empty': 'ID is required',
-        'string.uuid': 'ID must be a valid UUID',
-      }),
-  }),
+  params: idParamSchema,
   body: Joi.object()
     .keys({
-      name: Joi.string().min(3).max(100).messages({
+      name: Joi.string().trim().min(3).max(255).messages({
         'string.base': 'Name must be a string',
         'string.min': 'Name must be at least 3 characters long',
-        'string.max': 'Name cannot exceed 100 characters',
+        'string.max': 'Name cannot exceed 255 characters',
       }),
       subscriptionType: Joi.string()
         .valid(...Object.values(subscriptionTypes))
         .messages({
           'string.base': 'Subscription type must be a string',
-          'any.only': 'Subscription type must be one of: free, basic, premium',
+          'any.only': `Subscription type must be one of: ${Object.values(subscriptionTypes).join(', ')}`,
         }),
-      contactName: Joi.string().min(3).max(100).messages({
+      contactName: Joi.string().trim().min(3).max(255).messages({
         'string.base': 'Contact name must be a string',
         'string.min': 'Contact name must be at least 3 characters long',
-        'string.max': 'Contact name cannot exceed 100 characters',
+        'string.max': 'Contact name cannot exceed 255 characters',
       }),
-      contactEmail: Joi.string().email().messages({
+      contactEmail: Joi.string().trim().email().messages({
         'string.base': 'Contact email must be a string',
         'string.email': 'Contact email must be a valid email address',
       }),
-      contactPhone: Joi.string().allow(null).min(5).max(20).messages({
-        'string.base': 'Contact phone must be a string',
-        'string.min': 'Contact phone must be at least 5 characters long',
-        'string.max': 'Contact phone cannot exceed 20 characters',
-      }),
+      contactPhone: Joi.string()
+        .trim()
+        .pattern(/^\+?[0-9\s-]{5,50}$/)
+        .messages({
+          'string.base': 'Contact phone must be a string',
+          'string.pattern.base': 'Contact phone must contain only numbers, spaces, dashes, or a leading plus',
+        }),
       isActive: Joi.boolean().messages({
         'boolean.base': 'isActive must be a boolean',
       }),
@@ -142,6 +157,7 @@ const updateAccount = {
     }),
 };
 
+// Both soft and hard delete use the same schema
 const deleteAccount = {
   params: Joi.object().keys({
     id: Joi.string()
@@ -154,8 +170,8 @@ const deleteAccount = {
       }),
   }),
 };
-
 module.exports = {
+  subscriptionTypes,
   createAccount,
   getAccounts,
   getAccount,

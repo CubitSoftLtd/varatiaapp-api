@@ -14,46 +14,12 @@ const router = express.Router();
 
 /**
  * @swagger
- * components:
- *   schemas:
- *     Meter:
- *       type: object
- *       properties:
- *         id:
- *           type: string
- *           format: uuid
- *           description: Unique identifier for the meter
- *         number:
- *           type: string
- *           description: Unique meter number
- *         propertyId:
- *           type: string
- *           format: uuid
- *           description: ID of the associated property
- *         utilityTypeId:
- *           type: string
- *           format: uuid
- *           description: ID of the associated utility type
- *         status:
- *           type: string
- *           enum: [active, inactive, maintenance]
- *           description: Status of the meter
- *         createdAt:
- *           type: string
- *           format: date-time
- *         updatedAt:
- *           type: string
- *           format: date-time
- */
-
-/**
- * @swagger
  * /meters:
  *   post:
  *     summary: Create a new meter
  *     description: |
- *       Only admins can create new meters. Property ID must be provided in the request body.
- *       Last updated: June 02, 2025, 04:48 PM +06.
+ *       Only admins can create new meters.
+ *       Last updated: June 11, 2025, 10:47 AM +06.
  *     tags: [Meters]
  *     security:
  *       - bearerAuth: []
@@ -70,25 +36,42 @@ const router = express.Router();
  *             properties:
  *               number:
  *                 type: string
- *                 description: Unique meter number
+ *                 description: Unique identifier or serial number of the meter
  *               propertyId:
  *                 type: string
  *                 format: uuid
- *                 description: ID of the associated property
+ *                 description: ID of the property to which this meter is assigned
  *               utilityTypeId:
  *                 type: string
  *                 format: uuid
- *                 description: ID of the associated utility type
+ *                 description: ID of the utility type (e.g., electricity, water, gas)
  *               status:
  *                 type: string
- *                 enum: [active, inactive, maintenance]
- *                 description: Status of the meter
+ *                 enum: [active, inactive, maintenance, retired]
+ *                 description: Current operational status of the meter
  *                 default: active
+ *               installedDate:
+ *                 type: string
+ *                 format: date
+ *                 description: Date the meter was installed
+ *                 nullable: true
+ *               lastReadingDate:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Date of the last recorded reading
+ *                 nullable: true
+ *               description:
+ *                 type: string
+ *                 description: Optional detailed description of the meter
+ *                 nullable: true
  *             example:
  *               number: MTR123456
- *               propertyId: "b567bd64-12ac-4d7c-add8-eec1dad11225"
- *               utilityTypeId: "123e4567-e89b-12d3-a456-426614174001"
+ *               propertyId: 123e4567-e89b-12d3-a456-426614174000
+ *               utilityTypeId: 789c1234-d56e-78f9-g012-345678901234
  *               status: active
+ *               installedDate: 2025-01-01
+ *               lastReadingDate: 2025-06-01T10:00:00Z
+ *               description: Main electricity meter for building
  *     responses:
  *       "201":
  *         description: Created
@@ -102,14 +85,12 @@ const router = express.Router();
  *         $ref: '#/components/responses/Unauthorized'
  *       "403":
  *         $ref: '#/components/responses/Forbidden'
- *       "404":
- *         $ref: '#/components/responses/NotFound'
  *
  *   get:
  *     summary: Get all meters
  *     description: |
- *       Admins can retrieve all meters. Other authenticated users can view meters.
- *       Last updated: June 02, 2025, 04:48 PM +06.
+ *       Only admins can retrieve all meters.
+ *       Last updated: June 11, 2025, 10:47 AM +06.
  *     tags: [Meters]
  *     security:
  *       - bearerAuth: []
@@ -123,14 +104,20 @@ const router = express.Router();
  *         name: status
  *         schema:
  *           type: string
- *           enum: [active, inactive, maintenance]
+ *           enum: [active, inactive, maintenance, retired]
  *         description: Meter status
  *       - in: query
  *         name: propertyId
  *         schema:
  *           type: string
  *           format: uuid
- *         description: Filter by property ID
+ *         description: Property ID
+ *       - in: query
+ *         name: utilityTypeId
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Utility type ID
  *       - in: query
  *         name: sortBy
  *         schema:
@@ -150,6 +137,11 @@ const router = express.Router();
  *           minimum: 1
  *           default: 1
  *         description: Page number
+ *       - in: query
+ *         name: include
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of associations and their attributes (ex. property:id,name|utilityType:id,name)
  *     responses:
  *       "200":
  *         description: OK
@@ -178,8 +170,6 @@ const router = express.Router();
  *         $ref: '#/components/responses/Unauthorized'
  *       "403":
  *         $ref: '#/components/responses/Forbidden'
- *       "404":
- *         $ref: '#/components/responses/NotFound'
  */
 
 /**
@@ -188,8 +178,8 @@ const router = express.Router();
  *   get:
  *     summary: Get a meter by ID
  *     description: |
- *       Admins can fetch any meter. Other authenticated users can view meters.
- *       Last updated: June 02, 2025, 04:48 PM +06.
+ *       Only admins can fetch any meter. Account owners can fetch meters for their properties.
+ *       Last updated: June 11, 2025, 10:47 AM +06.
  *     tags: [Meters]
  *     security:
  *       - bearerAuth: []
@@ -201,6 +191,11 @@ const router = express.Router();
  *           type: string
  *           format: uuid
  *         description: Meter ID
+ *       - in: query
+ *         name: include
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of associations and their attributes (ex. property:id,name|utilityType:id,name)
  *     responses:
  *       "200":
  *         description: OK
@@ -218,8 +213,8 @@ const router = express.Router();
  *   patch:
  *     summary: Update a meter by ID
  *     description: |
- *       Only admins can update meters.
- *       Last updated: June 02, 2025, 04:48 PM +06.
+ *       Only admins can update any meter. Account owners can update meters for their properties.
+ *       Last updated: June 11, 2025, 10:47 AM +06.
  *     tags: [Meters]
  *     security:
  *       - bearerAuth: []
@@ -240,24 +235,41 @@ const router = express.Router();
  *             properties:
  *               number:
  *                 type: string
- *                 description: Unique meter number
+ *                 description: Unique identifier or serial number of the meter
  *               propertyId:
  *                 type: string
  *                 format: uuid
- *                 description: ID of the associated property
+ *                 description: ID of the property to which this meter is assigned
  *               utilityTypeId:
  *                 type: string
  *                 format: uuid
- *                 description: ID of the associated utility type
+ *                 description: ID of the utility type (e.g., electricity, water, gas)
  *               status:
  *                 type: string
- *                 enum: [active, inactive, maintenance]
- *                 description: Status of the meter
+ *                 enum: [active, inactive, maintenance, retired]
+ *                 description: Current operational status of the meter
+ *               installedDate:
+ *                 type: string
+ *                 format: date
+ *                 description: Date the meter was installed
+ *                 nullable: true
+ *               lastReadingDate:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Date of the last recorded reading
+ *                 nullable: true
+ *               description:
+ *                 type: string
+ *                 description: Optional detailed description of the meter
+ *                 nullable: true
  *             example:
- *               number: MTR123456
- *               propertyId: "b567bd64-12ac-4d7c-add8-eec1dad11225"
- *               utilityTypeId: "123e4567-e89b-12d3-a456-426614174001"
- *               status: active
+ *               number: MTR123456-UPDATED
+ *               propertyId: 123e4567-e89b-12d3-a456-426614174000
+ *               utilityTypeId: 789c1234-d56e-78f9-g012-345678901234
+ *               status: maintenance
+ *               installedDate: 2025-01-01
+ *               lastReadingDate: 2025-06-01T10:00:00Z
+ *               description: Updated electricity meter description
  *     responses:
  *       "200":
  *         description: OK
@@ -275,10 +287,37 @@ const router = express.Router();
  *         $ref: '#/components/responses/NotFound'
  *
  *   delete:
- *     summary: Delete a meter by ID
+ *     summary: Soft delete a meter by ID
  *     description: |
- *       Only admins can delete meters.
- *       Last updated: June 02, 2025, 04:48 PM +06.
+ *       Marks the meter as inactive. Only admins can soft delete any meter. Account owners can soft delete meters for their properties.
+ *       Last updated: June 11, 2025, 10:47 AM +06.
+ *     tags: [Meters]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Meter ID
+ *     responses:
+ *       "204":
+ *         description: No content
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
+ *       "404":
+ *         $ref: '#/components/responses/NotFound'
+ *
+ * /meters/{id}/hard:
+ *   delete:
+ *     summary: Hard delete a meter by ID
+ *     description: |
+ *       Permanently deletes the meter and its associated data. Only admins can perform a hard delete.
+ *       Last updated: June 11, 2025, 10:47 AM +06.
  *     tags: [Meters]
  *     security:
  *       - bearerAuth: []
@@ -311,5 +350,7 @@ router
   .get(validate(meterValidation.getMeter), meterController.getMeterById)
   .patch(validate(meterValidation.updateMeter), meterController.updateMeterById)
   .delete(validate(meterValidation.deleteMeter), meterController.deleteMeterById);
+
+router.route('/:id/hard').delete(validate(meterValidation.deleteMeter), meterController.hardDeleteMeterById);
 
 module.exports = router;

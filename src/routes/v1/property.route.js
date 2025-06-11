@@ -2,7 +2,6 @@ const express = require('express');
 const validate = require('../../middlewares/validate');
 const propertyValidation = require('../../validations/property.validation');
 const propertyController = require('../../controllers/property.controller');
-const expenseRouter = require('./expense.route'); // Import the expense routes
 
 const router = express.Router();
 
@@ -19,8 +18,8 @@ const router = express.Router();
  *   post:
  *     summary: Create a new property
  *     description: |
- *       Only owners and managers can create properties.
- *       Last updated: June 01, 2025, 9:59 PM +06.
+ *       Only admins can create new properties.
+ *       Last updated: June 11, 2025, 11:07 AM +06.
  *     tags: [Properties]
  *     security:
  *       - bearerAuth: []
@@ -40,15 +39,31 @@ const router = express.Router();
  *                 description: Name of the property
  *               address:
  *                 type: string
- *                 description: Address of the property
+ *                 description: Full physical address of the property
  *               accountId:
  *                 type: string
  *                 format: uuid
- *                 description: ID of the associated account
+ *                 description: ID of the account to which this property belongs
+ *               type:
+ *                 type: string
+ *                 enum: [residential, commercial, mixed-use]
+ *                 description: Type of property
+ *                 nullable: true
+ *               yearBuilt:
+ *                 type: integer
+ *                 description: Year the property was built
+ *                 nullable: true
+ *               totalUnits:
+ *                 type: integer
+ *                 description: Total number of units in the property
+ *                 nullable: true
  *             example:
- *               name: Downtown Apartment
- *               address: 123 Main St
- *               accountId: "123e4567-e89b-12d3-a456-426614174000"
+ *               name: Main Street Apartments
+ *               address: 123 Main St, Anytown, USA
+ *               accountId: 123e4567-e89b-12d3-a456-426614174000
+ *               type: residential
+ *               yearBuilt: 2005
+ *               totalUnits: 50
  *     responses:
  *       "201":
  *         description: Created
@@ -64,31 +79,48 @@ const router = express.Router();
  *         $ref: '#/components/responses/Forbidden'
  *
  *   get:
- *     summary: Get all properties for the user's account
+ *     summary: Get all properties
  *     description: |
- *       Users can retrieve their own properties.
- *       Last updated: June 01, 2025, 9:59 PM +06.
+ *       Only admins can retrieve all properties.
+ *       Last updated: June 11, 2025, 11:07 AM +06.
  *     tags: [Properties]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: query
- *         name: filter
+ *         name: name
  *         schema:
  *           type: string
- *         description: JSON string to filter properties
+ *         description: Property name
+ *       - in: query
+ *         name: address
+ *         schema:
+ *           type: string
+ *         description: Property address
+ *       - in: query
+ *         name: accountId
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Account ID
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [residential, commercial, mixed-use]
+ *         description: Property type
  *       - in: query
  *         name: sortBy
  *         schema:
  *           type: string
- *         description: Sort by field (e.g., "name:asc")
+ *         description: Sort by query in the form of field:desc/asc (ex. name:asc)
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
  *           minimum: 1
  *         default: 10
- *         description: Maximum number of results per page
+ *         description: Maximum number of properties
  *       - in: query
  *         name: page
  *         schema:
@@ -96,6 +128,11 @@ const router = express.Router();
  *           minimum: 1
  *           default: 1
  *         description: Page number
+ *       - in: query
+ *         name: include
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of associations and their attributes (ex. account:id,name|units:id,name)
  *     responses:
  *       "200":
  *         description: OK
@@ -132,8 +169,8 @@ const router = express.Router();
  *   get:
  *     summary: Get a property by ID
  *     description: |
- *       Users can fetch their own properties.
- *       Last updated: June 01, 2025, 9:59 PM +06.
+ *       Only admins can fetch any property. Account owners can fetch their own properties.
+ *       Last updated: June 11, 2025, 11:07 AM +06.
  *     tags: [Properties]
  *     security:
  *       - bearerAuth: []
@@ -145,6 +182,11 @@ const router = express.Router();
  *           type: string
  *           format: uuid
  *         description: Property ID
+ *       - in: query
+ *         name: include
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of associations and their attributes (ex. account:id,name|units:id,name)
  *     responses:
  *       "200":
  *         description: OK
@@ -162,8 +204,8 @@ const router = express.Router();
  *   patch:
  *     summary: Update a property by ID
  *     description: |
- *       Only owners and managers can update properties.
- *       Last updated: June 01, 2025, 9:59 PM +06.
+ *       Only admins can update any property. Account owners can update their own properties.
+ *       Last updated: June 11, 2025, 11:07 AM +06.
  *     tags: [Properties]
  *     security:
  *       - bearerAuth: []
@@ -187,15 +229,31 @@ const router = express.Router();
  *                 description: Name of the property
  *               address:
  *                 type: string
- *                 description: Address of the property
+ *                 description: Full physical address of the property
  *               accountId:
  *                 type: string
  *                 format: uuid
- *                 description: ID of the associated account
+ *                 description: ID of the account to which this property belongs
+ *               type:
+ *                 type: string
+ *                 enum: [residential, commercial, mixed-use]
+ *                 description: Type of property
+ *                 nullable: true
+ *               yearBuilt:
+ *                 type: integer
+ *                 description: Year the property was built
+ *                 nullable: true
+ *               totalUnits:
+ *                 type: integer
+ *                 description: Total number of units in the property
+ *                 nullable: true
  *             example:
- *               name: Downtown Apartment Updated
- *               address: 124 Main St
- *               accountId: "123e4567-e89b-12d3-a456-426614174000"
+ *               name: Main Street Apartments Updated
+ *               address: 123 Main St, Anytown, USA
+ *               accountId: 123e4567-e89b-12d3-a456-426614174000
+ *               type: commercial
+ *               yearBuilt: 2010
+ *               totalUnits: 60
  *     responses:
  *       "200":
  *         description: OK
@@ -213,10 +271,10 @@ const router = express.Router();
  *         $ref: '#/components/responses/NotFound'
  *
  *   delete:
- *     summary: Delete a property by ID
+ *     summary: Soft delete a property by ID
  *     description: |
- *       Only owners and managers can delete properties.
- *       Last updated: June 01, 2025, 9:59 PM +06.
+ *       Marks the property as inactive. Only admins can soft delete any property. Account owners can soft delete their own properties.
+ *       Last updated: June 11, 2025, 11:07 AM +06.
  *     tags: [Properties]
  *     security:
  *       - bearerAuth: []
@@ -229,7 +287,34 @@ const router = express.Router();
  *           format: uuid
  *         description: Property ID
  *     responses:
- *       "200":
+ *       "204":
+ *         description: No content
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
+ *       "404":
+ *         $ref: '#/components/responses/NotFound'
+ *
+ * /properties/{id}/hard:
+ *   delete:
+ *     summary: Hard delete a property by ID
+ *     description: |
+ *       Permanently deletes the property and its associated data. Only admins can perform a hard delete.
+ *       Last updated: June 11, 2025, 11:07 AM +06.
+ *     tags: [Properties]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Property ID
+ *     responses:
+ *       "204":
  *         description: No content
  *       "401":
  *         $ref: '#/components/responses/Unauthorized'
@@ -239,35 +324,17 @@ const router = express.Router();
  *         $ref: '#/components/responses/NotFound'
  */
 
-/**
- * POST   /properties
- * GET    /properties
- */
 router
   .route('/')
   .post(validate(propertyValidation.createProperty), propertyController.createProperty)
   .get(validate(propertyValidation.getProperties), propertyController.getProperties);
 
-/**
- * GET    /properties/:id
- * PATCH  /properties/:id
- * DELETE /properties/:id
- */
 router
   .route('/:id')
   .get(validate(propertyValidation.getProperty), propertyController.getPropertyById)
   .patch(validate(propertyValidation.updateProperty), propertyController.updatePropertyById)
   .delete(validate(propertyValidation.deleteProperty), propertyController.deletePropertyById);
 
-/**
- * Mount expenseRouter under /properties/:id/expenses
- *
- * - POST   /properties/:id/expenses       → create a new property expense
- * - GET    /properties/:id/expenses       → list all property expenses
- * - GET    /properties/:id/expenses/:id   → get a single expense by its ID
- * - PATCH  /properties/:id/expenses/:id   → update an expense by its ID
- * - DELETE /properties/:id/expenses/:id   → delete an expense by its ID
- */
-router.use('/:propertyId/expenses', expenseRouter);
+router.route('/:id/hard').delete(validate(propertyValidation.deleteProperty), propertyController.hardDeletePropertyById);
 
 module.exports = router;
