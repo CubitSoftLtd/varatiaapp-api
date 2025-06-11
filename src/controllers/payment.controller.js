@@ -6,24 +6,56 @@ const { Bill, Tenant, Account } = require('../models');
 
 // Helper function to parse include query parameter
 const parseInclude = (include) => {
-  if (!include) return [];
-  return include
-    .split('|')
-    .map((item) => {
-      const [model, attributes] = item.split(':');
-      const modelMap = {
-        bill: Bill,
-        tenant: Tenant,
-        account: Account,
-      };
-      if (!modelMap[model]) return null;
-      return {
-        model: modelMap[model],
-        as: model,
-        attributes: attributes.split(','),
-      };
-    })
-    .filter((item) => item);
+  // If no include string is provided, simply return an empty array.
+  if (!include) {
+    return [];
+  }
+
+  return (
+    include
+      .split('|') // Split the include string by '|' to process each item.
+      .map((item) => {
+        // Destructure the item into the model name string and the attributes string.
+        // If no ':' is present (e.g., "bill"), attributesString will be undefined.
+        const [modelName, attributesString] = item.split(':');
+
+        // Define your map of string keys to actual Sequelize model objects.
+        const modelMap = {
+          bill: Bill,
+          tenant: Tenant,
+          account: Account,
+        };
+
+        const model = modelMap[modelName];
+
+        // If the model name isn't found in our map, return null.
+        // This item will be filtered out at the end.
+        if (!model) {
+          return null;
+        }
+
+        // Build the Sequelize include options object.
+        const includeOptions = {
+          model,
+          as: modelName, // The alias for the association.
+          // Consider adding 'required: false' here if you want LEFT JOINs by default.
+          // required: false,
+        };
+
+        // ONLY add the 'attributes' property if attributesString is defined.
+        // If it's undefined, Sequelize will include all attributes by default,
+        // which is usually what you want when no specific attributes are requested.
+        if (attributesString) {
+          includeOptions.attributes = attributesString.split(',');
+        }
+
+        return includeOptions;
+      })
+      // Filter out any 'null' entries that resulted from unknown model names.
+      // The `.filter((item) => item)` you had works because null is a falsy value.
+      // Explicitly checking for 'item !== null' can sometimes be clearer.
+      .filter((item) => item !== null)
+  );
 };
 
 const createPayment = catchAsync(async (req, res) => {
@@ -35,6 +67,11 @@ const getPayments = catchAsync(async (req, res) => {
   const filter = pick(req.query.filterBy, ['billId', 'tenantId', 'accountId', 'paymentDate', 'paymentMethod']);
   const options = pick(req.query, ['sortBy', 'limit', 'page']);
   options.include = parseInclude(req.query.include);
+
+  if (req.user.role !== 'super_admin') {
+    filter.accountId = req.user.accountId; // Ensure only properties for the user's account are fetched
+  }
+
   const payments = await paymentService.getAllPayments(filter, options);
   res.json(payments);
 });

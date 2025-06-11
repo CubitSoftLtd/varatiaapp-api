@@ -20,14 +20,6 @@ const createProperty = {
       'string.min': 'Address must be at least 1 character long',
       'string.max': 'Address cannot exceed 500 characters',
     }),
-    accountId: Joi.string()
-      .uuid({ version: ['uuidv4'] })
-      .required()
-      .messages({
-        'string.base': 'Account ID must be a string',
-        'string.empty': 'Account ID is required',
-        'string.uuid': 'Account ID must be a valid UUID',
-      }),
     type: Joi.string()
       .valid(...Object.values(typeTypes))
       .allow(null)
@@ -66,12 +58,6 @@ const getProperties = {
       'string.min': 'Address must be at least 1 character long',
       'string.max': 'Address cannot exceed 500 characters',
     }),
-    accountId: Joi.string()
-      .uuid({ version: ['uuidv4'] })
-      .messages({
-        'string.base': 'Account ID must be a string',
-        'string.uuid': 'Account ID must be a valid UUID',
-      }),
     type: Joi.string()
       .valid(...Object.values(typeTypes))
       .messages({
@@ -148,12 +134,6 @@ const updateProperty = {
         'string.min': 'Address must be at least 1 character long',
         'string.max': 'Address cannot exceed 500 characters',
       }),
-      accountId: Joi.string()
-        .uuid({ version: ['uuidv4'] })
-        .messages({
-          'string.base': 'Account ID must be a string',
-          'string.uuid': 'Account ID must be a valid UUID',
-        }),
       type: Joi.string()
         .valid(...Object.values(typeTypes))
         .allow(null)

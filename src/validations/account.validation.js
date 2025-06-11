@@ -55,18 +55,6 @@ const createAccount = {
         'string.pattern.base': 'Contact phone must contain only numbers, spaces, dashes, or a leading plus',
         'any.required': 'Contact phone is required',
       }),
-    adminFirstName: Joi.string().trim().required().min(3).max(15).messages({
-      'string.base': 'Admin user first name must be a string',
-      'string.empty': 'Admin user first name is required',
-      'string.min': 'Admin user first name must be at least 3 characters long',
-      'string.max': 'Admin user first name cannot exceed 15 characters',
-    }),
-    adminLastName: Joi.string().trim().required().min(3).max(15).messages({
-      'string.base': 'Admin user last name must be a string',
-      'string.empty': 'Admin user last name is required',
-      'string.min': 'Admin user last name must be at least 3 characters long',
-      'string.max': 'Admin user last name cannot exceed 15 characters',
-    }),
     isActive: Joi.boolean().default(true).messages({
       'boolean.base': 'isActive must be a boolean',
     }),

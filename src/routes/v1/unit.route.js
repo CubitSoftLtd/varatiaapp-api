@@ -1,4 +1,5 @@
 const express = require('express');
+const auth = require('../../middlewares/auth');
 const validate = require('../../middlewares/validate');
 const unitValidation = require('../../validations/unit.validation');
 const unitController = require('../../controllers/unit.controller');
@@ -327,15 +328,15 @@ const router = express.Router();
 
 router
   .route('/')
-  .post(validate(unitValidation.createUnit), unitController.createUnit)
-  .get(validate(unitValidation.getUnits), unitController.getUnits);
+  .post(auth(), validate(unitValidation.createUnit), unitController.createUnit)
+  .get(auth(), validate(unitValidation.getUnits), unitController.getUnits);
 
 router
   .route('/:id')
-  .get(validate(unitValidation.getUnit), unitController.getUnitById)
-  .patch(validate(unitValidation.updateUnit), unitController.updateUnitById)
-  .delete(validate(unitValidation.deleteUnit), unitController.deleteUnitById);
+  .get(auth(), validate(unitValidation.getUnit), unitController.getUnitById)
+  .patch(auth(), validate(unitValidation.updateUnit), unitController.updateUnitById)
+  .delete(auth(), validate(unitValidation.deleteUnit), unitController.deleteUnitById);
 
-router.route('/:id/hard').delete(validate(unitValidation.deleteUnit), unitController.hardDeleteUnitById);
+router.route('/:id/hard').delete(auth(), validate(unitValidation.deleteUnit), unitController.hardDeleteUnitById);
 
 module.exports = router;

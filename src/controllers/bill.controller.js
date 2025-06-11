@@ -7,10 +7,12 @@ const { Tenant, Unit, Account, Payment, Expense } = require('../models');
 // Helper function to parse include query parameter
 const parseInclude = (include) => {
   if (!include) return [];
+
   return include
     .split('|')
     .map((item) => {
-      const [model, attributes] = item.split(':');
+      const [modelName, attributesString] = item.split(':'); // Use modelName and attributesString for clarity
+
       const modelMap = {
         tenant: Tenant,
         unit: Unit,
@@ -18,19 +20,37 @@ const parseInclude = (include) => {
         payments: Payment,
         expenses: Expense,
       };
-      return {
-        model: modelMap[model],
-        as: model,
-        attributes: attributes.split(','),
-        where: model === 'expenses' ? { expenseType: 'tenant_charge' } : undefined,
-        required: false,
+
+      const model = modelMap[modelName];
+
+      if (!model) {
+        // Log a warning or throw an error for unknown models to aid debugging
+        return null; // Return null to be filtered out
+      }
+
+      const includeOptions = {
+        model,
+        as: modelName, // 'as' should typically match the singular or plural form expected by Sequelize association
+        required: false, // Default to false (LEFT JOIN) unless explicitly needed
       };
+
+      // Safely set attributes if provided
+      if (attributesString) {
+        includeOptions.attributes = attributesString.split(',');
+      }
+
+      // Conditionally add 'where' clause for specific models
+      if (modelName === 'expenses') {
+        includeOptions.where = { expenseType: 'tenant_charge' };
+      }
+
+      return includeOptions;
     })
-    .filter((item) => item.model);
+    .filter((item) => item !== null); // Filter out any null entries from unknown models
 };
 
 const createBill = catchAsync(async (req, res) => {
-  const bill = await billService.createBill(req.body);
+  const bill = await billService.createBill({ ...req.body, accountId: req.user.accountId });
   res.status(httpStatus.CREATED).send(bill);
 });
 

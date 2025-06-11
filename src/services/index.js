@@ -16,3 +16,4 @@ module.exports.expenseCategoryService = require('./expenseCategory.service');
 module.exports.expenseService = require('./expense.service');
 module.exports.reportingService = require('./reporting.service');
 module.exports.notificationService = require('./notification.service');
+module.exports.roleService = require('./role.service');

@@ -1,4 +1,5 @@
 const express = require('express');
+const auth = require('../../middlewares/auth');
 const validate = require('../../middlewares/validate');
 const reportingValidation = require('../../validations/reporting.validation');
 const reportingController = require('../../controllers/reporting.controller');
@@ -195,10 +196,10 @@ const router = express.Router();
  *         $ref: '#/components/responses/Forbidden'
  */
 
-router.route('/financial').get(validate(reportingValidation.getFinancialRe), reportingController.getFinancialReport);
+router.route('/financial').get(auth(), validate(reportingValidation.getFinancialRe), reportingController.getFinancialReport);
 
 router
   .route('/tenant-activity')
-  .get(validate(reportingValidation.getTenantActivityReport), reportingController.getTenantActivityReport);
+  .get(auth(), validate(reportingValidation.getTenantActivityReport), reportingController.getTenantActivityReport);
 
 module.exports = router;

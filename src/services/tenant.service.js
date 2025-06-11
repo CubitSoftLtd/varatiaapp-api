@@ -31,6 +31,9 @@ const createTenant = async (tenantBody) => {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Tenant with this email, phone number, or national ID already exists');
   }
 
+  // eslint-disable-next-line no-console
+  console.log(tenantBody);
+
   // Use a transaction for creating the tenant
   const tenant = await Tenant.sequelize.transaction(async (t) => {
     return Tenant.create(

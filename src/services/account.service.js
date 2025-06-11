@@ -1,6 +1,6 @@
 const httpStatus = require('http-status');
 const { Sequelize } = require('sequelize');
-const { Account, User, Property, Payment, Expense } = require('../models');
+const { Account } = require('../models');
 const ApiError = require('../utils/ApiError');
 
 /**
@@ -74,20 +74,23 @@ const getAllAccounts = async (filter, options) => {
  * @param {boolean} [includeAssociations=false] - Include related models
  * @returns {Promise<Account>}
  */
-const getAccountById = async (id, includeAssociations = false) => {
-  const include = includeAssociations
-    ? [
-        { model: User, as: 'users' },
-        { model: Property, as: 'properties' },
-        { model: Payment, as: 'payments' },
-        { model: Expense, as: 'expenses' },
-      ]
-    : [];
+const getAccountById = async (id, includeAssociations) => {
+  // eslint-disable-next-line no-console
+  console.log(includeAssociations);
+  const findOptions = {
+    where: { id }, // Using 'where' for clarity, though findByPk directly uses the ID
+  };
 
-  const account = await Account.findByPk(id, { include });
+  if (includeAssociations) {
+    findOptions.include = includeAssociations;
+  }
+
+  const account = await Account.findOne(findOptions);
+
   if (!account) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Account not found');
   }
+
   return account;
 };
 

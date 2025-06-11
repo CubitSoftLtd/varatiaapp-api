@@ -7,42 +7,53 @@ const { User, Property, Payment, Expense } = require('../models');
 // Helper function to parse include query parameter
 const parseInclude = (include) => {
   if (!include) return [];
+
   return include
     .split('|')
     .map((item) => {
-      const [model, attributes] = item.split(':');
+      const [modelName, attributesString] = item.split(':'); // Renamed for clarity
+
       const modelMap = {
         users: User,
         properties: Property,
         payments: Payment,
         expenses: Expense,
       };
-      return {
-        model: modelMap[model],
-        as: model,
-        attributes: attributes.split(','),
+
+      const model = modelMap[modelName];
+
+      if (!model) {
+        // Handle cases where the modelName is not found in modelMap
+        // You might want to log a warning or throw an error here depending on your application's needs
+        return null; // Return null to be filtered out later
+      }
+
+      const includeObject = {
+        model,
+        as: modelName,
       };
+
+      if (attributesString) {
+        includeObject.attributes = attributesString.split(',');
+      }
+
+      return includeObject;
     })
-    .filter((item) => item.model); // Filter out invalid models
+    .filter((item) => item !== null); // Filter out any null entries from invalid models
 };
 
 const createAccount = catchAsync(async (req, res) => {
-  // Log request body for debugging (consider replacing with a proper logger)
-  // eslint-disable-next-line no-console
-  console.debug('createAccount payload:', req.body);
-
   // Create the account
   const account = await accountService.createAccount(req.body);
 
   // If account creation succeeded, provision the initial admin user
   if (account) {
-    const { contactEmail, adminFirstName, adminLastName } = req.body;
+    const { contactEmail, contactName } = req.body;
 
     await userService.createUser({
       accountId: account.id,
       email: contactEmail,
-      firstName: adminFirstName,
-      lastName: adminLastName,
+      name: contactName,
       role: 'account_admin',
       // In production, generate a secure random password or require admin to set
       password: 'Demo@1234',

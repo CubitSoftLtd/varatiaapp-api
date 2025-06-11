@@ -1,4 +1,5 @@
 const express = require('express');
+const auth = require('../../middlewares/auth');
 const validate = require('../../middlewares/validate');
 const expenseCategoryValidation = require('../../validations/expenseCategory.validation');
 const expenseCategoryController = require('../../controllers/expenseCategory.controller');
@@ -284,18 +285,27 @@ const router = express.Router();
 
 router
   .route('/')
-  .post(validate(expenseCategoryValidation.createExpenseCategory), expenseCategoryController.createExpenseCategory)
-  .get(validate(expenseCategoryValidation.getExpenseCategories), expenseCategoryController.getExpenseCategories);
+  .post(auth(), validate(expenseCategoryValidation.createExpenseCategory), expenseCategoryController.createExpenseCategory)
+  .get(auth(), validate(expenseCategoryValidation.getExpenseCategories), expenseCategoryController.getExpenseCategories);
 
 router
   .route('/:id')
-  .get(validate(expenseCategoryValidation.getExpenseCategory), expenseCategoryController.getExpenseCategoryById)
-  .patch(validate(expenseCategoryValidation.updateExpenseCategory), expenseCategoryController.updateExpenseCategoryById)
-  .delete(validate(expenseCategoryValidation.deleteExpenseCategory), expenseCategoryController.deleteExpenseCategoryById);
+  .get(auth(), validate(expenseCategoryValidation.getExpenseCategory), expenseCategoryController.getExpenseCategoryById)
+  .patch(
+    auth(),
+    validate(expenseCategoryValidation.updateExpenseCategory),
+    expenseCategoryController.updateExpenseCategoryById
+  )
+  .delete(
+    auth(),
+    validate(expenseCategoryValidation.deleteExpenseCategory),
+    expenseCategoryController.deleteExpenseCategoryById
+  );
 
 router
   .route('/:id/hard')
   .delete(
+    auth(),
     validate(expenseCategoryValidation.deleteExpenseCategory),
     expenseCategoryController.hardDeleteExpenseCategoryById
   );

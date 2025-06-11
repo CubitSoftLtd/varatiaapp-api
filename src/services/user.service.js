@@ -86,13 +86,51 @@ const queryUsers = async (filter, options) => {
 };
 
 /**
+ * Get user by email
+ * @param {string} email
+ * @returns {Promise<User>}
+ */
+const getUserByEmail = async (email) => {
+  if (!email) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Email is required');
+  }
+
+  const user = await User.findOne({
+    where: { email },
+    include: [{ model: Account, as: 'account' }],
+  });
+
+  if (!user && user.account.isActive === false) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
+  }
+
+  // Sync user status with account status
+  if (user.accountId && user.Account && user.isActive !== user.Account.isActive) {
+    try {
+      await user.update({ isActive: user.Account.isActive });
+      /* eslint-disable */
+      console.log(
+        `User ${user.isActive ? 'Activated' : 'Deactivated'} due to Account Status: ${user.name || 'Unknown'} (${
+          user.email || 'No Email'
+        })`
+      );
+    } catch (error) {
+      console.error(`Error updating user ${user.id} status: ${error}`);
+    }
+    /* eslint-disable */
+  }
+
+  return user;
+};
+
+/**
  * Get user by id
  * @param {string} id
  * @returns {Promise<User>}
  */
 const getUserById = async (id) => {
   const user = await User.findByPk(id, {
-    include: [{ model: Account, as: 'Account' }],
+    include: [{ model: Account, as: 'account' }],
   });
   if (!user) {
     throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
@@ -190,6 +228,7 @@ const deleteUser = async (userId) => {
 module.exports = {
   createUser,
   queryUsers,
+  getUserByEmail,
   getUserById,
   updateUser,
   deleteUser,

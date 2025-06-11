@@ -1,4 +1,5 @@
 const express = require('express');
+const auth = require('../../middlewares/auth');
 const validate = require('../../middlewares/validate');
 const submeterValidation = require('../../validations/subMeter.validation');
 const submeterController = require('../../controllers/subMeter.controller');
@@ -14,7 +15,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /submeters:
+ * /sub-meters:
  *   post:
  *     summary: Create a new submeter
  *     description: |
@@ -163,7 +164,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /submeters/{id}:
+ * /sub-meters/{id}:
  *   get:
  *     summary: Get a submeter by ID
  *     description: |
@@ -290,7 +291,7 @@ const router = express.Router();
  *       "404":
  *         $ref: '#/components/responses/NotFound'
  *
- * /submeters/{id}/hard:
+ * /sub-meters/{id}/hard:
  *   delete:
  *     summary: Hard delete a submeter by ID
  *     description: |
@@ -320,15 +321,17 @@ const router = express.Router();
 
 router
   .route('/')
-  .post(validate(submeterValidation.createSubmeter), submeterController.createSubmeter)
-  .get(validate(submeterValidation.getSubmeters), submeterController.getSubmeters);
+  .post(auth(), validate(submeterValidation.createSubmeter), submeterController.createSubmeter)
+  .get(auth(), validate(submeterValidation.getSubmeters), submeterController.getSubmeters);
 
 router
   .route('/:id')
-  .get(validate(submeterValidation.getSubmeter), submeterController.getSubmeterById)
-  .patch(validate(submeterValidation.updateSubmeter), submeterController.updateSubmeterById)
-  .delete(validate(submeterValidation.deleteSubmeter), submeterController.deleteSubmeterById);
+  .get(auth(), validate(submeterValidation.getSubmeter), submeterController.getSubmeterById)
+  .patch(auth(), validate(submeterValidation.updateSubmeter), submeterController.updateSubmeterById)
+  .delete(auth(), validate(submeterValidation.deleteSubmeter), submeterController.deleteSubmeterById);
 
-router.route('/:id/hard').delete(validate(submeterValidation.deleteSubmeter), submeterController.hardDeleteSubmeterById);
+router
+  .route('/:id/hard')
+  .delete(auth(), validate(submeterValidation.deleteSubmeter), submeterController.hardDeleteSubmeterById);
 
 module.exports = router;

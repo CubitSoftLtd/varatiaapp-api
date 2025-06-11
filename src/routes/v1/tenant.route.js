@@ -1,4 +1,5 @@
 const express = require('express');
+const auth = require('../../middlewares/auth');
 const validate = require('../../middlewares/validate');
 const tenantValidation = require('../../validations/tenant.validation');
 const tenantController = require('../../controllers/tenant.controller');
@@ -82,7 +83,9 @@ const router = express.Router();
  *                 default: current
  *               nationalId:
  *                 type: string
- *                 description: National identification number
+ *                 description: |
+ *                   National identification number matching /^[A-Za-z0-9\\-/]{5,50}$/ (e.g., Bangladesh NID).
+ *                 pattern: '^[A-Za-z0-9\\-/]{5,50}$'
  *                 nullable: true
  *               moveInDate:
  *                 type: string
@@ -99,21 +102,21 @@ const router = express.Router();
  *                 description: Additional notes about the tenant
  *                 nullable: true
  *             example:
- *               firstName: John
- *               lastName: Doe
- *               email: john.doe@example.com
- *               phoneNumber: +1234567890
- *               emergencyContactName: Jane Doe
- *               emergencyContactPhone: +0987654321
- *               unitId: 123e4567-e89b-12d3-a456-426614174000
- *               leaseStartDate: 2025-01-01
- *               leaseEndDate: 2025-12-31
+ *               firstName: "John"
+ *               lastName: "Doe"
+ *               email: "john.doe@example.com"
+ *               phoneNumber: "+8801712345678"
+ *               emergencyContactName: "Jane Doe"
+ *               emergencyContactPhone: "+8801912345678"
+ *               unitId: "123e4567-e89b-12d3-a456-426614174000"
+ *               leaseStartDate: "2025-01-01"
+ *               leaseEndDate: "2025-12-31"
  *               depositAmount: 1500.00
- *               status: current
- *               nationalId: 123456789
- *               moveInDate: 2025-01-01
+ *               status: "current"
+ *               nationalId: "19901234567890123"
+ *               moveInDate: "2025-01-01"
  *               moveOutDate: null
- *               notes: Reliable tenant
+ *               notes: "Reliable tenant"
  *     responses:
  *       "201":
  *         description: Created
@@ -328,7 +331,9 @@ const router = express.Router();
  *                 description: Current status of the tenant
  *               nationalId:
  *                 type: string
- *                 description: National identification number
+ *                 description: |
+ *                   National identification number matching /^[A-Za-z0-9\\-/]{5,50}$/ (e.g., Bangladesh NID).
+ *                 pattern: '^[A-Za-z0-9\\-/]{5,50}$'
  *                 nullable: true
  *               moveInDate:
  *                 type: string
@@ -345,11 +350,21 @@ const router = express.Router();
  *                 description: Additional notes about the tenant
  *                 nullable: true
  *             example:
- *               firstName: John
- *               lastName: Smith
- *               email: john.smith@example.com
- *               phoneNumber: +1234567891
- *               status: notice
+ *               firstName: "John"
+ *               lastName: "Smith"
+ *               email: "john.smith@example.com"
+ *               phoneNumber: "+8801712345678"
+ *               emergencyContactName: "Jane Doe"
+ *               emergencyContactPhone: "+8801912345678"
+ *               unitId: "123e4567-e89b-12d3-a456-426614174000"
+ *               leaseStartDate: "2025-01-01"
+ *               leaseEndDate: "2025-12-31"
+ *               depositAmount: 1500.00
+ *               status: "notice"
+ *               nationalId: "19901234567890123"
+ *               moveInDate: "2025-01-01"
+ *               moveOutDate: null
+ *               notes: "Updated notes"
  *     responses:
  *       "200":
  *         description: OK
@@ -529,23 +544,23 @@ const router = express.Router();
 
 router
   .route('/')
-  .post(validate(tenantValidation.createTenant), tenantController.createTenant)
-  .get(validate(tenantValidation.getTenants), tenantController.getTenants);
+  .post(auth(), validate(tenantValidation.createTenant), tenantController.createTenant)
+  .get(auth(), validate(tenantValidation.getTenants), tenantController.getTenants);
 
 router
   .route('/:id')
-  .get(validate(tenantValidation.getTenant), tenantController.getTenantById)
-  .patch(validate(tenantValidation.updateTenant), tenantController.updateTenantById)
-  .delete(validate(tenantValidation.deleteTenant), tenantController.deleteTenantById);
+  .get(auth(), validate(tenantValidation.getTenant), tenantController.getTenantById)
+  .patch(auth(), validate(tenantValidation.updateTenant), tenantController.updateTenantById)
+  .delete(auth(), validate(tenantValidation.deleteTenant), tenantController.deleteTenantById);
 
-router.route('/:id/hard').delete(validate(tenantValidation.deleteTenant), tenantController.hardDeleteTenantById);
+router.route('/:id/hard').delete(auth(), validate(tenantValidation.deleteTenant), tenantController.hardDeleteTenantById);
 
 router
   .route('/property/:propertyId/unit/:unitId')
-  .get(validate(tenantValidation.getTenantsByUnitAndProperty), tenantController.getTenantsByUnitAndProperty);
+  .get(auth(), validate(tenantValidation.getTenantsByUnitAndProperty), tenantController.getTenantsByUnitAndProperty);
 
 router
   .route('/unit/:unitId/history')
-  .get(validate(tenantValidation.getHistoricalTenantsByUnit), tenantController.getHistoricalTenantsByUnit);
+  .get(auth(), validate(tenantValidation.getHistoricalTenantsByUnit), tenantController.getHistoricalTenantsByUnit);
 
 module.exports = router;

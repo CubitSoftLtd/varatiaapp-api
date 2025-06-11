@@ -1,4 +1,5 @@
 const express = require('express');
+const auth = require('../../middlewares/auth');
 const validate = require('../../middlewares/validate');
 const accountValidation = require('../../validations/account.validation');
 const accountController = require('../../controllers/account.controller');
@@ -35,8 +36,6 @@ const router = express.Router();
  *               - contactName
  *               - contactEmail
  *               - contactPhone
- *               - adminFirstName
- *               - adminLastName
  *             properties:
  *               name:
  *                 type: string
@@ -61,16 +60,6 @@ const router = express.Router();
  *                 type: string
  *                 description: Phone number of the contact person
  *                 pattern: '^\\+?[0-9\\s-]{5,50}$'
- *               adminFirstName:
- *                 type: string
- *                 description: First name of the admin user
- *                 minLength: 3
- *                 maxLength: 15
- *               adminLastName:
- *                 type: string
- *                 description: Last name of the admin user
- *                 minLength: 3
- *                 maxLength: 15
  *               isActive:
  *                 type: boolean
  *                 description: Whether the account is active
@@ -86,8 +75,6 @@ const router = express.Router();
  *               contactName: John Doe
  *               contactEmail: john.doe@example.com
  *               contactPhone: "+1234567890"
- *               adminFirstName: Jane
- *               adminLastName: Smith
  *               isActive: true
  *               subscriptionExpiry: "2026-06-11T10:41:02Z"
  *     responses:
@@ -350,15 +337,15 @@ const router = express.Router();
 
 router
   .route('/')
-  .post(validate(accountValidation.createAccount), accountController.createAccount)
-  .get(validate(accountValidation.getAccounts), accountController.getAccounts);
+  .post(auth(), validate(accountValidation.createAccount), accountController.createAccount)
+  .get(auth(), validate(accountValidation.getAccounts), accountController.getAccounts);
 
 router
   .route('/:id')
-  .get(validate(accountValidation.getAccount), accountController.getAccountById)
-  .patch(validate(accountValidation.updateAccount), accountController.updateAccountById)
-  .delete(validate(accountValidation.deleteAccount), accountController.deleteAccountById);
+  .get(auth(), validate(accountValidation.getAccount), accountController.getAccountById)
+  .patch(auth(), validate(accountValidation.updateAccount), accountController.updateAccountById)
+  .delete(auth(), validate(accountValidation.deleteAccount), accountController.deleteAccountById);
 
-router.route('/:id/hard').delete(validate(accountValidation.deleteAccount), accountController.hardDeleteAccountById);
+router.route('/:id/hard').delete(auth(), validate(accountValidation.deleteAccount), accountController.hardDeleteAccountById);
 
 module.exports = router;

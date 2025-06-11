@@ -1,4 +1,5 @@
 const express = require('express');
+const auth = require('../../middlewares/auth');
 const validate = require('../../middlewares/validate');
 const billValidation = require('../../validations/bill.validation');
 const billController = require('../../controllers/bill.controller');
@@ -379,16 +380,16 @@ const router = express.Router();
 
 router
   .route('/')
-  .post(validate(billValidation.createBill), billController.createBill)
-  .get(validate(billValidation.getBills), billController.getBills);
+  .post(auth(), validate(billValidation.createBill), billController.createBill)
+  .get(auth(), validate(billValidation.getBills), billController.getBills);
 
 router
   .route('/:id')
-  .get(validate(billValidation.getBill), billController.getBillById)
-  .patch(validate(billValidation.updateBill), billController.updateBillById)
-  .delete(validate(billValidation.deleteBill), billController.deleteBillById);
+  .get(auth(), validate(billValidation.getBill), billController.getBillById)
+  .patch(auth(), validate(billValidation.updateBill), billController.updateBillById)
+  .delete(auth(), validate(billValidation.deleteBill), billController.deleteBillById);
 
-router.route('/:id/hard').delete(validate(billValidation.deleteBill), billController.hardDeleteBillById);
+router.route('/:id/hard').delete(auth(), validate(billValidation.deleteBill), billController.hardDeleteBillById);
 
 router.use('/:billId/payments', paymentRouter);
 

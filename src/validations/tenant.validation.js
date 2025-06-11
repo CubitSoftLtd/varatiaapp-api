@@ -72,6 +72,7 @@ const createTenant = {
         'string.base': 'Status must be a string',
         'any.only': 'Status must be one of: current, prospective, past, evicted, notice, inactive',
       }),
+    // National ID validation: Allows alphanumeric, hyphens, and slashes, 5-50 characters, and can be null.
     nationalId: Joi.string().pattern(nationalIdRegex).allow(null).messages({
       'string.base': 'National ID must be a string',
       'string.pattern.base': 'National ID must be valid (5-50 characters, alphanumeric, hyphen, slash allowed)',
@@ -218,6 +219,7 @@ const updateTenant = {
           'string.base': 'Status must be a string',
           'any.only': 'Status must be one of: current, prospective, past, evicted, notice, inactive',
         }),
+      // National ID validation: Allows alphanumeric, hyphens, and slashes, 5-50 characters, and can be null.
       nationalId: Joi.string().pattern(nationalIdRegex).allow(null).messages({
         'string.base': 'National ID must be a string',
         'string.pattern.base': 'National ID must be valid (5-50 characters, alphanumeric, hyphen, slash allowed)',

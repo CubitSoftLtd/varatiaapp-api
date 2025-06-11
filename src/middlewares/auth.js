@@ -1,20 +1,33 @@
-const pass = require('passport');
+const passport = require('passport');
 const httpStatus = require('http-status');
 const ApiError = require('../utils/ApiError');
 const { roleRights } = require('../config/roles');
 const config = require('../config/config');
-const logger = require('../config/logger'); // Added logger im
+const logger = require('../config/logger');
 
-// Callback function for pass authentication
+// Callback function for passport authentication
 const verifyCallback = (req, resolve, reject, requiredRights) => async (err, user, info) => {
-  // Log errors in development mode for debugging
-  if (config.env === 'development' && (err || info)) {
-    logger.error('Auth Error:', err || info); // Replaced console.error with logger.error
+  // Log errors and info in development mode for debugging
+  if (config.env === 'development') {
+    if (err) {
+      logger.error('Passport Authentication Error:', err);
+    }
+    if (info) {
+      const token = req.headers.authorization?.split(' ')[1] || 'no_token';
+      const maskedToken = token.length > 10 ? `${token.slice(0, 5)}...${token.slice(-5)}` : token;
+      logger.info(`Passport Info: ${info.message || info} | Token: ${maskedToken}`);
+    }
   }
 
   // Check for authentication errors or missing user
   if (err || info || !user) {
-    return reject(new ApiError(httpStatus.UNAUTHORIZED, 'Please authenticate'));
+    let message = 'Please authenticate';
+    if (info && info.name === 'JsonWebTokenError') {
+      message = 'Invalid or malformed JWT token';
+    } else if (info && info.name === 'TokenExpiredError') {
+      message = 'JWT token expired';
+    }
+    return reject(new ApiError(httpStatus.UNAUTHORIZED, message));
   }
 
   // Attach user to request object
@@ -41,8 +54,17 @@ const verifyCallback = (req, resolve, reject, requiredRights) => async (err, use
 const auth =
   (...requiredRights) =>
   async (req, res, next) => {
+    // Validate Authorization header
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      if (config.env === 'development') {
+        logger.warn('Missing or invalid Authorization header:', authHeader || 'none');
+      }
+      return next(new ApiError(httpStatus.UNAUTHORIZED, 'Authorization header missing or invalid'));
+    }
+
     return new Promise((resolve, reject) => {
-      pass.authenticate('jwt', { session: false }, verifyCallback(req, resolve, reject, requiredRights))(req, res, next);
+      passport.authenticate('jwt', { session: false }, verifyCallback(req, resolve, reject, requiredRights))(req, res, next);
     })
       .then(() => next())
       .catch((err) => next(err));

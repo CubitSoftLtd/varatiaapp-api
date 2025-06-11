@@ -1,4 +1,5 @@
 const express = require('express');
+const auth = require('../../middlewares/auth');
 const validate = require('../../middlewares/validate');
 const meterReadingValidation = require('../../validations/meterReading.validation');
 const meterReadingController = require('../../controllers/meterReading.controller');
@@ -385,21 +386,21 @@ const router = express.Router();
 
 router
   .route('/')
-  .post(validate(meterReadingValidation.createMeterReading), meterReadingController.createMeterReading)
-  .get(validate(meterReadingValidation.getMeterReadings), meterReadingController.getMeterReadings);
+  .post(auth(), validate(meterReadingValidation.createMeterReading), meterReadingController.createMeterReading)
+  .get(auth(), validate(meterReadingValidation.getMeterReadings), meterReadingController.getMeterReadings);
 
 router
   .route('/:id')
-  .get(validate(meterReadingValidation.getMeterReading), meterReadingController.getMeterReadingById)
-  .patch(validate(meterReadingValidation.updateMeterReading), meterReadingController.updateMeterReadingById)
-  .delete(validate(meterReadingValidation.deleteMeterReading), meterReadingController.deleteMeterReadingById);
+  .get(auth(), validate(meterReadingValidation.getMeterReading), meterReadingController.getMeterReadingById)
+  .patch(auth(), validate(meterReadingValidation.updateMeterReading), meterReadingController.updateMeterReadingById)
+  .delete(auth(), validate(meterReadingValidation.deleteMeterReading), meterReadingController.deleteMeterReadingById);
 
 router
   .route('/:id/hard')
-  .delete(validate(meterReadingValidation.deleteMeterReading), meterReadingController.hardDeleteMeterReadingById);
+  .delete(auth(), validate(meterReadingValidation.deleteMeterReading), meterReadingController.hardDeleteMeterReadingById);
 
 router
   .route('/calculate-consumption')
-  .post(validate(meterReadingValidation.calculateConsumption), meterReadingController.calculateConsumption);
+  .post(auth(), validate(meterReadingValidation.calculateConsumption), meterReadingController.calculateConsumption);
 
 module.exports = router;

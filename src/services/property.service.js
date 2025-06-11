@@ -9,6 +9,9 @@ const ApiError = require('../utils/ApiError');
  * @returns {Promise<Property>}
  */
 const createProperty = async (propertyBody) => {
+  // eslint-disable-next-line no-console
+  console.log(propertyBody);
+
   // Validate accountId
   const account = await Account.findByPk(propertyBody.accountId);
   if (!account) {

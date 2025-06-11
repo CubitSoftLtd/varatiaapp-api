@@ -1,4 +1,5 @@
 const express = require('express');
+const auth = require('../../middlewares/auth');
 const validate = require('../../middlewares/validate');
 const utilityTypeValidation = require('../../validations/utilityType.validation');
 const utilityTypeController = require('../../controllers/utilityType.controller');
@@ -290,17 +291,17 @@ const router = express.Router();
 
 router
   .route('/')
-  .post(validate(utilityTypeValidation.createUtilityType), utilityTypeController.createUtilityType)
-  .get(validate(utilityTypeValidation.getUtilityTypes), utilityTypeController.getUtilityTypes);
+  .post(auth(), validate(utilityTypeValidation.createUtilityType), utilityTypeController.createUtilityType)
+  .get(auth(), validate(utilityTypeValidation.getUtilityTypes), utilityTypeController.getUtilityTypes);
 
 router
   .route('/:id')
-  .get(validate(utilityTypeValidation.getUtilityType), utilityTypeController.getUtilityTypeById)
-  .patch(validate(utilityTypeValidation.updateUtilityType), utilityTypeController.updateUtilityTypeById)
-  .delete(validate(utilityTypeValidation.deleteUtilityType), utilityTypeController.deleteUtilityTypeById);
+  .get(auth(), validate(utilityTypeValidation.getUtilityType), utilityTypeController.getUtilityTypeById)
+  .patch(auth(), validate(utilityTypeValidation.updateUtilityType), utilityTypeController.updateUtilityTypeById)
+  .delete(auth(), validate(utilityTypeValidation.deleteUtilityType), utilityTypeController.deleteUtilityTypeById);
 
 router
   .route('/:id/hard')
-  .delete(validate(utilityTypeValidation.deleteUtilityType), utilityTypeController.hardDeleteUtilityTypeById);
+  .delete(auth(), validate(utilityTypeValidation.deleteUtilityType), utilityTypeController.hardDeleteUtilityTypeById);
 
 module.exports = router;

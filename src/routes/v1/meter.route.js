@@ -1,4 +1,5 @@
 const express = require('express');
+const auth = require('../../middlewares/auth');
 const validate = require('../../middlewares/validate');
 const meterValidation = require('../../validations/meter.validation');
 const meterController = require('../../controllers/meter.controller');
@@ -342,15 +343,15 @@ const router = express.Router();
 
 router
   .route('/')
-  .post(validate(meterValidation.createMeter), meterController.createMeter)
-  .get(validate(meterValidation.getMeters), meterController.getMeters);
+  .post(auth(), validate(meterValidation.createMeter), meterController.createMeter)
+  .get(auth(), validate(meterValidation.getMeters), meterController.getMeters);
 
 router
   .route('/:id')
-  .get(validate(meterValidation.getMeter), meterController.getMeterById)
-  .patch(validate(meterValidation.updateMeter), meterController.updateMeterById)
-  .delete(validate(meterValidation.deleteMeter), meterController.deleteMeterById);
+  .get(auth(), validate(meterValidation.getMeter), meterController.getMeterById)
+  .patch(auth(), validate(meterValidation.updateMeter), meterController.updateMeterById)
+  .delete(auth(), validate(meterValidation.deleteMeter), meterController.deleteMeterById);
 
-router.route('/:id/hard').delete(validate(meterValidation.deleteMeter), meterController.hardDeleteMeterById);
+router.route('/:id/hard').delete(auth(), validate(meterValidation.deleteMeter), meterController.hardDeleteMeterById);
 
 module.exports = router;

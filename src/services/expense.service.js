@@ -82,7 +82,7 @@ const createExpense = async (expenseBody) => {
  */
 const getAllExpenses = async (filter, options) => {
   const limit = options.limit && parseInt(options.limit, 10) > 0 ? parseInt(options.limit, 10) : 10;
-  const page = options.page && parseInt(options.page, 10) ? 10 : 1;
+  const page = options.page && parseInt(options.page, 10) > 0 ? parseInt(options.page, 10) : 1;
   const offset = (page - 1) * limit;
 
   const sort = [];
@@ -95,7 +95,7 @@ const getAllExpenses = async (filter, options) => {
   const include = options.include || [];
 
   const { count, rows } = await Expense.findAndCountAll({
-    where: filter,
+    where: { ...filter, isDeleted: false },
     limit,
     offset,
     order: sort.length ? sort : [['createdAt', 'DESC']],

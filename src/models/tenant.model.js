@@ -100,15 +100,18 @@ module.exports = (sequelize, DataTypes) => {
         comment: 'Current status of the tenant in the property management system',
       },
       nationalId: {
-        type: DataTypes.STRING(50), // Specify reasonable length, e.g., for NID, SSN, Passport
-        allowNull: true, // Made allowNull true, as not all tenants might have this info or it's sensitive
-        unique: true, // National ID should be unique if provided
+        type: DataTypes.STRING(50),
+        allowNull: true,
+        unique: true,
         validate: {
           notEmpty: {
             msg: 'National ID cannot be empty if provided',
           },
-          // Regex should be specific to the expected format (e.g., NID for Bangladesh)
-          args: /^[A-Za-z0-9\-/]{5,50}$/, // General alphanumeric, hyphen, slash, 5-50 chars
+          is: {
+            // Change 'args' to 'is' for regex validation
+            args: /^[A-Za-z0-9\-/]{5,50}$/,
+            msg: 'National ID must be valid (5-50 characters, alphanumeric, hyphen, slash allowed)', // Custom message for regex failure
+          },
         },
         comment: 'National identification number (e.g., NID, Passport number)',
       },

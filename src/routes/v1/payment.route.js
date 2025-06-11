@@ -1,4 +1,5 @@
 const express = require('express');
+const auth = require('../../middlewares/auth');
 const validate = require('../../middlewares/validate');
 const paymentValidation = require('../../validations/payment.validation');
 const paymentController = require('../../controllers/payment.controller');
@@ -382,16 +383,16 @@ const router = express.Router({ mergeParams: true }); // mergeParams to inherit 
 
 router
   .route('/')
-  .post(validate(paymentValidation.createPayment), paymentController.createPayment)
-  .get(validate(paymentValidation.getPayments), paymentController.getPayments)
-  .get(validate(paymentValidation.getPaymentsByBillId), paymentController.getPaymentsByBillId);
+  .post(auth(), validate(paymentValidation.createPayment), paymentController.createPayment)
+  .get(auth(), validate(paymentValidation.getPayments), paymentController.getPayments)
+  .get(auth(), validate(paymentValidation.getPaymentsByBillId), paymentController.getPaymentsByBillId);
 
 router
   .route('/:id')
-  .get(validate(paymentValidation.getPayment), paymentController.getPaymentById)
-  .patch(validate(paymentValidation.updatePayment), paymentController.updatePaymentById)
-  .delete(validate(paymentValidation.deletePayment), paymentController.deletePaymentById);
+  .get(auth(), validate(paymentValidation.getPayment), paymentController.getPaymentById)
+  .patch(auth(), validate(paymentValidation.updatePayment), paymentController.updatePaymentById)
+  .delete(auth(), validate(paymentValidation.deletePayment), paymentController.deletePaymentById);
 
-router.route('/:id/hard').delete(validate(paymentValidation.deletePayment), paymentController.hardDeletePaymentById);
+router.route('/:id/hard').delete(auth(), validate(paymentValidation.deletePayment), paymentController.hardDeletePaymentById);
 
 module.exports = router;

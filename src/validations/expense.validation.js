@@ -4,11 +4,6 @@ const uuidV4Schema = Joi.string().uuid({ version: 'uuidv4' });
 
 const createExpense = {
   body: Joi.object().keys({
-    accountId: uuidV4Schema.required().messages({
-      'string.base': 'Account ID must be a string',
-      'string.empty': 'Account ID is required',
-      'string.uuid': 'Account ID must be a valid UUID',
-    }),
     propertyId: uuidV4Schema.allow(null).messages({
       'string.base': 'Property ID must be a string',
       'string.uuid': 'Property ID must be a valid UUID',
@@ -45,10 +40,6 @@ const createExpense = {
 
 const getExpenses = {
   query: Joi.object().keys({
-    accountId: uuidV4Schema.messages({
-      'string.base': 'Account ID must be a string',
-      'string.uuid': 'Account ID must be a valid UUID',
-    }),
     propertyId: uuidV4Schema.messages({
       'string.base': 'Property ID must be a string',
       'string.uuid': 'Property ID must be a valid UUID',
@@ -112,10 +103,6 @@ const updateExpense = {
   }),
   body: Joi.object()
     .keys({
-      accountId: uuidV4Schema.messages({
-        'string.base': 'Account ID must be a string',
-        'string.uuid': 'Account ID must be a valid UUID',
-      }),
       propertyId: uuidV4Schema.allow(null).messages({
         'string.base': 'Property ID must be a string',
         'string.uuid': 'Property ID must be a valid UUID',

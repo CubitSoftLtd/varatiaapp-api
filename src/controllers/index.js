@@ -15,3 +15,4 @@ module.exports.expenseController = require('./expense.controller');
 module.exports.reportingController = require('./reporting.controller');
 module.exports.notificationController = require('./notification.controller');
 module.exports.adminController = require('./admin.controller');
+module.exports.roleController = require('./role.controller');

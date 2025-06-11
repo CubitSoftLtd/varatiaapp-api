@@ -1,4 +1,5 @@
 const express = require('express');
+const auth = require('../../middlewares/auth');
 const validate = require('../../middlewares/validate');
 const expenseValidation = require('../../validations/expense.validation');
 const expenseController = require('../../controllers/expense.controller');
@@ -30,15 +31,10 @@ const router = express.Router();
  *           schema:
  *             type: object
  *             required:
- *               - accountId
  *               - categoryId
  *               - amount
  *               - expenseDate
  *             properties:
- *               accountId:
- *                 type: string
- *                 format: uuid
- *                 description: ID of the account that incurred this expense
  *               propertyId:
  *                 type: string
  *                 format: uuid
@@ -70,7 +66,6 @@ const router = express.Router();
  *                 description: Detailed description of the expense
  *                 nullable: true
  *             example:
- *               accountId: 6dcab049-58b3-4f02-a089-694da59f8052
  *               propertyId: 123e4567-e89b-12d3-a456-426614174000
  *               unitId: 223e4567-e89b-12d3-a456-426614174001
  *               billId: 323e4567-e89b-12d3-a456-426614174002
@@ -101,12 +96,6 @@ const router = express.Router();
  *     security:
  *       - bearerAuth: []
  *     parameters:
- *       - in: query
- *         name: accountId
- *         schema:
- *           type: string
- *           format: uuid
- *         description: Filter by account ID
  *       - in: query
  *         name: propertyId
  *         schema:
@@ -257,10 +246,6 @@ const router = express.Router();
  *           schema:
  *             type: object
  *             properties:
- *               accountId:
- *                 type: string
- *                 format: uuid
- *                 description: ID of the account that incurred this expense
  *               propertyId:
  *                 type: string
  *                 format: uuid
@@ -367,15 +352,15 @@ const router = express.Router();
 
 router
   .route('/')
-  .post(validate(expenseValidation.createExpense), expenseController.createExpense)
-  .get(validate(expenseValidation.getExpenses), expenseController.getExpenses);
+  .post(auth(), validate(expenseValidation.createExpense), expenseController.createExpense)
+  .get(auth(), validate(expenseValidation.getExpenses), expenseController.getExpenses);
 
 router
   .route('/:id')
-  .get(validate(expenseValidation.getExpense), expenseController.getExpenseById)
-  .patch(validate(expenseValidation.updateExpense), expenseController.updateExpenseById)
-  .delete(validate(expenseValidation.deleteExpense), expenseController.deleteExpenseById);
+  .get(auth(), validate(expenseValidation.getExpense), expenseController.getExpenseById)
+  .patch(auth(), validate(expenseValidation.updateExpense), expenseController.updateExpenseById)
+  .delete(auth(), validate(expenseValidation.deleteExpense), expenseController.deleteExpenseById);
 
-router.route('/:id/hard').delete(validate(expenseValidation.deleteExpense), expenseController.hardDeleteExpenseById);
+router.route('/:id/hard').delete(auth(), validate(expenseValidation.deleteExpense), expenseController.hardDeleteExpenseById);
 
 module.exports = router;

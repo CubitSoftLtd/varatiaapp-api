@@ -33,7 +33,7 @@ const createExpenseCategory = async (categoryBody) => {
     return ExpenseCategory.create(
       {
         name,
-        categoryType,
+        type: categoryType,
         description: description || null,
         isDeleted: false,
       },

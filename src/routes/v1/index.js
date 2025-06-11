@@ -13,6 +13,8 @@ const meterRoute = require('./meter.route');
 const subMeterRoute = require('./subMeter.route');
 const meterReadingRoute = require('./meterReading.route');
 const expenseCategoryRoute = require('./expenseCategory.route');
+const expenseRoute = require('./expense.route');
+const roleRoute = require('./role.route');
 // Removed direct mounting of expenseRoute under /expenses
 const reportingRoute = require('./reporting.route');
 const notificationRoute = require('./notification.route');
@@ -34,8 +36,10 @@ const defaultRoutes = [
   { path: '/sub-meters', route: subMeterRoute },
   { path: '/meter-readings', route: meterReadingRoute },
   { path: '/expense-categories', route: expenseCategoryRoute },
+  { path: '/expenses', route: expenseRoute },
   { path: '/reports', route: reportingRoute },
   { path: '/notifications', route: notificationRoute },
+  { path: '/roles', route: roleRoute },
 ];
 
 const devRoutes = [{ path: '/docs', route: docsRoute }];

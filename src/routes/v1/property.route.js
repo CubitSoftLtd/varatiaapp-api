@@ -1,4 +1,5 @@
 const express = require('express');
+const auth = require('../../middlewares/auth');
 const validate = require('../../middlewares/validate');
 const propertyValidation = require('../../validations/property.validation');
 const propertyController = require('../../controllers/property.controller');
@@ -326,15 +327,17 @@ const router = express.Router();
 
 router
   .route('/')
-  .post(validate(propertyValidation.createProperty), propertyController.createProperty)
-  .get(validate(propertyValidation.getProperties), propertyController.getProperties);
+  .post(auth(), validate(propertyValidation.createProperty), propertyController.createProperty)
+  .get(auth(), validate(propertyValidation.getProperties), propertyController.getProperties);
 
 router
   .route('/:id')
-  .get(validate(propertyValidation.getProperty), propertyController.getPropertyById)
-  .patch(validate(propertyValidation.updateProperty), propertyController.updatePropertyById)
-  .delete(validate(propertyValidation.deleteProperty), propertyController.deletePropertyById);
+  .get(auth(), validate(propertyValidation.getProperty), propertyController.getPropertyById)
+  .patch(auth(), validate(propertyValidation.updateProperty), propertyController.updatePropertyById)
+  .delete(auth(), validate(propertyValidation.deleteProperty), propertyController.deletePropertyById);
 
-router.route('/:id/hard').delete(validate(propertyValidation.deleteProperty), propertyController.hardDeletePropertyById);
+router
+  .route('/:id/hard')
+  .delete(auth(), validate(propertyValidation.deleteProperty), propertyController.hardDeletePropertyById);
 
 module.exports = router;
