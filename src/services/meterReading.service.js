@@ -44,12 +44,19 @@ const createMeterReading = async (meterReadingBody) => {
   }
 
   // Check for duplicate reading on the same date
+  const whereClause = {
+    readingDate,
+    isDeleted: false,
+  };
+  const orConditions = [];
+  if (meterId) orConditions.push({ meterId });
+  if (submeterId) orConditions.push({ submeterId });
+  if (orConditions.length > 0) {
+    whereClause[Op.or] = orConditions;
+  }
+
   const existingReading = await MeterReading.findOne({
-    where: {
-      [Op.or]: [{ meterId }, { submeterId }],
-      readingDate,
-      isDeleted: false,
-    },
+    where: whereClause,
   });
   if (existingReading) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'A reading already exists for this meter/submeter on this date');
@@ -58,12 +65,19 @@ const createMeterReading = async (meterReadingBody) => {
   // Calculate consumption if not provided
   let calculatedConsumption = consumption;
   if (!consumption) {
+    const prevWhereClause = {
+      isDeleted: false,
+      readingDate: { [Op.lt]: readingDate },
+    };
+    const prevOrConditions = [];
+    if (meterId) prevOrConditions.push({ meterId });
+    if (submeterId) prevOrConditions.push({ submeterId });
+    if (prevOrConditions.length > 0) {
+      prevWhereClause[Op.or] = prevOrConditions;
+    }
+
     const previousReading = await MeterReading.findOne({
-      where: {
-        [Op.or]: [{ meterId }, { submeterId }],
-        readingDate: { [Op.lt]: readingDate },
-        isDeleted: false,
-      },
+      where: prevWhereClause,
       order: [['readingDate', 'DESC']],
     });
 

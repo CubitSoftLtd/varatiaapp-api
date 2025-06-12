@@ -53,6 +53,7 @@ const createTenant = async (tenantBody) => {
         moveInDate: tenantBody.moveInDate,
         moveOutDate: tenantBody.moveOutDate,
         notes: tenantBody.notes,
+        accountId: tenantBody.accountId,
       },
       { transaction: t }
     );
