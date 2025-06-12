@@ -1,4 +1,5 @@
 const httpStatus = require('http-status');
+const ApiError = require('../utils/ApiError');
 const pick = require('../utils/pick');
 const catchAsync = require('../utils/catchAsync');
 const { unitService } = require('../services');
@@ -64,6 +65,7 @@ const createUnit = catchAsync(async (req, res) => {
 });
 
 const getUnits = catchAsync(async (req, res) => {
+  // Extract query parameters for filtering and pagination/sorting options
   const filter = pick(req.query, [
     'name',
     'propertyId',
@@ -74,12 +76,19 @@ const getUnits = catchAsync(async (req, res) => {
     'squareFootage',
   ]);
   const options = pick(req.query, ['sortBy', 'limit', 'page']);
-  options.include = parseInclude(req.query.include);
+  options.include = parseInclude(req.query.include); // Custom function to parse include query
 
+  // Restrict units to the user's account for non-super_admin users
   if (req.user.role !== 'super_admin') {
-    filter.propertyId = req.params.propertyId; // Ensure only properties for the user's account are fetched
+    // Safety check: Ensure accountId exists on req.user
+    if (!req.user.accountId) {
+      throw new ApiError(httpStatus.FORBIDDEN, 'Account ID is required');
+    }
+    // Directly filter by accountId since it’s a field on Unit
+    filter.accountId = req.user.accountId;
   }
 
+  // Fetch units using a service layer (assumed to handle Sequelize queries)
   const units = await unitService.getAllUnits(filter, options);
   res.send(units);
 });
