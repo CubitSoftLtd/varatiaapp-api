@@ -4,101 +4,121 @@ const { MeterReading, Meter, Submeter, User } = require('../models');
 const ApiError = require('../utils/ApiError');
 
 /**
- * Create a meter reading with validation, transaction, and consumption calculation
- * @param {Object} meterReadingBody - { meterId?, submeterId?, readingValue, readingDate, enteredByUserId?, consumption? }
- * @returns {Promise<MeterReading>}
+ * Validates existence of Meter, Submeter, and User.
+ * @param {string} [meterId] - Meter UUID
+ * @param {string} [submeterId] - Submeter UUID
+ * @param {string} [enteredByUserId] - User UUID
+ * @throws {ApiError} If any ID is not found.
  */
-const createMeterReading = async (meterReadingBody) => {
-  const { accountId, meterId, submeterId, readingValue, readingDate, enteredByUserId, consumption } = meterReadingBody;
-
-  // Validate mutual exclusivity of meterId and submeterId
-  if ((meterId && submeterId) || (!meterId && !submeterId)) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Exactly one of meterId or submeterId must be provided');
-  }
-
-  // Validate foreign keys
+const validateRelatedEntities = async (meterId, submeterId, enteredByUserId) => {
   if (meterId) {
     const meter = await Meter.findByPk(meterId);
-    if (!meter) {
-      throw new ApiError(httpStatus.NOT_FOUND, `Meter not found for ID: ${meterId}`);
-    }
+    if (!meter) throw new ApiError(httpStatus.NOT_FOUND, `Meter with ID '${meterId}' not found.`);
   }
-
   if (submeterId) {
     const submeter = await Submeter.findByPk(submeterId);
-    if (!submeter) {
-      throw new ApiError(httpStatus.NOT_FOUND, `Submeter not found for ID: ${submeterId}`);
-    }
+    if (!submeter) throw new ApiError(httpStatus.NOT_FOUND, `Submeter with ID '${submeterId}' not found.`);
+    // Optional: Validate submeter belongs to meter
+    // if (meterId && submeter.meterId !== meterId) throw new ApiError(httpStatus.BAD_REQUEST, 'Submeter does not belong to the specified meter.');
   }
-
   if (enteredByUserId) {
     const user = await User.findByPk(enteredByUserId);
-    if (!user) {
-      throw new ApiError(httpStatus.NOT_FOUND, `User not found for ID: ${enteredByUserId}`);
-    }
+    if (!user) throw new ApiError(httpStatus.NOT_FOUND, `User with ID '${enteredByUserId}' not found.`);
   }
+};
 
-  // Validate readingValue
-  if (readingValue < 0) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Reading value cannot be negative');
-  }
-
-  // Check for duplicate reading on the same date
+/**
+ * Checks for existing meter reading duplicates based on provided criteria.
+ * @param {Object} params - { readingDate, meterId, submeterId, readingTime, excludeId }
+ * @param {string} params.readingDate - Reading date
+ * @param {string} [params.meterId] - Meter UUID
+ * @param {string} [params.submeterId] - Submeter UUID
+ * @param {string} [params.readingTime] - Optional reading time
+ * @param {string} [params.excludeId] - Optional ID to exclude from check
+ * @returns {Promise<boolean>} True if a duplicate exists, false otherwise.
+ */
+const checkDuplicateReading = async ({ readingDate, meterId, submeterId, readingTime, excludeId = null }) => {
   const whereClause = {
     readingDate,
     isDeleted: false,
   };
-  const orConditions = [];
-  if (meterId) orConditions.push({ meterId });
-  if (submeterId) orConditions.push({ submeterId });
-  if (orConditions.length > 0) {
-    whereClause[Op.or] = orConditions;
+
+  // Define uniqueness based on meter or submeter context
+  if (submeterId) {
+    whereClause.meterId = meterId;
+    whereClause.submeterId = submeterId;
+  } else {
+    whereClause.meterId = meterId;
+    whereClause.submeterId = null;
   }
 
-  const existingReading = await MeterReading.findOne({
-    where: whereClause,
-  });
-  if (existingReading) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'A reading already exists for this meter/submeter on this date');
-  }
+  if (readingTime) whereClause.readingTime = readingTime;
+  if (excludeId) whereClause.id = { [Op.ne]: excludeId };
 
-  // Calculate consumption if not provided
+  const existingReading = await MeterReading.findOne({ where: whereClause });
+  return !!existingReading;
+};
+
+/**
+ * Create a meter reading with validation, transaction, and consumption calculation
+ * @param {Object} meterReadingBody - { accountId, meterId, submeterId?, readingValue, readingDate, readingTime?, enteredByUserId?, consumption? }
+ * @returns {Promise<MeterReading>}
+ */
+const createMeterReading = async (meterReadingBody) => {
+  const { accountId, meterId, submeterId, readingValue, readingDate, readingTime, enteredByUserId, consumption } =
+    meterReadingBody;
+
+  // 1. Basic input validation
+  if (!meterId && !submeterId) throw new ApiError(httpStatus.BAD_REQUEST, 'At least meterId must be provided.');
+  if (submeterId && !meterId) throw new ApiError(httpStatus.BAD_REQUEST, 'meterId is required when submeterId is provided.');
+  if (readingValue == null) throw new ApiError(httpStatus.BAD_REQUEST, 'Reading value is required.');
+  if (readingValue < 0) throw new ApiError(httpStatus.BAD_REQUEST, 'Reading value cannot be negative.');
+  if (!readingDate) throw new ApiError(httpStatus.BAD_REQUEST, 'Reading date is required.');
+
+  // 2. Validate foreign keys
+  await validateRelatedEntities(meterId, submeterId, enteredByUserId);
+
+  // 3. Check for duplicate reading
+  const isDuplicate = await checkDuplicateReading({ meterId, submeterId, readingDate, readingTime });
+  if (isDuplicate)
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      `A reading already exists for this meter/submeter on this date${readingTime ? ' and time' : ''}.`
+    );
+
+  // 4. Calculate consumption if not provided
   let calculatedConsumption = consumption;
-  if (!consumption) {
-    const prevWhereClause = {
-      isDeleted: false,
-      readingDate: { [Op.lt]: readingDate },
-    };
-    const prevOrConditions = [];
-    if (meterId) prevOrConditions.push({ meterId });
-    if (submeterId) prevOrConditions.push({ submeterId });
-    if (prevOrConditions.length > 0) {
-      prevWhereClause[Op.or] = prevOrConditions;
-    }
+  if (consumption == null) {
+    const prevWhereClause = { isDeleted: false, readingDate: { [Op.lt]: readingDate } };
+    if (meterId) prevWhereClause.meterId = meterId;
+    if (submeterId) prevWhereClause.submeterId = submeterId;
 
     const previousReading = await MeterReading.findOne({
       where: prevWhereClause,
-      order: [['readingDate', 'DESC']],
+      order: [
+        ['readingDate', 'DESC'],
+        ['readingTime', 'DESC'],
+        ['createdAt', 'DESC'],
+      ],
     });
 
-    if (previousReading) {
-      calculatedConsumption = parseFloat(readingValue) - parseFloat(previousReading.readingValue);
-      if (calculatedConsumption < 0) {
-        throw new ApiError(httpStatus.BAD_REQUEST, 'Calculated consumption cannot be negative. Check reading value.');
-      }
+    if (previousReading && previousReading.readingValue > readingValue) {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'Reading value cannot be less than the previous reading value.');
     }
+    calculatedConsumption = previousReading ? parseFloat(readingValue) - parseFloat(previousReading.readingValue) : 0;
   }
 
-  // Create meter reading in a transaction
+  // 5. Create in transaction
   const meterReading = await MeterReading.sequelize.transaction(async (t) => {
     return MeterReading.create(
       {
+        accountId,
         meterId: meterId || null,
         submeterId: submeterId || null,
         readingValue,
         readingDate,
-        consumption: calculatedConsumption || null,
-        accountId,
+        readingTime: readingTime || null,
+        consumption: calculatedConsumption,
         enteredByUserId: enteredByUserId || null,
         isDeleted: false,
       },
@@ -116,124 +136,110 @@ const createMeterReading = async (meterReadingBody) => {
  * @returns {Promise<{ results: MeterReading[], page: number, limit: number, totalPages: number, totalResults: number }>}
  */
 const getAllMeterReadings = async (filter, options) => {
-  const limit = options.limit && parseInt(options.limit, 10) > 0 ? parseInt(options.limit, 10) : 10;
-  const page = options.page && parseInt(options.page, 10) > 0 ? parseInt(options.page, 10) : 1;
+  const { limit = 10, page = 1, sortBy, include = [] } = options;
   const offset = (page - 1) * limit;
 
-  const sort = [];
-  if (options.sortBy) {
-    const [field, order] = options.sortBy.split(':');
-    sort.push([field, order.toUpperCase() === 'DESC' ? 'DESC' : 'ASC']);
-  }
-
-  // Use provided include or default to empty array
-  const include = options.include || [];
-
+  const order = sortBy
+    ? [[...sortBy.split(':'), 'ASC']]
+    : [
+        ['readingDate', 'DESC'],
+        ['createdAt', 'DESC'],
+      ];
   const { count, rows } = await MeterReading.findAndCountAll({
     where: { ...filter, isDeleted: false },
     limit,
     offset,
-    order: sort.length ? sort : [['readingDate', 'DESC']],
+    order,
     include,
   });
 
-  return {
-    results: rows,
-    page,
-    limit,
-    totalPages: Math.ceil(count / limit),
-    totalResults: count,
-  };
+  return { results: rows, page, limit, totalPages: Math.ceil(count / limit), totalResults: count };
 };
 
 /**
  * Get meter reading by ID
  * @param {string} id - Meter reading UUID
- * @param {Array} [include=[]] - Array of objects specifying models and attributes to include
+ * @param {Array} [include=[]] - Include options
  * @returns {Promise<MeterReading>}
  */
 const getMeterReadingById = async (id, include = []) => {
+  if (!id) throw new ApiError(httpStatus.BAD_REQUEST, 'Meter reading ID is required.');
   const meterReading = await MeterReading.findByPk(id, { include });
-  if (!meterReading || meterReading.isDeleted) {
-    throw new ApiError(httpStatus.NOT_FOUND, `Meter reading not found for ID: ${id}`);
-  }
+  if (!meterReading || meterReading.isDeleted)
+    throw new ApiError(httpStatus.NOT_FOUND, `Meter reading with ID '${id}' not found or is deleted.`);
   return meterReading;
 };
 
 /**
  * Update an existing meter reading by ID
  * @param {string} meterReadingId - Meter reading UUID
- * @param {Object} updateBody - { meterId?, submeterId?, readingValue?, readingDate?, consumption?, enteredByUserId? }
+ * @param {Object} updateBody - { meterId?, submeterId?, readingValue?, readingDate?, readingTime?, consumption?, enteredByUserId? }
  * @returns {Promise<MeterReading>}
  */
 const updateMeterReading = async (meterReadingId, updateBody) => {
   const meterReading = await getMeterReadingById(meterReadingId);
-  const { meterId, submeterId, readingValue, readingDate, enteredByUserId, consumption } = updateBody;
+  const { meterId, submeterId, readingValue, readingDate, readingTime, consumption, enteredByUserId } = updateBody;
 
-  // Validate mutual exclusivity of meterId and submeterId
-  const newMeterId = meterId !== undefined ? meterId : meterReading.meterId;
-  const newSubmeterId = submeterId !== undefined ? submeterId : meterReading.submeterId;
-  if ((newMeterId && newSubmeterId) || (!newMeterId && !newSubmeterId)) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Exactly one of meterId or submeterId must be provided');
-  }
+  const newMeterId = meterId ?? meterReading.meterId;
+  const newSubmeterId = submeterId ?? meterReading.submeterId;
+  const newReadingDate = readingDate ?? meterReading.readingDate;
+  const newReadingTime = readingTime ?? meterReading.readingTime;
 
-  // Validate foreign keys if provided
-  if (meterId && meterId !== meterReading.meterId) {
-    const meter = await Meter.findByPk(meterId);
-    if (!meter) {
-      throw new ApiError(httpStatus.NOT_FOUND, `Meter not found for ID: ${meterId}`);
-    }
-  }
+  if (!newMeterId && !newSubmeterId) throw new ApiError(httpStatus.BAD_REQUEST, 'At least meterId must be provided.');
+  if (newSubmeterId && !newMeterId)
+    throw new ApiError(httpStatus.BAD_REQUEST, 'meterId is required when submeterId is provided.');
+  if (readingValue != null && readingValue < 0)
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Reading value cannot be negative.');
 
-  if (submeterId && submeterId !== meterReading.submeterId) {
-    const submeter = await Submeter.findByPk(submeterId);
-    if (!submeter) {
-      throw new ApiError(httpStatus.NOT_FOUND, `Submeter not found for ID: ${submeterId}`);
-    }
-  }
+  await validateRelatedEntities(meterId, submeterId, enteredByUserId);
 
-  if (enteredByUserId !== undefined && enteredByUserId !== meterReading.enteredByUserId) {
-    if (enteredByUserId) {
-      const user = await User.findByPk(enteredByUserId);
-      if (!user) {
-        throw new ApiError(httpStatus.NOT_FOUND, `User not found for ID: ${enteredByUserId}`);
-      }
-    }
-  }
-
-  // Validate readingValue if provided
-  if (readingValue !== undefined && readingValue < 0) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Reading value cannot be negative');
-  }
-
-  // Check for duplicate reading on the same date if readingDate or meterId/submeterId changes
-  if (readingDate || meterId !== undefined || submeterId !== undefined) {
-    const checkDate = readingDate || meterReading.readingDate;
-    const checkMeterId = newMeterId || null;
-    const checkSubmeterId = newSubmeterId || null;
-    const existingReading = await MeterReading.findOne({
-      where: {
-        id: { [Op.ne]: meterReadingId },
-        [Op.or]: [{ meterId: checkMeterId }, { submeterId: checkSubmeterId }],
-        readingDate: checkDate,
-        isDeleted: false,
-      },
+  if (readingDate || readingTime || meterId != null || submeterId != null) {
+    const isDuplicate = await checkDuplicateReading({
+      meterId: newMeterId,
+      submeterId: newSubmeterId,
+      readingDate: newReadingDate,
+      readingTime: newReadingTime,
+      excludeId: meterReadingId,
     });
-    if (existingReading) {
-      throw new ApiError(httpStatus.BAD_REQUEST, 'A reading already exists for this meter/submeter on this date');
-    }
+    if (isDuplicate)
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        `A reading already exists for this meter/submeter on this date${newReadingTime ? ' and time' : ''}.`
+      );
   }
 
-  // Update in a transaction
+  let updatedConsumption = consumption ?? meterReading.consumption;
+  if (consumption == null && (readingValue != null || readingDate != null || meterId != null || submeterId != null)) {
+    const prevWhereClause = { isDeleted: false, readingDate: { [Op.lt]: newReadingDate } };
+    if (newMeterId) prevWhereClause.meterId = newMeterId;
+    if (newSubmeterId) prevWhereClause.submeterId = newSubmeterId;
+
+    const previousReading = await MeterReading.findOne({
+      where: { ...prevWhereClause, id: { [Op.ne]: meterReadingId } },
+      order: [
+        ['readingDate', 'DESC'],
+        ['readingTime', 'DESC'],
+        ['createdAt', 'DESC'],
+      ],
+    });
+
+    const effectiveReadingValue = readingValue ?? meterReading.readingValue;
+    if (previousReading && previousReading.readingValue > effectiveReadingValue) {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'Reading value cannot be less than the previous reading value.');
+    }
+    updatedConsumption = previousReading ? parseFloat(effectiveReadingValue) - parseFloat(previousReading.readingValue) : 0;
+  }
+
   await MeterReading.sequelize.transaction(async (t) => {
     await meterReading.update(
       {
-        meterId: meterId !== undefined ? meterId : meterReading.meterId,
-        submeterId: submeterId !== undefined ? submeterId : meterReading.submeterId,
-        readingValue: readingValue !== undefined ? readingValue : meterReading.readingValue,
-        readingDate: readingDate !== undefined ? readingDate : meterReading.readingDate,
-        consumption: consumption !== undefined ? consumption : meterReading.consumption,
-        enteredByUserId: enteredByUserId !== undefined ? enteredByUserId : meterReading.enteredByUserId,
+        meterId: newMeterId,
+        submeterId: newSubmeterId,
+        readingValue: readingValue ?? meterReading.readingValue,
+        readingDate: newReadingDate,
+        readingTime: newReadingTime,
+        consumption: updatedConsumption,
+        enteredByUserId: enteredByUserId ?? meterReading.enteredByUserId,
       },
       { transaction: t }
     );
@@ -249,9 +255,6 @@ const updateMeterReading = async (meterReadingId, updateBody) => {
  */
 const deleteMeterReading = async (meterReadingId) => {
   const meterReading = await getMeterReadingById(meterReadingId);
-  if (meterReading.isDeleted) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Meter reading is already deleted');
-  }
   await meterReading.update({ isDeleted: true });
 };
 
@@ -261,79 +264,64 @@ const deleteMeterReading = async (meterReadingId) => {
  * @returns {Promise<void>}
  */
 const hardDeleteMeterReading = async (meterReadingId) => {
-  const meterReading = await getMeterReadingById(meterReadingId);
+  const meterReading = await MeterReading.findByPk(meterReadingId);
+  if (!meterReading) throw new ApiError(httpStatus.NOT_FOUND, `Meter reading with ID '${meterReadingId}' not found.`);
   await meterReading.destroy();
 };
 
 /**
  * Calculate consumption for a meter or submeter between two dates
- * @param {string} meterId - Meter UUID (optional)
- * @param {string} submeterId - Submeter UUID (optional)
- * @param {Date} startDate - Start date for consumption calculation
- * @param {Date} endDate - End date for consumption calculation
- * @returns {Promise<number>} - Calculated consumption
+ * @param {string} [meterId] - Meter UUID
+ * @param {string} [submeterId] - Submeter UUID
+ * @param {Date} startDate - Start date
+ * @param {Date} endDate - End date
+ * @returns {Promise<number>} Calculated consumption
  */
 const calculateConsumption = async (meterId, submeterId, startDate, endDate) => {
-  // Validate mutual exclusivity
-  if ((meterId && submeterId) || (!meterId && !submeterId)) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Exactly one of meterId or submeterId must be provided');
-  }
+  if (!meterId && !submeterId) throw new ApiError(httpStatus.BAD_REQUEST, 'At least meterId must be provided.');
+  if (submeterId && !meterId) throw new ApiError(httpStatus.BAD_REQUEST, 'meterId is required when submeterId is provided.');
+  if (!startDate || !endDate) throw new ApiError(httpStatus.BAD_REQUEST, 'Start date and end date are required.');
+  if (new Date(startDate) >= new Date(endDate))
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Start date must be before end date.');
 
-  // Validate dates
-  if (startDate >= endDate) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Start date must be before end date');
-  }
+  await validateRelatedEntities(meterId, submeterId);
 
-  // Validate foreign key
-  if (meterId) {
-    const meter = await Meter.findByPk(meterId);
-    if (!meter) {
-      throw new ApiError(httpStatus.NOT_FOUND, `Meter not found for ID: ${meterId}`);
-    }
-  }
-
-  if (submeterId) {
-    const submeter = await Submeter.findByPk(submeterId);
-    if (!submeter) {
-      throw new ApiError(httpStatus.NOT_FOUND, `Submeter not found for ID: ${submeterId}`);
-    }
-  }
-
-  // Find the most recent reading on or before startDate
   const startReading = await MeterReading.findOne({
     where: {
-      [Op.or]: [{ meterId }, { submeterId }],
-      readingDate: { [Op.lte]: startDate },
+      readingDate: { [Op.gte]: startDate },
       isDeleted: false,
+      [Op.or]: [
+        { meterId, submeterId: null },
+        { meterId, submeterId },
+      ],
     },
-    order: [['readingDate', 'DESC']],
+    order: [
+      ['readingDate', 'ASC'],
+      ['readingTime', 'ASC'],
+      ['createdAt', 'ASC'],
+    ],
   });
 
-  // Find the most recent reading on or before endDate
   const endReading = await MeterReading.findOne({
     where: {
-      [Op.or]: [{ meterId }, { submeterId }],
       readingDate: { [Op.lte]: endDate },
       isDeleted: false,
+      [Op.or]: [
+        { meterId, submeterId: null },
+        { meterId, submeterId },
+      ],
     },
-    order: [['readingDate', 'DESC']],
+    order: [
+      ['readingDate', 'DESC'],
+      ['readingTime', 'DESC'],
+      ['createdAt', 'DESC'],
+    ],
   });
 
-  // If no readings are found, return 0 consumption
-  if (!startReading || !endReading) {
-    return 0;
-  }
+  if (!startReading || !endReading) return 0;
 
-  // Calculate consumption
   const calculatedConsumption = parseFloat(endReading.readingValue) - parseFloat(startReading.readingValue);
-  if (calculatedConsumption < 0) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Consumption cannot be negative. Check reading dates and values.');
-  }
-
-  // Update consumption in the endReading record in a transaction
-  await MeterReading.sequelize.transaction(async (t) => {
-    await endReading.update({ consumption: calculatedConsumption }, { transaction: t });
-  });
+  if (calculatedConsumption < 0) throw new ApiError(httpStatus.BAD_REQUEST, 'Calculated consumption cannot be negative.');
 
   return calculatedConsumption;
 };

@@ -3,14 +3,24 @@ const Joi = require('joi');
 const createMeterReading = {
   body: Joi.object()
     .keys({
-      meterId: Joi.string().uuid().allow(null),
-      submeterId: Joi.string().uuid().allow(null),
+      meterId: Joi.string().uuid().required(), // meterId is always required
+      submeterId: Joi.string().uuid().optional().allow(null), // submeterId is optional
       readingValue: Joi.number().required(),
       readingDate: Joi.date().required(),
-      consumption: Joi.number().allow(null),
-      enteredByUserId: Joi.string().uuid().allow(null),
+      consumption: Joi.number().required(),
     })
-    .xor('meterId', 'submeterId'), // Exactly one of meterId or submeterId must be provided
+    .custom((value, helpers) => {
+      // Ensure at least meterId is provided (handled by required above)
+      // Ensure submeterId is valid only with meterId
+      if (value.submeterId && !value.meterId) {
+        return helpers.error('any.invalid', {
+          key: 'submeterId',
+          message: 'meterId is required when submeterId is provided',
+        });
+      }
+      // No need to check !meterId && !submeterId since meterId is required
+      return value;
+    }),
 };
 
 const getMeterReadings = {
@@ -18,7 +28,6 @@ const getMeterReadings = {
     meterId: Joi.string().uuid(),
     submeterId: Joi.string().uuid(),
     readingDate: Joi.date(),
-    enteredByUserId: Joi.string().uuid(),
     sortBy: Joi.string().pattern(/^[a-zA-Z]+:(asc|desc)$/),
     limit: Joi.number().integer().min(1).default(10),
     page: Joi.number().integer().min(1).default(1),
@@ -42,14 +51,27 @@ const updateMeterReading = {
   body: Joi.object()
     .keys({
       meterId: Joi.string().uuid().allow(null),
-      submeterId: Joi.string().uuid().allow(null),
+      submeterId: Joi.string()
+        .uuid()
+        .when('meterId', {
+          is: Joi.exist(),
+          then: Joi.string().uuid().optional().allow(null), // submeterId is optional when meterId exists
+          otherwise: Joi.forbidden(),
+        }),
       readingValue: Joi.number(),
       readingDate: Joi.date(),
-      consumption: Joi.number().allow(null),
-      enteredByUserId: Joi.string().uuid().allow(null),
+      consumption: Joi.number(),
     })
-    .min(1) // At least one field must be provided for update
-    .xor('meterId', 'submeterId'), // Exactly one of meterId or submeterId if provided
+    .min(1)
+    .custom((value, helpers) => {
+      if (value.submeterId && !value.meterId) {
+        return helpers.error('any.invalid', {
+          key: 'submeterId',
+          message: 'meterId is required when submeterId is provided',
+        });
+      }
+      return value;
+    }),
 };
 
 const deleteMeterReading = {
@@ -59,14 +81,16 @@ const deleteMeterReading = {
 };
 
 const calculateConsumption = {
-  body: Joi.object()
-    .keys({
-      meterId: Joi.string().uuid().allow(null),
-      submeterId: Joi.string().uuid().allow(null),
-      startDate: Joi.date().required(),
-      endDate: Joi.date().required(),
-    })
-    .xor('meterId', 'submeterId'), // Exactly one of meterId or submeterId must be provided
+  body: Joi.object().keys({
+    meterId: Joi.string().uuid().allow(null),
+    submeterId: Joi.string().uuid().when('meterId', {
+      is: Joi.exist(),
+      then: Joi.string().uuid().required(),
+      otherwise: Joi.forbidden(),
+    }),
+    startDate: Joi.date().required(),
+    endDate: Joi.date().required(),
+  }),
 };
 
 module.exports = {

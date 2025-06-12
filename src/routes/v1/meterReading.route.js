@@ -19,8 +19,8 @@ const router = express.Router();
  *   post:
  *     summary: Create a new meter reading
  *     description: |
- *       Admins, owners, and employees can create new meter readings.
- *       Last updated: Thursday, June 12, 2025, 10:02 AM +06.
+ *       Admins, owners, and employees can create new meter readings. Use meterId alone for main meter readings, or meterId and submeterId together for submeter readings.
+ *       Last updated: Thursday, June 12, 2025, 12:21 PM +06.
  *     tags: [MeterReadings]
  *     security:
  *       - bearerAuth: []
@@ -38,12 +38,12 @@ const router = express.Router();
  *               meterId:
  *                 type: string
  *                 format: uuid
- *                 description: ID of the main meter (mutually exclusive with submeterId)
+ *                 description: ID of the main meter (required for both meter and submeter readings)
  *                 nullable: true
  *               submeterId:
  *                 type: string
  *                 format: uuid
- *                 description: ID of the submeter (mutually exclusive with meterId)
+ *                 description: ID of the submeter (optional, required only for submeter readings when provided)
  *                 nullable: true
  *               readingValue:
  *                 type: number
@@ -55,12 +55,20 @@ const router = express.Router();
  *               consumption:
  *                 type: number
  *                 description: Calculated consumption since the previous reading
- *             example:
- *               meterId: 123e4567-e89b-12d3-a456-426614174000
- *               submeterId: 123e4567-e89b-12d3-a456-426614174000
- *               readingValue: 1234.567890
- *               readingDate: 2025-06-01T10:00:00Z
- *               consumption: 100.50
+ *             examples:
+ *               Meter Reading:
+ *                 value:
+ *                   meterId: "123e4567-e89b-12d3-a456-426614174000"
+ *                   readingValue: 1234.567890
+ *                   readingDate: "2025-06-01T10:00:00Z"
+ *                   consumption: 100.50
+ *               Submeter Reading:
+ *                 value:
+ *                   meterId: "123e4567-e89b-12d3-a456-426614174000"
+ *                   submeterId: "223e4567-e89b-12d3-a456-426614174001"
+ *                   readingValue: 1234.567890
+ *                   readingDate: "2025-06-01T10:00:00Z"
+ *                   consumption: 100.50
  *     responses:
  *       "201":
  *         description: Created
@@ -79,7 +87,7 @@ const router = express.Router();
  *     summary: Get all meter readings
  *     description: |
  *       Admins, owners, and employees can retrieve all meter readings.
- *       Last updated: Thursday, June 12, 2025, 10:02 AM +06.
+ *       Last updated: Thursday, June 12, 2025, 12:21 PM +06.
  *     tags: [MeterReadings]
  *     security:
  *       - bearerAuth: []
@@ -159,7 +167,7 @@ const router = express.Router();
  *     summary: Get a meter reading by ID
  *     description: |
  *       Admins, owners, and employees can fetch meter readings.
- *       Last updated: Thursday, June 12, 2025, 10:02 AM +06.
+ *       Last updated: Thursday, June 12, 2025, 12:21 PM +06.
  *     tags: [MeterReadings]
  *     security:
  *       - bearerAuth: []
@@ -194,7 +202,7 @@ const router = express.Router();
  *     summary: Update a meter reading by ID
  *     description: |
  *       Admins, owners, and employees can update meter readings.
- *       Last updated: Thursday, June 12, 2025, 10:02 AM +06.
+ *       Last updated: Thursday, June 12, 2025, 12:21 PM +06.
  *     tags: [MeterReadings]
  *     security:
  *       - bearerAuth: []
@@ -252,7 +260,7 @@ const router = express.Router();
  *     summary: Soft delete a meter reading by ID
  *     description: |
  *       Admins, owners, and employees can soft delete meter readings.
- *       Last updated: Thursday, June 12, 2025, 10:02 AM +06.
+ *       Last updated: Thursday, June 12, 2025, 12:21 PM +06.
  *     tags: [MeterReadings]
  *     security:
  *       - bearerAuth: []
@@ -279,7 +287,7 @@ const router = express.Router();
  *     summary: Hard delete a meter reading by ID
  *     description: |
  *       Only admins can perform a hard delete.
- *       Last updated: Thursday, June 12, 2025, 10:02 AM +06.
+ *       Last updated: Thursday, June 12, 2025, 12:21 PM +06.
  *     tags: [MeterReadings]
  *     security:
  *       - bearerAuth: []
@@ -306,7 +314,7 @@ const router = express.Router();
  *     summary: Calculate consumption for a meter or submeter
  *     description: |
  *       Admins, owners, and employees can calculate consumption.
- *       Last updated: Thursday, June 12, 2025, 10:02 AM +06.
+ *       Last updated: Thursday, June 12, 2025, 12:21 PM +06.
  *     tags: [MeterReadings]
  *     security:
  *       - bearerAuth: []

@@ -6,56 +6,39 @@ const { Meter, Submeter, User } = require('../models');
 
 // Helper function to parse include query parameter
 const parseInclude = (include) => {
-  // If no include string is provided, return an empty array.
   if (!include) {
     return [];
   }
 
-  return (
-    include
-      .split('|') // Split the include string by '|' to get individual include items.
-      .map((item) => {
-        // Destructure each item into modelName and attributesString.
-        // If no ':' is present (e.g., "meter"), attributesString will be undefined.
-        const [modelName, attributesString] = item.split(':');
+  return include
+    .split('|')
+    .map((item) => {
+      const [modelName, attributesString] = item.split(':');
+      const modelMap = {
+        meter: Meter,
+        submeter: Submeter,
+        user: User,
+      };
 
-        // Define your model mapping.
-        const modelMap = {
-          meter: Meter,
-          submeter: Submeter,
-          user: User,
-        };
+      const model = modelMap[modelName];
+      if (!model) {
+        return null;
+      }
 
-        // Get the actual Sequelize model from the map.
-        const model = modelMap[modelName];
+      const includeOptions = {
+        model,
+        as: modelName === 'user' ? 'enteredByUser' : modelName,
+      };
 
-        // If the model name is not found in the map, log a warning and return null.
-        // This item will be filtered out later.
-        if (!model) {
-          return null;
-        }
+      if (attributesString) {
+        includeOptions.attributes = attributesString.split(',');
+      }
 
-        // Initialize the include options object.
-        const includeOptions = {
-          model,
-          // Conditionally set the 'as' alias for the 'user' model.
-          as: modelName === 'user' ? 'enteredByUser' : modelName,
-          // Consider setting 'required: false' here if you generally want LEFT JOINs by default
-          // required: false,
-        };
-
-        // Only add the 'attributes' property if attributesString is defined.
-        // If attributesString is undefined, Sequelize will include all attributes by default.
-        if (attributesString) {
-          includeOptions.attributes = attributesString.split(',');
-        }
-
-        return includeOptions;
-      })
-      // Filter out any null entries that resulted from unknown model names.
-      .filter((item) => item !== null)
-  );
+      return includeOptions;
+    })
+    .filter((item) => item !== null);
 };
+
 const createMeterReading = catchAsync(async (req, res) => {
   const meterReading = await meterReadingService.createMeterReading({
     ...req.body,
@@ -71,7 +54,7 @@ const getMeterReadings = catchAsync(async (req, res) => {
   options.include = parseInclude(req.query.include);
 
   if (req.user.role !== 'super_admin') {
-    filter.accountId = req.user.accountId; // Ensure only properties for the user's account are fetched
+    filter.accountId = req.user.accountId;
   }
 
   const meterReadings = await meterReadingService.getAllMeterReadings(filter, options);
