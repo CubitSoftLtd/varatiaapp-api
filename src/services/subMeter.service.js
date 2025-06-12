@@ -42,7 +42,7 @@ const createSubmeter = async (submeterBody) => {
         status: submeterBody.status || 'active',
         installedDate: submeterBody.installedDate,
         accountId: submeterBody.accountId,
-        isDelete: false,
+        isDeleted: false,
       },
       { transaction: t }
     );

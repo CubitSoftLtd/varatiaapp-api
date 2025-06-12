@@ -57,7 +57,11 @@ const parseInclude = (include) => {
   );
 };
 const createMeterReading = catchAsync(async (req, res) => {
-  const meterReading = await meterReadingService.createMeterReading(req.body);
+  const meterReading = await meterReadingService.createMeterReading({
+    ...req.body,
+    accountId: req.user.accountId,
+    enteredByUserId: req.user.id,
+  });
   res.status(httpStatus.CREATED).send(meterReading);
 });
 

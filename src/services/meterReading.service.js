@@ -9,7 +9,7 @@ const ApiError = require('../utils/ApiError');
  * @returns {Promise<MeterReading>}
  */
 const createMeterReading = async (meterReadingBody) => {
-  const { meterId, submeterId, readingValue, readingDate, enteredByUserId, consumption } = meterReadingBody;
+  const { accountId, meterId, submeterId, readingValue, readingDate, enteredByUserId, consumption } = meterReadingBody;
 
   // Validate mutual exclusivity of meterId and submeterId
   if ((meterId && submeterId) || (!meterId && !submeterId)) {
@@ -84,6 +84,7 @@ const createMeterReading = async (meterReadingBody) => {
         readingValue,
         readingDate,
         consumption: calculatedConsumption || null,
+        accountId,
         enteredByUserId: enteredByUserId || null,
         isDeleted: false,
       },

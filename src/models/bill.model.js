@@ -115,7 +115,7 @@ module.exports = (sequelize) => {
       modelName: 'bill',
       defaultScope: {
         where: {
-          isDelete: false,
+          isDeleted: false,
         },
       },
       scopes: {
