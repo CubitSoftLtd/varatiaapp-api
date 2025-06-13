@@ -85,7 +85,7 @@ const getPayments = {
       .pattern(/^[a-zA-Z]+:(asc|desc)$/)
       .messages({
         'string.base': 'SortBy must be a string',
-        'string.pattern.base': 'SortBy must be in the format "field:asc|desc"',
+        'string.pattern.base': 'SortBy must be in the format "field:asc" or "field:desc"',
       }),
     limit: Joi.number().integer().min(1).default(10).messages({
       'number.base': 'Limit must be a number',
@@ -97,6 +97,9 @@ const getPayments = {
       'number.integer': 'Page must be an integer',
       'number.min': 'Page must be at least 1',
     }),
+    include: Joi.string().optional().messages({
+      'string.base': 'include must be a string',
+    }), // Added include parameter
   }),
 };
 
@@ -111,6 +114,11 @@ const getPayment = {
         'string.uuid': 'ID must be a valid UUID',
       }),
   }),
+  query: Joi.object().keys({
+    include: Joi.string().optional().messages({
+      'string.base': 'include must be a string',
+    }), // Added include parameter
+  }),
 };
 
 const getPaymentsByBillId = {
@@ -123,6 +131,11 @@ const getPaymentsByBillId = {
         'string.empty': 'Bill ID is required',
         'string.uuid': 'Bill ID must be a valid UUID',
       }),
+  }),
+  query: Joi.object().keys({
+    include: Joi.string().optional().messages({
+      'string.base': 'include must be a string',
+    }), // Added include parameter
   }),
 };
 

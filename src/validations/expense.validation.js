@@ -1,5 +1,6 @@
 const Joi = require('joi');
 
+// Reusable UUID v4 schema
 const uuidV4Schema = Joi.string().uuid({ version: 'uuidv4' });
 
 const createExpense = {
@@ -80,6 +81,9 @@ const getExpenses = {
       'number.integer': 'Page must be an integer',
       'number.min': 'Page must be at least 1',
     }),
+    include: Joi.string().optional().messages({
+      'string.base': 'Include must be a string',
+    }), // Added include parameter
   }),
 };
 
@@ -90,6 +94,11 @@ const getExpense = {
       'string.empty': 'ID is required',
       'string.uuid': 'ID must be a valid UUID',
     }),
+  }),
+  query: Joi.object().keys({
+    include: Joi.string().optional().messages({
+      'string.base': 'Include must be a string',
+    }), // Added include parameter
   }),
 };
 

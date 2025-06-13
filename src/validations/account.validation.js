@@ -94,11 +94,19 @@ const getAccounts = {
       'number.integer': 'Page must be an integer',
       'number.min': 'Page must be at least 1',
     }),
+    include: Joi.string().optional().messages({
+      'string.base': 'Include must be a string',
+    }), // Added include parameter
   }),
 };
 
 const getAccount = {
   params: idParamSchema,
+  query: Joi.object().keys({
+    include: Joi.string().optional().messages({
+      'string.base': 'Include must be a string',
+    }), // Added include parameter
+  }),
 };
 
 const updateAccount = {
@@ -158,6 +166,7 @@ const deleteAccount = {
       }),
   }),
 };
+
 module.exports = {
   subscriptionTypes,
   createAccount,

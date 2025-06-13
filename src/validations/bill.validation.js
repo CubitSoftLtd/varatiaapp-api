@@ -1,6 +1,16 @@
 const Joi = require('joi');
 
-const billSchema = {
+// Define reusable schemas and constants
+const idSchema = Joi.string()
+  .uuid({ version: ['uuidv4'] })
+  .required()
+  .messages({
+    'string.base': 'ID must be a string',
+    'string.empty': 'ID is required',
+    'string.uuid': 'ID must be a valid UUID',
+  });
+
+const baseBillSchema = {
   tenantId: Joi.string()
     .uuid({ version: ['uuidv4'] })
     .required()
@@ -16,14 +26,6 @@ const billSchema = {
       'string.base': 'Unit ID must be a string',
       'string.empty': 'Unit ID is required',
       'string.uuid': 'Unit ID must be a valid UUID',
-    }),
-  accountId: Joi.string()
-    .uuid({ version: ['uuidv4'] })
-    .required()
-    .messages({
-      'string.base': 'Account ID must be a string',
-      'string.empty': 'Account ID is required',
-      'string.uuid': 'Account ID must be a valid UUID',
     }),
   billingPeriodStart: Joi.date().required().messages({
     'date.base': 'Billing period start must be a valid date',
@@ -57,17 +59,22 @@ const billSchema = {
 
 const createBill = {
   body: Joi.object()
-    .keys(billSchema)
+    .keys(baseBillSchema)
     .custom((value, helpers) => {
       if (new Date(value.billingPeriodStart) > new Date(value.billingPeriodEnd)) {
         return helpers.error('date.order', {
           message: 'Billing period start must be before or equal to end',
         });
       }
-      if (new Date(value.dueDate) < new Date(value.issueDate || new Date())) {
+      if (value.dueDate && value.issueDate && new Date(value.dueDate) < new Date(value.issueDate)) {
         return helpers.error('date.order', {
           message: 'Due date must be on or after issue date',
         });
+      }
+      if (!value.issueDate) {
+        /* eslint-disable no-param-reassign */
+        // Set issueDate to current date if not provided
+        value.issueDate = new Date(); // Default to current date if not provided
       }
       return value;
     })
@@ -125,32 +132,26 @@ const getBills = {
       'number.integer': 'Page must be an integer',
       'number.min': 'Page must be at least 1',
     }),
+    include: Joi.string().optional().messages({
+      'string.base': 'Include must be a string',
+    }), // Added include parameter
   }),
 };
 
 const getBill = {
   params: Joi.object().keys({
-    id: Joi.string()
-      .uuid({ version: ['uuidv4'] })
-      .required()
-      .messages({
-        'string.base': 'ID must be a string',
-        'string.empty': 'ID is required',
-        'string.uuid': 'ID must be a valid UUID',
-      }),
+    id: idSchema,
+  }),
+  query: Joi.object().keys({
+    include: Joi.string().optional().messages({
+      'string.base': 'Include must be a string',
+    }), // Added include parameter
   }),
 };
 
 const updateBill = {
   params: Joi.object().keys({
-    id: Joi.string()
-      .uuid({ version: ['uuidv4'] })
-      .required()
-      .messages({
-        'string.base': 'ID must be a string',
-        'string.empty': 'ID is required',
-        'string.uuid': 'ID must be a valid UUID',
-      }),
+    id: idSchema,
   }),
   body: Joi.object()
     .keys({
@@ -223,14 +224,7 @@ const updateBill = {
 
 const deleteBill = {
   params: Joi.object().keys({
-    id: Joi.string()
-      .uuid({ version: ['uuidv4'] })
-      .required()
-      .messages({
-        'string.base': 'ID must be a string',
-        'string.empty': 'ID is required',
-        'string.uuid': 'ID must be a valid UUID',
-      }),
+    id: idSchema,
   }),
 };
 

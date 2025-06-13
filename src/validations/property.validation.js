@@ -95,6 +95,9 @@ const getProperties = {
       'number.integer': 'Page must be an integer',
       'number.min': 'Page must be at least 1',
     }),
+    include: Joi.string().optional().messages({
+      'string.base': 'include must be a string',
+    }), // Added include parameter
   }),
 };
 
@@ -108,6 +111,11 @@ const getProperty = {
         'string.empty': 'ID is required',
         'string.uuid': 'ID must be a valid UUID',
       }),
+  }),
+  query: Joi.object().keys({
+    include: Joi.string().optional().messages({
+      'string.base': 'include must be a string',
+    }), // Added include parameter
   }),
 };
 

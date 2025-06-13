@@ -72,7 +72,6 @@ const createTenant = {
         'string.base': 'Status must be a string',
         'any.only': 'Status must be one of: current, prospective, past, evicted, notice, inactive',
       }),
-    // National ID validation: Allows alphanumeric, hyphens, and slashes, 5-50 characters, and can be null.
     nationalId: Joi.string().pattern(nationalIdRegex).allow(null).messages({
       'string.base': 'National ID must be a string',
       'string.pattern.base': 'National ID must be valid (5-50 characters, alphanumeric, hyphen, slash allowed)',
@@ -139,6 +138,9 @@ const getTenants = {
       'number.integer': 'Page must be an integer',
       'number.min': 'Page must be at least 1',
     }),
+    include: Joi.string().optional().messages({
+      'string.base': 'include must be a string',
+    }), // Added include parameter
   }),
 };
 
@@ -152,6 +154,11 @@ const getTenant = {
         'string.empty': 'ID is required',
         'string.uuid': 'ID must be a valid UUID',
       }),
+  }),
+  query: Joi.object().keys({
+    include: Joi.string().optional().messages({
+      'string.base': 'include must be a string',
+    }), // Added include parameter
   }),
 };
 
@@ -219,7 +226,6 @@ const updateTenant = {
           'string.base': 'Status must be a string',
           'any.only': 'Status must be one of: current, prospective, past, evicted, notice, inactive',
         }),
-      // National ID validation: Allows alphanumeric, hyphens, and slashes, 5-50 characters, and can be null.
       nationalId: Joi.string().pattern(nationalIdRegex).allow(null).messages({
         'string.base': 'National ID must be a string',
         'string.pattern.base': 'National ID must be valid (5-50 characters, alphanumeric, hyphen, slash allowed)',
@@ -286,6 +292,11 @@ const getTenantsByUnitAndProperty = {
         'string.uuid': 'Unit ID must be a valid UUID',
       }),
   }),
+  query: Joi.object().keys({
+    include: Joi.string().optional().messages({
+      'string.base': 'include must be a string',
+    }), // Added include parameter
+  }),
 };
 
 const getHistoricalTenantsByUnit = {
@@ -308,6 +319,9 @@ const getHistoricalTenantsByUnit = {
       'date.base': 'End date must be a valid date',
       'any.required': 'End date is required',
     }),
+    include: Joi.string().optional().messages({
+      'string.base': 'include must be a string',
+    }), // Added include parameter
   }),
 };
 

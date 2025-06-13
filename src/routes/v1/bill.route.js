@@ -34,7 +34,6 @@ const router = express.Router();
  *             required:
  *               - tenantId
  *               - unitId
- *               - accountId
  *               - billingPeriodStart
  *               - billingPeriodEnd
  *               - rentAmount
@@ -48,10 +47,6 @@ const router = express.Router();
  *                 type: string
  *                 format: uuid
  *                 description: ID of the unit
- *               accountId:
- *                 type: string
- *                 format: uuid
- *                 description: ID of the account
  *               billingPeriodStart:
  *                 type: string
  *                 format: date
@@ -78,7 +73,6 @@ const router = express.Router();
  *             example:
  *               tenantId: 123e4567-e89b-12d3-a456-426614174000
  *               unitId: 223e4567-e89b-12d3-a456-426614174001
- *               accountId: 323e4567-e89b-12d3-a456-426614174002
  *               billingPeriodStart: 2025-06-01
  *               billingPeriodEnd: 2025-06-30
  *               rentAmount: 1000.00
@@ -273,10 +267,6 @@ const router = express.Router();
  *                 type: string
  *                 format: uuid
  *                 description: ID of the unit
- *               accountId:
- *                 type: string
- *                 format: uuid
- *                 description: ID of the account
  *               billingPeriodStart:
  *                 type: string
  *                 format: date

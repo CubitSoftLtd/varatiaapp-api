@@ -2,59 +2,42 @@ const httpStatus = require('http-status');
 const pick = require('../utils/pick');
 const catchAsync = require('../utils/catchAsync');
 const { tenantService } = require('../services');
-const { Unit, Bill, Payment } = require('../models');
+const { Tenant, Unit, Bill, Payment } = require('../models');
 
 // Helper function to parse include query parameter
 const parseInclude = (include) => {
-  // If no include string is provided, return an empty array.
-  if (!include) {
+  if (!include || typeof include !== 'string') {
     return [];
   }
 
-  return (
-    include
-      .split('|') // Split the include string by '|' to process each individual item.
-      .map((item) => {
-        // Destructure each item into the model name string and the attributes string.
-        // If there's no colon (':'), 'attributesString' will be undefined.
-        const [modelName, attributesString] = item.split(':');
+  const modelMap = {
+    unit: Unit,
+    bills: Bill,
+    payments: Payment,
+  };
 
-        // Define your map from string keys to actual Sequelize model objects.
-        const modelMap = {
-          unit: Unit,
-          bills: Bill,
-          payments: Payment,
-        };
+  const includes = include
+    .split('|')
+    .map((item) => {
+      const [modelName, attributesString] = item.split(':');
+      const model = modelMap[modelName];
+      if (!model) {
+        return null;
+      }
+      if (!Tenant.associations[modelName]) {
+        return null;
+      }
+      const includeOptions = {
+        model,
+        as: modelName,
+        required: false, // LEFT JOIN to still return Tenant
+      };
+      if (attributesString) includeOptions.attributes = attributesString.split(',');
+      return includeOptions;
+    })
+    .filter(Boolean);
 
-        // Get the Sequelize model from the map.
-        const model = modelMap[modelName];
-
-        // If the model name isn't found in your map, log a warning and return null.
-        // This item will be filtered out in the next step.
-        if (!model) {
-          return null;
-        }
-
-        // Build the Sequelize include options object.
-        const includeOptions = {
-          model,
-          as: modelName, // The alias for the association.
-          // Consider setting 'required: false' here if you generally want LEFT JOINs (outer joins)
-          // required: false,
-        };
-
-        // ONLY add the 'attributes' property if 'attributesString' is defined.
-        // If 'attributesString' is undefined, Sequelize will include all attributes by default,
-        // which is typically what you want when no specific attributes are requested.
-        if (attributesString) {
-          includeOptions.attributes = attributesString.split(',');
-        }
-
-        return includeOptions;
-      })
-      // Filter out any 'null' entries that resulted from unknown model names.
-      .filter((item) => item !== null)
-  );
+  return includes;
 };
 
 const createTenant = catchAsync(async (req, res) => {
@@ -65,18 +48,18 @@ const createTenant = catchAsync(async (req, res) => {
 const getTenants = catchAsync(async (req, res) => {
   const filter = pick(req.query, ['firstName', 'lastName', 'email', 'phoneNumber', 'unitId', 'status']);
   const options = pick(req.query, ['sortBy', 'limit', 'page']);
+
   options.include = parseInclude(req.query.include);
 
-  if (req.user.role !== 'super_admin') {
-    filter.accountId = req.user.accountId; // Ensure only properties for the user's account are fetched
-  }
+  if (req.user.role !== 'super_admin') filter.accountId = req.user.accountId;
 
   const tenants = await tenantService.getAllTenants(filter, options);
   res.send(tenants);
 });
 
 const getTenantById = catchAsync(async (req, res) => {
-  const tenant = await tenantService.getTenantById(req.params.id, parseInclude(req.query.include));
+  const includes = parseInclude(req.query.include);
+  const tenant = await tenantService.getTenantById(req.params.id, includes);
   res.send(tenant);
 });
 
@@ -96,22 +79,15 @@ const hardDeleteTenantById = catchAsync(async (req, res) => {
 });
 
 const getTenantsByUnitAndProperty = catchAsync(async (req, res) => {
-  const tenants = await tenantService.getTenantsByUnitAndProperty(
-    req.params.propertyId,
-    req.params.unitId,
-    parseInclude(req.query.include)
-  );
+  const includes = parseInclude(req.query.include);
+  const tenants = await tenantService.getTenantsByUnitAndProperty(req.params.propertyId, req.params.unitId, includes);
   res.send(tenants);
 });
 
 const getHistoricalTenantsByUnit = catchAsync(async (req, res) => {
+  const includes = parseInclude(req.query.include);
   const { startDate, endDate } = req.query;
-  const tenants = await tenantService.getHistoricalTenantsByUnit(
-    req.params.unitId,
-    startDate,
-    endDate,
-    parseInclude(req.query.include)
-  );
+  const tenants = await tenantService.getHistoricalTenantsByUnit(req.params.unitId, startDate, endDate, includes);
   res.send(tenants);
 });
 

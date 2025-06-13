@@ -92,6 +92,9 @@ const getMeters = {
       'number.integer': 'Page must be an integer',
       'number.min': 'Page must be at least 1',
     }),
+    include: Joi.string().optional().messages({
+      'string.base': 'Include must be a string',
+    }), // Added include parameter
   }),
 };
 
@@ -105,6 +108,11 @@ const getMeter = {
         'string.empty': 'ID is required',
         'string.uuid': 'ID must be a valid UUID',
       }),
+  }),
+  query: Joi.object().keys({
+    include: Joi.string().optional().messages({
+      'string.base': 'Include must be a string',
+    }), // Added include parameter
   }),
 };
 
