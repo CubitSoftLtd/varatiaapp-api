@@ -1,58 +1,75 @@
-const { Bill, Expense, ExpenseCategory, Sequelize } = require('../models');
-
-const { Op } = Sequelize;
+const httpStatus = require('http-status');
+const { Bill, Account, Unit, Tenant } = require('../models');
+const ApiError = require('../utils/ApiError');
 
 /**
- * Create a new Bill, associate unbilled tenant-chargeable Expenses, and calculate totals.
+ * Create a new bill with validation and transaction
+ * @param {Object} billBody - { accountId, tenantId, unitId, billingPeriodStart, billingPeriodEnd, rentAmount, totalUtilityAmount, dueDate, issueDate?, notes? }
+ * @returns {Promise<Bill>}
  */
-async function createBill({
-  tenantId,
-  unitId,
-  accountId,
-  billingPeriodStart,
-  billingPeriodEnd,
-  rentAmount,
-  totalUtilityAmount,
-  dueDate,
-  issueDate,
-  notes,
-}) {
-  // 1) Fetch unbilled tenant-chargeable expenses within period
-  const tenantCharges = await Expense.findAll({
-    where: {
-      unitId,
-      billId: null,
-      expenseDate: { [Op.between]: [billingPeriodStart, billingPeriodEnd] },
-    },
-    include: [
-      {
-        model: ExpenseCategory,
-        as: 'category',
-        where: { type: 'tenant_chargeable' },
-        attributes: [],
-      },
-    ],
-  });
+const createBill = async (billBody) => {
+  const {
+    accountId,
+    tenantId,
+    unitId,
+    billingPeriodStart,
+    billingPeriodEnd,
+    rentAmount,
+    totalUtilityAmount,
+    dueDate,
+    issueDate,
+    notes,
+  } = billBody;
 
-  // 2) Sum their amounts
-  const otherChargesAmount = tenantCharges.reduce((sum, ch) => sum + parseFloat(ch.amount), 0);
+  // Validate required fields
+  if (
+    !accountId ||
+    !tenantId ||
+    !unitId ||
+    !billingPeriodStart ||
+    !billingPeriodEnd ||
+    !rentAmount ||
+    !totalUtilityAmount ||
+    !dueDate
+  ) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      'Account ID, tenant ID, unit ID, billing period start, billing period end, rent amount, total utility amount, and due date are required'
+    );
+  }
 
-  // 3) Compute totalAmount = rent + utilities + other charges
-  const totalAmount = parseFloat(rentAmount) + parseFloat(totalUtilityAmount) + otherChargesAmount;
+  // Validate foreign keys
+  const account = await Account.findByPk(accountId);
+  if (!account) {
+    throw new ApiError(httpStatus.NOT_FOUND, `Account not found for ID: ${accountId}`);
+  }
 
-  // 4) Create Bill within a transaction and update those Expenses
+  const tenant = await Tenant.findByPk(tenantId);
+  if (!tenant) {
+    throw new ApiError(httpStatus.NOT_FOUND, `Tenant not found for ID: ${tenantId}`);
+  }
+
+  const unit = await Unit.findByPk(unitId);
+  if (!unit) {
+    throw new ApiError(httpStatus.NOT_FOUND, `Unit not found for ID: ${unitId}`);
+  }
+
+  // Validate billing period
+  if (new Date(billingPeriodStart) > new Date(billingPeriodEnd)) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Billing period start must be before or equal to billing period end');
+  }
+
+  // Create bill in a transaction
   const bill = await Bill.sequelize.transaction(async (t) => {
-    const newBill = await Bill.create(
+    return Bill.create(
       {
+        accountId,
         tenantId,
         unitId,
-        accountId,
         billingPeriodStart,
         billingPeriodEnd,
-        rentAmount,
-        totalUtilityAmount,
-        otherChargesAmount,
-        totalAmount,
+        rentAmount: parseFloat(rentAmount),
+        totalUtilityAmount: parseFloat(totalUtilityAmount),
         dueDate,
         issueDate: issueDate || new Date(),
         paymentStatus: 'unpaid',
@@ -62,140 +79,160 @@ async function createBill({
       },
       { transaction: t }
     );
-
-    if (tenantCharges.length) {
-      await Expense.update(
-        { billId: newBill.id },
-        {
-          where: {
-            id: tenantCharges.map((e) => e.id),
-            billId: null,
-          },
-          transaction: t,
-        }
-      );
-    }
-
-    return newBill;
   });
 
   return bill;
-}
+};
 
 /**
- * Update an existing Bill, reassign Expenses, and recalculate totals.
+ * Query for all bills matching a filter
+ * @param {Object} filter - Sequelize filter
+ * @param {Object} options - { sortBy, limit, page, include? }
+ * @returns {Promise<{ results: Bill[], page: number, limit: number, totalPages: number, totalResults: number }>}
  */
-async function updateBill(
-  billId,
-  {
-    tenantId,
-    unitId: newUnitId,
+const getAllBills = async (filter, options) => {
+  const limit = options.limit && parseInt(options.limit, 10) > 0 ? parseInt(options.limit, 10) : 10;
+  const page = options.page && parseInt(options.page, 10) > 0 ? parseInt(options.page, 10) : 1;
+  const offset = (page - 1) * limit;
+
+  const sort = [];
+  if (options.sortBy) {
+    const [field, order] = options.sortBy.split(':');
+    sort.push([field, order.toUpperCase() === 'DESC' ? 'DESC' : 'ASC']);
+  }
+
+  // Use provided include or default to empty array
+  const include = options.include || [];
+
+  const { count, rows } = await Bill.findAndCountAll({
+    where: { ...filter, isDeleted: false },
+    limit,
+    offset,
+    order: sort.length ? sort : [['createdAt', 'DESC']],
+    include,
+  });
+
+  return {
+    results: rows,
+    page,
+    limit,
+    totalPages: Math.ceil(count / limit),
+    totalResults: count,
+  };
+};
+
+/**
+ * Get bill by ID
+ * @param {string} id - Bill UUID
+ * @param {Array} [include=[]] - Array of objects specifying models and attributes to include
+ * @returns {Promise<Bill>}
+ */
+const getBillById = async (id, include = []) => {
+  const bill = await Bill.findByPk(id, { include });
+  if (!bill || bill.isDeleted) {
+    throw new ApiError(httpStatus.NOT_FOUND, `Bill not found for ID: ${id}`);
+  }
+  return bill;
+};
+
+/**
+ * Update an existing bill by ID
+ * @param {string} id - Bill UUID
+ * @param {Object} updateBody - { accountId?, tenantId?, unitId?, billingPeriodStart?, billingPeriodEnd?, rentAmount?, totalUtilityAmount?, dueDate?, issueDate?, notes? }
+ * @returns {Promise<Bill>}
+ */
+const updateBill = async (id, updateBody) => {
+  const bill = await getBillById(id);
+
+  const {
     accountId,
-    billingPeriodStart: newStart,
-    billingPeriodEnd: newEnd,
+    tenantId,
+    unitId,
+    billingPeriodStart,
+    billingPeriodEnd,
     rentAmount,
-    totalUtilityAmount: newTotalUtilityAmount,
+    totalUtilityAmount,
     dueDate,
     issueDate,
     notes,
-  }
-) {
-  const bill = await Bill.findByPk(billId);
-  if (!bill) throw new Error('Bill not found');
+  } = updateBody;
 
-  return Bill.sequelize.transaction(async (t) => {
-    // 1) Unlink previously linked Expenses outside the new period
-    await Expense.update(
-      { billId: null },
-      {
-        where: {
-          unitId: bill.unitId,
-          billId,
-          expenseDate: { [Op.notBetween]: [newStart, newEnd] },
-        },
-        transaction: t,
-      }
-    );
-
-    // 2) Fetch Expenses now in the updated period
-    const updatedCharges = await Expense.findAll({
-      where: {
-        unitId: newUnitId,
-        billId: { [Op.or]: [billId, null] },
-        expenseDate: { [Op.between]: [newStart, newEnd] },
-      },
-      include: [
-        {
-          model: ExpenseCategory,
-          as: 'category',
-          where: { type: 'tenant_chargeable' },
-          attributes: [],
-        },
-      ],
-      transaction: t,
-    });
-
-    // 3) Sum their amounts
-    const newOtherChargesAmount = updatedCharges.reduce((sum, ch) => sum + parseFloat(ch.amount), 0);
-
-    // 4) Compute new totalAmount
-    const newTotalAmount =
-      (rentAmount !== undefined ? parseFloat(rentAmount) : bill.rentAmount) + newTotalUtilityAmount + newOtherChargesAmount;
-
-    // 5) Update Bill fields
-    await bill.update(
-      {
-        tenantId,
-        unitId: newUnitId,
-        accountId,
-        billingPeriodStart: newStart,
-        billingPeriodEnd: newEnd,
-        rentAmount: rentAmount !== undefined ? rentAmount : bill.rentAmount,
-        totalUtilityAmount: newTotalUtilityAmount,
-        otherChargesAmount: newOtherChargesAmount,
-        totalAmount: newTotalAmount,
-        dueDate,
-        issueDate,
-        notes,
-      },
-      { transaction: t }
-    );
-
-    // 6) Link the fetched Expenses to this Bill
-    const toLink = updatedCharges.filter((e) => e.billId !== billId).map((e) => e.id);
-    if (toLink.length) {
-      await Expense.update({ billId }, { where: { id: toLink }, transaction: t });
+  // Validate foreign keys if provided
+  if (accountId && accountId !== bill.accountId) {
+    const account = await Account.findByPk(accountId);
+    if (!account) {
+      throw new ApiError(httpStatus.NOT_FOUND, `Account not found for ID: ${accountId}`);
     }
+  }
 
-    return bill;
+  if (tenantId && tenantId !== bill.tenantId) {
+    const tenant = await Tenant.findByPk(tenantId);
+    if (!tenant) {
+      throw new ApiError(httpStatus.NOT_FOUND, `Tenant not found for ID: ${tenantId}`);
+    }
+  }
+
+  if (unitId && unitId !== bill.unitId) {
+    const unit = await Unit.findByPk(unitId);
+    if (!unit) {
+      throw new ApiError(httpStatus.NOT_FOUND, `Unit not found for ID: ${unitId}`);
+    }
+  }
+
+  // Validate billing period if both start and end are provided
+  if (
+    billingPeriodStart !== undefined &&
+    billingPeriodEnd !== undefined &&
+    new Date(billingPeriodStart) > new Date(billingPeriodEnd)
+  ) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Billing period start must be before or equal to billing period end');
+  }
+
+  // Perform the update
+  await bill.update({
+    accountId: accountId !== undefined ? accountId : bill.accountId,
+    tenantId: tenantId !== undefined ? tenantId : bill.tenantId,
+    unitId: unitId !== undefined ? unitId : bill.unitId,
+    billingPeriodStart: billingPeriodStart !== undefined ? billingPeriodStart : bill.billingPeriodStart,
+    billingPeriodEnd: billingPeriodEnd !== undefined ? billingPeriodEnd : bill.billingPeriodEnd,
+    rentAmount: rentAmount !== undefined ? parseFloat(rentAmount) : bill.rentAmount,
+    totalUtilityAmount: totalUtilityAmount !== undefined ? parseFloat(totalUtilityAmount) : bill.totalUtilityAmount,
+    dueDate: dueDate !== undefined ? dueDate : bill.dueDate,
+    issueDate: issueDate !== undefined ? issueDate : bill.issueDate,
+    notes: notes !== undefined ? notes : bill.notes,
   });
-}
+
+  return bill;
+};
 
 /**
- * Retrieve a Bill by its primary key.
+ * Soft delete a bill by ID
+ * @param {string} id - Bill UUID
+ * @returns {Promise<void>}
  */
-async function getBillById(billId) {
-  return Bill.findByPk(billId);
-}
+const deleteBill = async (id) => {
+  const bill = await getBillById(id);
+  if (bill.isDeleted) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Bill is already deleted');
+  }
+  await bill.update({ isDeleted: true });
+};
 
 /**
- * List all Bills (with optional filters).
+ * Hard delete a bill by ID
+ * @param {string} id - Bill UUID
+ * @returns {Promise<void>}
  */
-async function listBills(filter = {}) {
-  return Bill.findAll({ where: filter });
-}
-
-/**
- * Soft-delete a Bill by setting isDeleted flag.
- */
-async function deleteBill(billId) {
-  return Bill.update({ isDeleted: true }, { where: { id: billId } });
-}
+const hardDeleteBill = async (id) => {
+  const bill = await getBillById(id);
+  await bill.destroy();
+};
 
 module.exports = {
   createBill,
-  updateBill,
+  getAllBills,
   getBillById,
-  listBills,
+  updateBill,
   deleteBill,
+  hardDeleteBill,
 };
