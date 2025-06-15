@@ -37,6 +37,7 @@ const createTenant = async (tenantBody) => {
       {
         firstName: tenantBody.firstName,
         lastName: tenantBody.lastName,
+        name: `${tenantBody.firstName} ${tenantBody.lastName}`,
         email: tenantBody.email,
         phoneNumber: tenantBody.phoneNumber,
         emergencyContactName: tenantBody.emergencyContactName,

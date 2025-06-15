@@ -20,11 +20,9 @@ module.exports = (sequelize, DataTypes) => {
         comment: "Tenant's last name",
       },
       name: {
-        // Add a virtual field for full name (derived, not stored)
         type: DataTypes.STRING(200),
-        get() {
-          return `${this.firstName || ''} ${this.lastName || ''}`.trim();
-        },
+        allowNull: false,
+        comment: "Tenant's full name",
       },
       email: {
         type: DataTypes.STRING(255),
