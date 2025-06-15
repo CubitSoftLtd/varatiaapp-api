@@ -75,6 +75,10 @@ const createBill = async (billBody) => {
     }
   }
 
+  // Calculate totalAmount
+  const otherChargesAmount = 0.0; // Default to 0 as per model
+  const totalAmount = parseFloat(rentAmount) + parseFloat(calculatedTotalUtilityAmount) + parseFloat(otherChargesAmount);
+
   // Create bill in a transaction
   const bill = await Bill.sequelize.transaction(async (t) => {
     return Bill.create(
@@ -86,10 +90,12 @@ const createBill = async (billBody) => {
         billingPeriodEnd,
         rentAmount: parseFloat(rentAmount),
         totalUtilityAmount: parseFloat(calculatedTotalUtilityAmount),
-        dueDate,
-        issueDate: issueDate || new Date(), // Default to current date (June 15, 2025, 03:38 PM +06)
-        paymentStatus: 'unpaid',
+        otherChargesAmount,
+        totalAmount, // Explicitly set totalAmount
         amountPaid: 0.0,
+        dueDate,
+        issueDate: issueDate || new Date(), // Default to current date (June 15, 2025, 03:49 PM +06)
+        paymentStatus: 'unpaid',
         notes: notes || null,
         isDeleted: false,
       },
@@ -226,6 +232,11 @@ const updateBill = async (id, updateBody) => {
     }
   }
 
+  // Calculate totalAmount
+  const { otherChargesAmount } = bill; // Retain existing value unless updated
+  const totalAmount =
+    parseFloat(rentAmount || bill.rentAmount) + parseFloat(calculatedTotalUtilityAmount) + parseFloat(otherChargesAmount);
+
   await bill.update({
     accountId: accountId !== undefined ? accountId : bill.accountId,
     tenantId: tenantId !== undefined ? tenantId : bill.tenantId,
@@ -234,6 +245,8 @@ const updateBill = async (id, updateBody) => {
     billingPeriodEnd: billingPeriodEnd !== undefined ? billingPeriodEnd : bill.billingPeriodEnd,
     rentAmount: rentAmount !== undefined ? parseFloat(rentAmount) : bill.rentAmount,
     totalUtilityAmount: totalUtilityAmount !== undefined ? parseFloat(totalUtilityAmount) : calculatedTotalUtilityAmount,
+    otherChargesAmount: bill.otherChargesAmount, // Keep as is unless updated (add if needed in updateBody)
+    totalAmount, // Explicitly set totalAmount
     dueDate: dueDate !== undefined ? dueDate : bill.dueDate,
     issueDate: issueDate !== undefined ? issueDate : bill.issueDate,
     notes: notes !== undefined ? notes : bill.notes,

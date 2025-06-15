@@ -144,14 +144,5 @@ module.exports = (sequelize) => {
     Bill.hasMany(models.Expense, { foreignKey: 'billId', as: 'expenses', onDelete: 'SET NULL', onUpdate: 'CASCADE' });
   };
 
-  const calculateTotal = (bill) => {
-    // eslint-disable-next-line no-param-reassign
-    bill.totalAmount =
-      parseFloat(bill.rentAmount || 0) + parseFloat(bill.totalUtilityAmount || 0) + parseFloat(bill.otherChargesAmount || 0);
-  };
-
-  Bill.beforeCreate(calculateTotal);
-  Bill.beforeUpdate(calculateTotal);
-
   return Bill;
 };
