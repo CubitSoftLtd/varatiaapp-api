@@ -73,8 +73,7 @@ const createBill = {
       }
       if (!value.issueDate) {
         /* eslint-disable no-param-reassign */
-        // Set issueDate to current date if not provided
-        value.issueDate = new Date(); // Default to current date if not provided
+        value.issueDate = new Date(); // Default to current date (June 15, 2025, 12:28 PM +06)
       }
       return value;
     })

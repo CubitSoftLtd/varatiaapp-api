@@ -1,10 +1,45 @@
 const httpStatus = require('http-status');
-const { Bill, Account, Unit, Tenant } = require('../models');
+const { Op } = require('sequelize');
+const { Bill, Account, Unit, Tenant, Meter, MeterReading } = require('../models');
 const ApiError = require('../utils/ApiError');
 
 /**
+ * Helper function to calculate total utility amount based on meter readings
+ * @param {string} unitId - Unit ID
+ * @param {Date} startDate - Start of billing period
+ * @param {Date} endDate - End of billing period
+ * @returns {Promise<number>}
+ */
+async function calculateTotalUtilityAmount(unitId, startDate, endDate) {
+  const meters = await Meter.findAll({ where: { unitId } });
+  const total = (
+    await Promise.all(
+      meters.map(async (meter) => {
+        const readings = await MeterReading.findAll({
+          where: {
+            meterId: meter.id,
+            readingDate: { [Op.between]: [startDate, endDate] },
+          },
+          order: [['readingDate', 'ASC']],
+        });
+
+        if (readings.length >= 2) {
+          const startReading = readings[0].readingValue;
+          const endReading = readings[readings.length - 1].readingValue;
+          const consumption = endReading - startReading;
+          return consumption * meter.unitRate; // Assumes unitRate is defined in Meter model
+        }
+        return 0; // Return 0 if fewer than 2 readings
+      })
+    )
+  ).reduce((sum, value) => sum + value, 0);
+
+  return total;
+}
+
+/**
  * Create a new bill with validation and transaction
- * @param {Object} billBody - { accountId, tenantId, unitId, billingPeriodStart, billingPeriodEnd, rentAmount, totalUtilityAmount, dueDate, issueDate?, notes? }
+ * @param {Object} billBody - { accountId, tenantId, unitId, billingPeriodStart, billingPeriodEnd, rentAmount, totalUtilityAmount?, dueDate, issueDate?, notes? }
  * @returns {Promise<Bill>}
  */
 const createBill = async (billBody) => {
@@ -22,19 +57,10 @@ const createBill = async (billBody) => {
   } = billBody;
 
   // Validate required fields
-  if (
-    !accountId ||
-    !tenantId ||
-    !unitId ||
-    !billingPeriodStart ||
-    !billingPeriodEnd ||
-    !rentAmount ||
-    !totalUtilityAmount ||
-    !dueDate
-  ) {
+  if (!accountId || !tenantId || !unitId || !billingPeriodStart || !billingPeriodEnd || !rentAmount || !dueDate) {
     throw new ApiError(
       httpStatus.BAD_REQUEST,
-      'Account ID, tenant ID, unit ID, billing period start, billing period end, rent amount, total utility amount, and due date are required'
+      'Account ID, tenant ID, unit ID, billing period start, billing period end, rent amount, and due date are required'
     );
   }
 
@@ -59,6 +85,15 @@ const createBill = async (billBody) => {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Billing period start must be before or equal to billing period end');
   }
 
+  // Calculate totalUtilityAmount if not provided
+  let calculatedTotalUtilityAmount = totalUtilityAmount || 0;
+  if (!totalUtilityAmount) {
+    const meters = await Meter.findAll({ where: { unitId } });
+    if (meters.length > 0) {
+      calculatedTotalUtilityAmount = await calculateTotalUtilityAmount(unitId, billingPeriodStart, billingPeriodEnd);
+    }
+  }
+
   // Create bill in a transaction
   const bill = await Bill.sequelize.transaction(async (t) => {
     return Bill.create(
@@ -69,9 +104,9 @@ const createBill = async (billBody) => {
         billingPeriodStart,
         billingPeriodEnd,
         rentAmount: parseFloat(rentAmount),
-        totalUtilityAmount: parseFloat(totalUtilityAmount),
+        totalUtilityAmount: parseFloat(calculatedTotalUtilityAmount),
         dueDate,
-        issueDate: issueDate || new Date(),
+        issueDate: issueDate || new Date(), // Default to current date (June 15, 2025, 12:27 PM +06)
         paymentStatus: 'unpaid',
         amountPaid: 0.0,
         notes: notes || null,
@@ -101,7 +136,6 @@ const getAllBills = async (filter, options) => {
     sort.push([field, order.toUpperCase() === 'DESC' ? 'DESC' : 'ASC']);
   }
 
-  // Use provided include or default to empty array
   const include = options.include || [];
 
   const { count, rows } = await Bill.findAndCountAll({
@@ -179,16 +213,23 @@ const updateBill = async (id, updateBody) => {
     }
   }
 
-  // Validate billing period if both start and end are provided
-  if (
-    billingPeriodStart !== undefined &&
-    billingPeriodEnd !== undefined &&
-    new Date(billingPeriodStart) > new Date(billingPeriodEnd)
-  ) {
+  if (billingPeriodStart && billingPeriodEnd && new Date(billingPeriodStart) > new Date(billingPeriodEnd)) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Billing period start must be before or equal to billing period end');
   }
 
-  // Perform the update
+  // Recalculate totalUtilityAmount if billing period changes
+  let calculatedTotalUtilityAmount = totalUtilityAmount || bill.totalUtilityAmount;
+  if (
+    (billingPeriodStart || billingPeriodEnd) &&
+    (billingPeriodStart !== bill.billingPeriodStart || billingPeriodEnd !== bill.billingPeriodEnd)
+  ) {
+    calculatedTotalUtilityAmount = await calculateTotalUtilityAmount(
+      bill.unitId,
+      billingPeriodStart || bill.billingPeriodStart,
+      billingPeriodEnd || bill.billingPeriodEnd
+    );
+  }
+
   await bill.update({
     accountId: accountId !== undefined ? accountId : bill.accountId,
     tenantId: tenantId !== undefined ? tenantId : bill.tenantId,
@@ -196,7 +237,7 @@ const updateBill = async (id, updateBody) => {
     billingPeriodStart: billingPeriodStart !== undefined ? billingPeriodStart : bill.billingPeriodStart,
     billingPeriodEnd: billingPeriodEnd !== undefined ? billingPeriodEnd : bill.billingPeriodEnd,
     rentAmount: rentAmount !== undefined ? parseFloat(rentAmount) : bill.rentAmount,
-    totalUtilityAmount: totalUtilityAmount !== undefined ? parseFloat(totalUtilityAmount) : bill.totalUtilityAmount,
+    totalUtilityAmount: totalUtilityAmount !== undefined ? parseFloat(totalUtilityAmount) : calculatedTotalUtilityAmount,
     dueDate: dueDate !== undefined ? dueDate : bill.dueDate,
     issueDate: issueDate !== undefined ? issueDate : bill.issueDate,
     notes: notes !== undefined ? notes : bill.notes,

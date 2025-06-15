@@ -21,7 +21,7 @@ const router = express.Router();
  *     summary: Create a new bill
  *     description: |
  *       Only admins can create new bills.
- *       Last updated: June 11, 2025, 12:24 PM +06.
+ *       Last updated: June 15, 2025, 12:28 PM +06.
  *     tags: [Bills]
  *     security:
  *       - bearerAuth: []
@@ -77,7 +77,7 @@ const router = express.Router();
  *               billingPeriodEnd: 2025-06-30
  *               rentAmount: 1000.00
  *               dueDate: 2025-07-05
- *               issueDate: 2025-06-01
+ *               issueDate: 2025-06-15
  *               notes: Monthly rent and utilities
  *     responses:
  *       "201":
@@ -97,7 +97,7 @@ const router = express.Router();
  *     summary: Get all bills
  *     description: |
  *       Only admins can retrieve all bills.
- *       Last updated: June 11, 2025, 12:24 PM +06.
+ *       Last updated: June 15, 2025, 12:28 PM +06.
  *     tags: [Bills]
  *     security:
  *       - bearerAuth: []
@@ -205,7 +205,7 @@ const router = express.Router();
  *     summary: Get a bill by ID
  *     description: |
  *       Only admins can fetch bills.
- *       Last updated: June 11, 2025, 12:24 PM +06.
+ *       Last updated: June 15, 2025, 12:28 PM +06.
  *     tags: [Bills]
  *     security:
  *       - bearerAuth: []
@@ -239,8 +239,8 @@ const router = express.Router();
  *   patch:
  *     summary: Update a bill by ID
  *     description: |
- *       Only admins can update bills. Total amount, amount paid, and payment status are calculated automatically.
- *       Last updated: June 11, 2025, 12:24 PM +06.
+ *       Only admins can update bills. Total utility amount is recalculated if billing period changes.
+ *       Last updated: June 15, 2025, 12:28 PM +06.
  *     tags: [Bills]
  *     security:
  *       - bearerAuth: []
@@ -297,7 +297,7 @@ const router = express.Router();
  *             example:
  *               rentAmount: 1100.00
  *               dueDate: 2025-07-10
- *               notes: Updated rent amount
+ *               notes: Updated rent and utility amounts
  *     responses:
  *       "200":
  *         description: OK
@@ -318,7 +318,7 @@ const router = express.Router();
  *     summary: Soft delete a bill by ID
  *     description: |
  *       Marks the bill as deleted. Only admins can soft delete bills.
- *       Last updated: June 11, 2025, 12:24 PM +06.
+ *       Last updated: June 15, 2025, 12:28 PM +06.
  *     tags: [Bills]
  *     security:
  *       - bearerAuth: []
@@ -345,7 +345,7 @@ const router = express.Router();
  *     summary: Hard delete a bill by ID
  *     description: |
  *       Permanently deletes the bill. Only admins can perform a hard delete.
- *       Last updated: June 11, 2025, 12:24 PM +06.
+ *       Last updated: June 15, 2025, 12:28 PM +06.
  *     tags: [Bills]
  *     security:
  *       - bearerAuth: []
