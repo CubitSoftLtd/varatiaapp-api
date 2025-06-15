@@ -29,15 +29,14 @@ const validateRelatedEntities = async (meterId, submeterId, enteredByUserId) => 
 
 /**
  * Checks for existing meter reading duplicates based on provided criteria.
- * @param {Object} params - { readingDate, meterId, submeterId, readingTime, excludeId }
+ * @param {Object} params - { readingDate, meterId, submeterId, excludeId }
  * @param {string} params.readingDate - Reading date
  * @param {string} [params.meterId] - Meter UUID
  * @param {string} [params.submeterId] - Submeter UUID
- * @param {string} [params.readingTime] - Optional reading time
  * @param {string} [params.excludeId] - Optional ID to exclude from check
  * @returns {Promise<boolean>} True if a duplicate exists, false otherwise.
  */
-const checkDuplicateReading = async ({ readingDate, meterId, submeterId, readingTime, excludeId = null }) => {
+const checkDuplicateReading = async ({ readingDate, meterId, submeterId, excludeId = null }) => {
   const whereClause = {
     readingDate,
     isDeleted: false,
@@ -52,7 +51,6 @@ const checkDuplicateReading = async ({ readingDate, meterId, submeterId, reading
     whereClause.submeterId = null;
   }
 
-  if (readingTime) whereClause.readingTime = readingTime;
   if (excludeId) whereClause.id = { [Op.ne]: excludeId };
 
   const existingReading = await MeterReading.findOne({ where: whereClause });
@@ -61,12 +59,11 @@ const checkDuplicateReading = async ({ readingDate, meterId, submeterId, reading
 
 /**
  * Create a meter reading with validation, transaction, and consumption calculation
- * @param {Object} meterReadingBody - { accountId, meterId, submeterId?, readingValue, readingDate, readingTime?, enteredByUserId?, consumption? }
+ * @param {Object} meterReadingBody - { accountId, meterId, submeterId?, readingValue, readingDate, enteredByUserId?, consumption? }
  * @returns {Promise<MeterReading>}
  */
 const createMeterReading = async (meterReadingBody) => {
-  const { accountId, meterId, submeterId, readingValue, readingDate, readingTime, enteredByUserId, consumption } =
-    meterReadingBody;
+  const { accountId, meterId, submeterId, readingValue, readingDate, enteredByUserId, consumption } = meterReadingBody;
 
   // 1. Basic input validation
   if (!meterId && !submeterId) throw new ApiError(httpStatus.BAD_REQUEST, 'At least meterId must be provided.');
@@ -79,12 +76,9 @@ const createMeterReading = async (meterReadingBody) => {
   await validateRelatedEntities(meterId, submeterId, enteredByUserId);
 
   // 3. Check for duplicate reading
-  const isDuplicate = await checkDuplicateReading({ meterId, submeterId, readingDate, readingTime });
+  const isDuplicate = await checkDuplicateReading({ meterId, submeterId, readingDate });
   if (isDuplicate)
-    throw new ApiError(
-      httpStatus.BAD_REQUEST,
-      `A reading already exists for this meter/submeter on this date${readingTime ? ' and time' : ''}.`
-    );
+    throw new ApiError(httpStatus.BAD_REQUEST, `A reading already exists for this meter/submeter on this date.`);
 
   // 4. Calculate consumption if not provided
   let calculatedConsumption = consumption;
@@ -97,7 +91,6 @@ const createMeterReading = async (meterReadingBody) => {
       where: prevWhereClause,
       order: [
         ['readingDate', 'DESC'],
-        ['readingTime', 'DESC'],
         ['createdAt', 'DESC'],
       ],
     });
@@ -117,7 +110,6 @@ const createMeterReading = async (meterReadingBody) => {
         submeterId: submeterId || null,
         readingValue,
         readingDate,
-        readingTime: readingTime || null,
         consumption: calculatedConsumption,
         enteredByUserId: enteredByUserId || null,
         isDeleted: false,
@@ -173,17 +165,16 @@ const getMeterReadingById = async (id, include = []) => {
 /**
  * Update an existing meter reading by ID
  * @param {string} meterReadingId - Meter reading UUID
- * @param {Object} updateBody - { meterId?, submeterId?, readingValue?, readingDate?, readingTime?, consumption?, enteredByUserId? }
+ * @param {Object} updateBody - { meterId?, submeterId?, readingValue?, readingDate?, consumption?, enteredByUserId? }
  * @returns {Promise<MeterReading>}
  */
 const updateMeterReading = async (meterReadingId, updateBody) => {
   const meterReading = await getMeterReadingById(meterReadingId);
-  const { meterId, submeterId, readingValue, readingDate, readingTime, consumption, enteredByUserId } = updateBody;
+  const { meterId, submeterId, readingValue, readingDate, consumption, enteredByUserId } = updateBody;
 
   const newMeterId = meterId ?? meterReading.meterId;
   const newSubmeterId = submeterId ?? meterReading.submeterId;
   const newReadingDate = readingDate ?? meterReading.readingDate;
-  const newReadingTime = readingTime ?? meterReading.readingTime;
 
   if (!newMeterId && !newSubmeterId) throw new ApiError(httpStatus.BAD_REQUEST, 'At least meterId must be provided.');
   if (newSubmeterId && !newMeterId)
@@ -193,19 +184,15 @@ const updateMeterReading = async (meterReadingId, updateBody) => {
 
   await validateRelatedEntities(meterId, submeterId, enteredByUserId);
 
-  if (readingDate || readingTime || meterId != null || submeterId != null) {
+  if (readingDate || meterId != null || submeterId != null) {
     const isDuplicate = await checkDuplicateReading({
       meterId: newMeterId,
       submeterId: newSubmeterId,
       readingDate: newReadingDate,
-      readingTime: newReadingTime,
       excludeId: meterReadingId,
     });
     if (isDuplicate)
-      throw new ApiError(
-        httpStatus.BAD_REQUEST,
-        `A reading already exists for this meter/submeter on this date${newReadingTime ? ' and time' : ''}.`
-      );
+      throw new ApiError(httpStatus.BAD_REQUEST, `A reading already exists for this meter/submeter on this date.`);
   }
 
   let updatedConsumption = consumption ?? meterReading.consumption;
@@ -218,7 +205,6 @@ const updateMeterReading = async (meterReadingId, updateBody) => {
       where: { ...prevWhereClause, id: { [Op.ne]: meterReadingId } },
       order: [
         ['readingDate', 'DESC'],
-        ['readingTime', 'DESC'],
         ['createdAt', 'DESC'],
       ],
     });
@@ -237,7 +223,6 @@ const updateMeterReading = async (meterReadingId, updateBody) => {
         submeterId: newSubmeterId,
         readingValue: readingValue ?? meterReading.readingValue,
         readingDate: newReadingDate,
-        readingTime: newReadingTime,
         consumption: updatedConsumption,
         enteredByUserId: enteredByUserId ?? meterReading.enteredByUserId,
       },
@@ -297,7 +282,6 @@ const calculateConsumption = async (meterId, submeterId, startDate, endDate) => 
     },
     order: [
       ['readingDate', 'ASC'],
-      ['readingTime', 'ASC'],
       ['createdAt', 'ASC'],
     ],
   });
@@ -313,7 +297,6 @@ const calculateConsumption = async (meterId, submeterId, startDate, endDate) => 
     },
     order: [
       ['readingDate', 'DESC'],
-      ['readingTime', 'DESC'],
       ['createdAt', 'DESC'],
     ],
   });
