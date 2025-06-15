@@ -1,41 +1,7 @@
 const httpStatus = require('http-status');
-const { Op } = require('sequelize');
-const { Bill, Account, Unit, Tenant, Meter, MeterReading } = require('../models');
+const { Bill, Account, Unit, Tenant } = require('../models');
 const ApiError = require('../utils/ApiError');
-
-/**
- * Helper function to calculate total utility amount based on meter readings
- * @param {string} unitId - Unit ID
- * @param {Date} startDate - Start of billing period
- * @param {Date} endDate - End of billing period
- * @returns {Promise<number>}
- */
-async function calculateTotalUtilityAmount(unitId, startDate, endDate) {
-  const meters = await Meter.findAll({ where: { unitId } });
-  const total = (
-    await Promise.all(
-      meters.map(async (meter) => {
-        const readings = await MeterReading.findAll({
-          where: {
-            meterId: meter.id,
-            readingDate: { [Op.between]: [startDate, endDate] },
-          },
-          order: [['readingDate', 'ASC']],
-        });
-
-        if (readings.length >= 2) {
-          const startReading = readings[0].readingValue;
-          const endReading = readings[readings.length - 1].readingValue;
-          const consumption = endReading - startReading;
-          return consumption * meter.unitRate; // Assumes unitRate is defined in Meter model
-        }
-        return 0; // Return 0 if fewer than 2 readings
-      })
-    )
-  ).reduce((sum, value) => sum + value, 0);
-
-  return total;
-}
+const meterReadingService = require('./meterReading.service');
 
 /**
  * Create a new bill with validation and transaction
@@ -88,9 +54,28 @@ const createBill = async (billBody) => {
   // Calculate totalUtilityAmount if not provided
   let calculatedTotalUtilityAmount = totalUtilityAmount || 0;
   if (!totalUtilityAmount) {
-    const meters = await Meter.findAll({ where: { unitId } });
-    if (meters.length > 0) {
-      calculatedTotalUtilityAmount = await calculateTotalUtilityAmount(unitId, billingPeriodStart, billingPeriodEnd);
+    const meter = await unit.getMeter(); // Assuming Unit has a getMeter association for a single meter
+    const submeter = await unit.getSubmeter(); // Assuming Unit has a getSubmeter association for a single submeter
+
+    if (meter) {
+      const consumption = await meterReadingService.calculateConsumption(
+        meter.id,
+        null,
+        billingPeriodStart,
+        billingPeriodEnd
+      );
+      calculatedTotalUtilityAmount += consumption * (meter.unitRate || 1); // Default unitRate to 1 if undefined
+    } else if (submeter) {
+      const associatedMeter = await submeter.getMeter(); // Assuming Submeter has a getMeter association
+      const consumption = await meterReadingService.calculateConsumption(
+        associatedMeter.id,
+        submeter.id,
+        billingPeriodStart,
+        billingPeriodEnd
+      );
+      calculatedTotalUtilityAmount += consumption * (submeter.unitRate || 1); // Default unitRate to 1 if undefined
+    } else {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'Unit must have a meter or submeter associated.');
     }
   }
 
@@ -106,7 +91,7 @@ const createBill = async (billBody) => {
         rentAmount: parseFloat(rentAmount),
         totalUtilityAmount: parseFloat(calculatedTotalUtilityAmount),
         dueDate,
-        issueDate: issueDate || new Date(), // Default to current date (June 15, 2025, 12:27 PM +06)
+        issueDate: issueDate || new Date(), // Default to current date (June 15, 2025, 1:04 PM +06)
         paymentStatus: 'unpaid',
         amountPaid: 0.0,
         notes: notes || null,
@@ -223,11 +208,31 @@ const updateBill = async (id, updateBody) => {
     (billingPeriodStart || billingPeriodEnd) &&
     (billingPeriodStart !== bill.billingPeriodStart || billingPeriodEnd !== bill.billingPeriodEnd)
   ) {
-    calculatedTotalUtilityAmount = await calculateTotalUtilityAmount(
-      bill.unitId,
-      billingPeriodStart || bill.billingPeriodStart,
-      billingPeriodEnd || bill.billingPeriodEnd
-    );
+    const unit = await Unit.findByPk(bill.unitId);
+    const meter = await unit.getMeter(); // Assuming Unit has a getMeter association
+    const submeter = await unit.getSubmeter(); // Assuming Unit has a getSubmeter association
+
+    calculatedTotalUtilityAmount = 0;
+    if (meter) {
+      const consumption = await meterReadingService.calculateConsumption(
+        meter.id,
+        null,
+        billingPeriodStart || bill.billingPeriodStart,
+        billingPeriodEnd || bill.billingPeriodEnd
+      );
+      calculatedTotalUtilityAmount += consumption * (meter.unitRate || 1); // Default unitRate to 1 if undefined
+    } else if (submeter) {
+      const associatedMeter = await submeter.getMeter(); // Assuming Submeter has a getMeter association
+      const consumption = await meterReadingService.calculateConsumption(
+        associatedMeter.id,
+        submeter.id,
+        billingPeriodStart || bill.billingPeriodStart,
+        billingPeriodEnd || bill.billingPeriodEnd
+      );
+      calculatedTotalUtilityAmount += consumption * (submeter.unitRate || 1); // Default unitRate to 1 if undefined
+    } else {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'Unit must have a meter or submeter associated.');
+    }
   }
 
   await bill.update({
