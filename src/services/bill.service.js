@@ -54,20 +54,16 @@ const createBill = async (billBody) => {
   // Calculate totalUtilityAmount if not provided
   let calculatedTotalUtilityAmount = totalUtilityAmount || 0;
   if (!totalUtilityAmount) {
-    const meter = await unit.getMeter(); // Assuming Unit has a getMeter association for a single meter
-    const submeter = await unit.getSubmeter(); // Assuming Unit has a getSubmeter association for a single submeter
+    const submeters = await unit.getSubmeters(); // Get all submeters associated with the unit
+    let consumption = 0;
 
-    if (meter) {
-      const consumption = await meterReadingService.calculateConsumption(
-        meter.id,
-        null,
-        billingPeriodStart,
-        billingPeriodEnd
-      );
-      calculatedTotalUtilityAmount += consumption * (meter.unitRate || 1); // Default unitRate to 1 if undefined
-    } else if (submeter) {
+    if (submeters && submeters.length > 0) {
+      const submeter = submeters[0]; // Use the first submeter (adjust logic if multiple submeters need handling)
       const associatedMeter = await submeter.getMeter(); // Assuming Submeter has a getMeter association
-      const consumption = await meterReadingService.calculateConsumption(
+      if (!associatedMeter) {
+        throw new ApiError(httpStatus.BAD_REQUEST, 'Submeter must be associated with a meter');
+      }
+      consumption = await meterReadingService.calculateConsumption(
         associatedMeter.id,
         submeter.id,
         billingPeriodStart,
@@ -75,7 +71,7 @@ const createBill = async (billBody) => {
       );
       calculatedTotalUtilityAmount += consumption * (submeter.unitRate || 1); // Default unitRate to 1 if undefined
     } else {
-      throw new ApiError(httpStatus.BAD_REQUEST, 'Unit must have a meter or submeter associated.');
+      throw new ApiError(httpStatus.BAD_REQUEST, 'Unit must have at least one submeter associated for utility calculation');
     }
   }
 
@@ -91,7 +87,7 @@ const createBill = async (billBody) => {
         rentAmount: parseFloat(rentAmount),
         totalUtilityAmount: parseFloat(calculatedTotalUtilityAmount),
         dueDate,
-        issueDate: issueDate || new Date(), // Default to current date (June 15, 2025, 1:04 PM +06)
+        issueDate: issueDate || new Date(), // Default to current date (June 15, 2025, 03:38 PM +06)
         paymentStatus: 'unpaid',
         amountPaid: 0.0,
         notes: notes || null,
@@ -209,29 +205,24 @@ const updateBill = async (id, updateBody) => {
     (billingPeriodStart !== bill.billingPeriodStart || billingPeriodEnd !== bill.billingPeriodEnd)
   ) {
     const unit = await Unit.findByPk(bill.unitId);
-    const meter = await unit.getMeter(); // Assuming Unit has a getMeter association
-    const submeter = await unit.getSubmeter(); // Assuming Unit has a getSubmeter association
+    const submeters = await unit.getSubmeters(); // Get all submeters associated with the unit
+    let consumption = 0;
 
-    calculatedTotalUtilityAmount = 0;
-    if (meter) {
-      const consumption = await meterReadingService.calculateConsumption(
-        meter.id,
-        null,
-        billingPeriodStart || bill.billingPeriodStart,
-        billingPeriodEnd || bill.billingPeriodEnd
-      );
-      calculatedTotalUtilityAmount += consumption * (meter.unitRate || 1); // Default unitRate to 1 if undefined
-    } else if (submeter) {
+    if (submeters && submeters.length > 0) {
+      const submeter = submeters[0]; // Use the first submeter
       const associatedMeter = await submeter.getMeter(); // Assuming Submeter has a getMeter association
-      const consumption = await meterReadingService.calculateConsumption(
+      if (!associatedMeter) {
+        throw new ApiError(httpStatus.BAD_REQUEST, 'Submeter must be associated with a meter');
+      }
+      consumption = await meterReadingService.calculateConsumption(
         associatedMeter.id,
         submeter.id,
         billingPeriodStart || bill.billingPeriodStart,
         billingPeriodEnd || bill.billingPeriodEnd
       );
-      calculatedTotalUtilityAmount += consumption * (submeter.unitRate || 1); // Default unitRate to 1 if undefined
+      calculatedTotalUtilityAmount = consumption * (submeter.unitRate || 1); // Default unitRate to 1 if undefined
     } else {
-      throw new ApiError(httpStatus.BAD_REQUEST, 'Unit must have a meter or submeter associated.');
+      throw new ApiError(httpStatus.BAD_REQUEST, 'Unit must have at least one submeter associated for utility calculation');
     }
   }
 
