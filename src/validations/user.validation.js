@@ -62,20 +62,6 @@ const createUser = {
         'string.empty': 'Role is required',
         'any.only': `Role must be one of: ${Object.values(roles).join(', ')}`,
       }),
-    accountId: Joi.when('role', {
-      is: roles.SUPER_ADMIN,
-      then: Joi.forbidden().messages({
-        'any.unknown': 'Account ID must not be provided for super_admin role',
-      }),
-      otherwise: Joi.string()
-        .uuid({ version: ['uuidv4'] })
-        .required()
-        .messages({
-          'string.base': 'Account ID must be a string',
-          'string.empty': 'Account ID is required for non-super_admin roles',
-          'string.uuid': 'Account ID must be a valid UUID v4',
-        }),
-    }),
     phoneNumber: Joi.string().trim().max(50).allow(null).messages({
       'string.base': 'Phone number must be a string',
       'string.max': 'Phone number cannot exceed 50 characters',
@@ -149,18 +135,7 @@ const updateUser = {
           'string.base': 'Role must be a string',
           'any.only': `Role must be one of: ${Object.values(roles).join(', ')}`,
         }),
-      accountId: Joi.when('role', {
-        is: roles.SUPER_ADMIN,
-        then: Joi.allow(null).messages({
-          'any.only': 'Account ID must be null for super_admin role',
-        }),
-        otherwise: Joi.string()
-          .uuid({ version: ['uuidv4'] })
-          .messages({
-            'string.base': 'Account ID must be a string',
-            'string.uuid': 'Account ID must be a valid UUID v4',
-          }),
-      }),
+
       phoneNumber: Joi.string().trim().max(50).allow(null).messages({
         'string.base': 'Phone number must be a string',
         'string.max': 'Phone number cannot exceed 50 characters',
