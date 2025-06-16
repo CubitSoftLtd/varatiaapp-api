@@ -64,12 +64,12 @@ const createPayment = catchAsync(async (req, res) => {
 });
 
 const getPayments = catchAsync(async (req, res) => {
-  const filter = pick(req.query.filterBy, ['billId', 'tenantId', 'accountId', 'paymentDate', 'paymentMethod']);
+  const filter = pick(req.query, ['billId', 'tenantId', 'accountId', 'paymentDate', 'paymentMethod']);
   const options = pick(req.query, ['sortBy', 'limit', 'page']);
   options.include = parseInclude(req.query.include);
 
   if (req.user.role !== 'super_admin') {
-    filter.accountId = req.user.accountId; // Ensure only properties for the user's account are fetched
+    filter.accountId = req.user.accountId;
   }
 
   const payments = await paymentService.getAllPayments(filter, options);
