@@ -155,7 +155,7 @@ const getUserById = async (id) => {
  * @param {Object} updateBody
  * @returns {Promise<User>}
  */
-const updateUser = async (userId, updateBody) => {
+const updateUserById = async (userId, updateBody) => {
   const user = await getUserById(userId);
 
   // Validate email uniqueness if email is being updated
@@ -195,17 +195,7 @@ const updateUser = async (userId, updateBody) => {
     userData.isActive = user.Account.isActive; // Maintain existing account status if unchanged
   }
 
-  // Set default password if provided and not set
-  if (userData.password === undefined) {
-    userData.password = user.password; // Keep existing password if not updated
-  } else if (!userData.password) {
-    userData.password = DefaultPass;
-  }
-
   const updatedUser = await user.update(userData);
-
-  /* eslint-disable-next-line no-console */
-  console.log(`User Updated: ${updatedUser.name || 'Unknown'} (${updatedUser.email || 'No Email'})`);
 
   return updatedUser;
 };
@@ -215,11 +205,9 @@ const updateUser = async (userId, updateBody) => {
  * @param {string} userId
  * @returns {Promise<void>}
  */
-const deleteUser = async (userId) => {
+const deleteUserById = async (userId) => {
   const user = await getUserById(userId);
   await user.destroy();
-  /* eslint-disable-next-line no-console */
-  console.log(`User Deleted: ${user.name || 'Unknown'} (${user.email || 'No Email'})`);
 };
 
 module.exports = {
@@ -227,6 +215,6 @@ module.exports = {
   queryUsers,
   getUserByEmail,
   getUserById,
-  updateUser,
-  deleteUser,
+  updateUserById,
+  deleteUserById,
 };

@@ -123,12 +123,6 @@ const updateUser = {
         'string.email': 'Email must be a valid email address',
         'string.max': 'Email cannot exceed 255 characters',
       }),
-      password: Joi.string().custom(password).max(255).messages({
-        'string.base': 'Password must be a string',
-        'string.min': 'Password must be at least 8 characters long',
-        'string.max': 'Password cannot exceed 255 characters',
-        'any.custom': 'Password must contain at least one letter and one number',
-      }),
       role: Joi.string()
         .valid(...Object.values(roles))
         .messages({
