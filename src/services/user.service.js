@@ -10,28 +10,26 @@ const DefaultPass = 'Demo#$1234';
  * @returns {Promise<User>}
  */
 const createUser = async (userBody) => {
-  // Validate email uniqueness
   if (await User.isEmailTaken(userBody.email)) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Email already taken');
   }
 
-  // Create a new object to avoid param reassignment
   const userData = { ...userBody };
 
-  // Set default password if not provided
   if (!userData.password) {
     userData.password = DefaultPass;
   }
 
-  // Validate accountId based on role
   if (userData.role === 'super_admin' && userData.accountId) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Super admin should not have an accountId');
   }
-  if ((userData.role === 'admin' || userData.role === 'tenant') && !userData.accountId) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Admin and tenant must have an accountId');
+  if (['account_admin', 'property_manager', 'tenant'].includes(userData.role) && !userData.accountId) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      'Account ID is required for account_admin, property_manager, and tenant roles'
+    );
   }
 
-  // Verify the account exists and is active
   if (userData.accountId) {
     const account = await Account.findByPk(userData.accountId);
     if (!account) {
@@ -40,12 +38,10 @@ const createUser = async (userBody) => {
     if (!account.isActive) {
       throw new ApiError(httpStatus.BAD_REQUEST, 'Cannot create user under an inactive account');
     }
-    // Set user status based on account status
     userData.isActive = account.isActive;
   }
 
   const user = await User.create(userData);
-
   return user;
 };
 
@@ -100,24 +96,23 @@ const getUserByEmail = async (email) => {
     include: [{ model: Account, as: 'account' }],
   });
 
-  if (!user && user.account.isActive === false) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
+  if (!user || (user.accountId && user.Account && !user.Account.isActive)) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'User not found or account is inactive');
   }
 
-  // Sync user status with account status
   if (user.accountId && user.Account && user.isActive !== user.Account.isActive) {
     try {
       await user.update({ isActive: user.Account.isActive });
-      /* eslint-disable */
+      /* eslint-disable-next-line no-console */
       console.log(
         `User ${user.isActive ? 'Activated' : 'Deactivated'} due to Account Status: ${user.name || 'Unknown'} (${
           user.email || 'No Email'
         })`
       );
     } catch (error) {
-      console.error(`Error updating user ${user.id} status: ${error}`);
+      /* eslint-disable-next-line no-console */
+      console.error(`Error updating user ${user.id} status: ${error.message}`);
     }
-    /* eslint-disable */
   }
 
   return user;
@@ -132,24 +127,23 @@ const getUserById = async (id) => {
   const user = await User.findByPk(id, {
     include: [{ model: Account, as: 'account' }],
   });
-  if (!user) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
+  if (!user || (user.accountId && user.Account && !user.Account.isActive)) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'User not found or account is inactive');
   }
 
-  // Sync user status with account status
   if (user.accountId && user.Account && user.isActive !== user.Account.isActive) {
     try {
       await user.update({ isActive: user.Account.isActive });
-      /* eslint-disable no-console */
+      /* eslint-disable-next-line no-console */
       console.log(
         `User ${user.isActive ? 'Activated' : 'Deactivated'} due to Account Status: ${user.name || 'Unknown'} (${
           user.email || 'No Email'
         })`
       );
     } catch (error) {
+      /* eslint-disable-next-line no-console */
       console.error(`Error updating user ${id} status: ${error.message}`);
     }
-    /* eslint-enable no-console */
   }
 
   return user;
@@ -172,18 +166,23 @@ const updateUser = async (userId, updateBody) => {
   // Create a new object to avoid param reassignment
   const userData = { ...updateBody };
 
-  // Validate accountId based on role
-  const newAccountId = userData.accountId !== undefined ? userData.accountId : user.accountId;
+  // Determine new role and accountId, defaulting to existing values if not provided
   const newRole = userData.role || user.role;
+  const newAccountId = userData.accountId !== undefined ? userData.accountId : user.accountId;
+
+  // Validate role and accountId consistency
   if (newRole === 'super_admin' && newAccountId) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Super admin should not have an accountId');
   }
-  if ((newRole === 'admin' || newRole === 'tenant') && !newAccountId) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Admin and tenant must have an accountId');
+  if (['account_admin', 'property_manager', 'tenant'].includes(newRole) && !newAccountId) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      'Account ID is required for account_admin, property_manager, and tenant roles'
+    );
   }
 
-  // Verify the new account exists and is active
-  if (userData.accountId) {
+  // Validate and update accountId if provided
+  if (userData.accountId !== undefined) {
     const account = await Account.findByPk(userData.accountId);
     if (!account) {
       throw new ApiError(httpStatus.NOT_FOUND, 'Account not found');
@@ -191,18 +190,22 @@ const updateUser = async (userId, updateBody) => {
     if (!account.isActive) {
       throw new ApiError(httpStatus.BAD_REQUEST, 'Cannot assign user to an inactive account');
     }
-    userData.isActive = account.isActive;
+    userData.isActive = account.isActive; // Sync isActive with account status
+  } else if (user.accountId && user.Account) {
+    userData.isActive = user.Account.isActive; // Maintain existing account status if unchanged
+  }
+
+  // Set default password if provided and not set
+  if (userData.password === undefined) {
+    userData.password = user.password; // Keep existing password if not updated
+  } else if (!userData.password) {
+    userData.password = DefaultPass;
   }
 
   const updatedUser = await user.update(userData);
 
-  /* eslint-disable no-console */
-  try {
-    console.log(`User Updated: ${updatedUser.name || 'Unknown'} (${updatedUser.email || 'No Email'})`);
-  } catch (error) {
-    console.error(`Error logging user update for ${userId}: ${error.message}`);
-  }
-  /* eslint-enable no-console */
+  /* eslint-disable-next-line no-console */
+  console.log(`User Updated: ${updatedUser.name || 'Unknown'} (${updatedUser.email || 'No Email'})`);
 
   return updatedUser;
 };
@@ -215,14 +218,8 @@ const updateUser = async (userId, updateBody) => {
 const deleteUser = async (userId) => {
   const user = await getUserById(userId);
   await user.destroy();
-
-  /* eslint-disable no-console */
-  try {
-    console.log(`User Deleted: ${user.name || 'Unknown'} (${user.email || 'No Email'})`);
-  } catch (error) {
-    console.error(`Error logging user deletion for ${userId}: ${error.message}`);
-  }
-  /* eslint-enable no-console */
+  /* eslint-disable-next-line no-console */
+  console.log(`User Deleted: ${user.name || 'Unknown'} (${user.email || 'No Email'})`);
 };
 
 module.exports = {
