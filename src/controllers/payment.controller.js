@@ -59,7 +59,7 @@ const parseInclude = (include) => {
 };
 
 const createPayment = catchAsync(async (req, res) => {
-  const payment = await paymentService.createPayment(req.body);
+  const payment = await paymentService.createPayment({ ...req.body, accountId: req.user.accountId });
   res.status(httpStatus.CREATED).json(payment);
 });
 

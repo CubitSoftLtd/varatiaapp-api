@@ -16,14 +16,6 @@ const paymentSchema = {
       'string.base': 'Tenant ID must be a string',
       'string.uuid': 'Tenant ID must be a valid UUID',
     }),
-  accountId: Joi.string()
-    .uuid({ version: ['uuidv4'] })
-    .required()
-    .messages({
-      'string.base': 'Account ID must be a string',
-      'string.empty': 'Account ID is required',
-      'string.uuid': 'Account ID must be a valid UUID',
-    }),
   amountPaid: Joi.number().min(0.01).precision(2).required().messages({
     'number.base': 'Amount paid must be a number',
     'number.min': 'Amount paid must be at least 0.01',
@@ -117,7 +109,7 @@ const getPayment = {
   query: Joi.object().keys({
     include: Joi.string().optional().messages({
       'string.base': 'include must be a string',
-    }), // Added include parameter
+    }),
   }),
 };
 
