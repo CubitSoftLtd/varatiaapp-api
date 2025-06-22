@@ -1,4 +1,5 @@
 const httpStatus = require('http-status');
+const { Op } = require('sequelize'); // <--- ADD THIS LINE: Import Op for date range queries
 const { Bill, Account, Unit, Tenant } = require('../models');
 const ApiError = require('../utils/ApiError');
 const meterReadingService = require('./meterReading.service');
@@ -18,7 +19,7 @@ const createBill = async (billBody) => {
     rentAmount,
     totalUtilityAmount,
     dueDate,
-    issueDate,
+    issueDate, // This will be used to determine the year for sequential numbering
     notes,
   } = billBody;
 
@@ -71,6 +72,9 @@ const createBill = async (billBody) => {
       );
       calculatedTotalUtilityAmount += consumption * (submeter.unitRate || 1); // Default unitRate to 1 if undefined
     } else {
+      // NOTE: Original code threw an error here. Consider if this is the desired behavior
+      // when a unit might not have a submeter but utility calculation isn't needed (e.g., only rent bill).
+      // For now, retaining original behavior.
       throw new ApiError(httpStatus.BAD_REQUEST, 'Unit must have at least one submeter associated for utility calculation');
     }
   }
@@ -79,31 +83,80 @@ const createBill = async (billBody) => {
   const otherChargesAmount = 0.0; // Default to 0 as per model
   const totalAmount = parseFloat(rentAmount) + parseFloat(calculatedTotalUtilityAmount) + parseFloat(otherChargesAmount);
 
-  // Create bill in a transaction
+  // Determine the issue date. Default to current date if not provided.
+  // This date is crucial for determining the year for sequential invoice numbering.
+  const billIssueDate = issueDate ? new Date(issueDate) : new Date();
+  const currentYear = billIssueDate.getFullYear();
+
+  // Define the start and end of the current year for filtering bills
+  // to find the last invoice number for the current account and year.
+  const startOfYear = new Date(currentYear, 0, 1); // January 1st of the current year
+  const endOfYear = new Date(currentYear, 11, 31, 23, 59, 59, 999); // December 31st of the current year (end of day)
+
+  // Create bill in a transaction to ensure atomic operations,
+  // especially for sequential invoice number generation.
   const bill = await Bill.sequelize.transaction(async (t) => {
-    return Bill.create(
-      {
+    // Step 1: Find the last invoice number for the given accountId within the current year.
+    const lastBill = await Bill.findOne({
+      where: {
         accountId,
-        tenantId,
-        unitId,
-        billingPeriodStart,
-        billingPeriodEnd,
-        rentAmount: parseFloat(rentAmount),
-        totalUtilityAmount: parseFloat(calculatedTotalUtilityAmount),
-        otherChargesAmount,
-        totalAmount, // Explicitly set totalAmount
-        amountPaid: 0.0,
-        dueDate,
-        issueDate: issueDate || new Date(), // Default to current date (June 15, 2025, 03:49 PM +06)
-        paymentStatus: 'unpaid',
-        notes: notes || null,
-        isDeleted: false,
+        issueDate: {
+          [Op.between]: [startOfYear, endOfYear], // Filter by the current year
+        },
       },
-      { transaction: t }
-    );
+      order: [['invoiceNo', 'DESC']], // Get the highest invoice number
+      transaction: t, // Ensure this query is part of the same transaction for concurrency safety
+    });
+
+    // Step 2: Determine the next sequential invoice number.
+    // If no bills exist for this account in this year, start with 1.
+    const nextInvoiceNo = lastBill ? lastBill.invoiceNo + 1 : 1;
+
+    try {
+      // Step 3: Create the new bill record.
+      const createdBill = await Bill.create(
+        {
+          accountId,
+          tenantId,
+          unitId,
+          invoiceNo: nextInvoiceNo, // <--- Assign the newly generated sequential invoice number
+          billingPeriodStart,
+          billingPeriodEnd,
+          rentAmount: parseFloat(rentAmount),
+          totalUtilityAmount: parseFloat(calculatedTotalUtilityAmount),
+          otherChargesAmount,
+          totalAmount, // Explicitly set totalAmount
+          amountPaid: 0.0,
+          dueDate,
+          issueDate: billIssueDate, // Use the determined issue date
+          paymentStatus: 'unpaid',
+          notes: notes || null,
+          isDeleted: false,
+        },
+        { transaction: t } // Link the creation to the current transaction
+      );
+
+      // Step 4: Generate the full formatted invoice number for display purposes.
+      // This 'fullInvoiceNumber' is not stored in the database but is added to the
+      // returned object for convenience in the application layer.
+      // Pad the invoice number with leading zeros (e.g., 1 becomes 0001, 15 becomes 0015).
+      const formattedInvoiceNo = String(createdBill.invoiceNo).padStart(4, '0'); // Adjust '4' for desired padding length
+      createdBill.dataValues.fullInvoiceNumber = `INV-${currentYear}-${formattedInvoiceNo}`;
+
+      return createdBill;
+    } catch (error) {
+      if (error.name === 'SequelizeUniqueConstraintError') {
+        throw new ApiError(
+          httpStatus.CONFLICT,
+          'Ensures that there is only one bill per tenant and unit for a specific billing period'
+        );
+      } else {
+        throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'An error occurred while creating the bill');
+      }
+    }
   });
 
-  return bill;
+  return bill; // Return the created bill
 };
 
 /**
@@ -133,6 +186,15 @@ const getAllBills = async (filter, options) => {
     include,
   });
 
+  // Optionally, you might want to format the invoiceNo for all results here as well
+  /* eslint-disable no-param-reassign */
+  rows.forEach((bill) => {
+    const billYear = new Date(bill.issueDate).getFullYear();
+    const formattedInvoiceNo = String(bill.invoiceNo).padStart(4, '0');
+    bill.dataValues.fullInvoiceNumber = `INV-${billYear}-${formattedInvoiceNo}`;
+  });
+  /* eslint-enable no-param-reassign */
+
   return {
     results: rows,
     page,
@@ -153,6 +215,10 @@ const getBillById = async (id, include = []) => {
   if (!bill || bill.isDeleted) {
     throw new ApiError(httpStatus.NOT_FOUND, `Bill not found for ID: ${id}`);
   }
+  // Optionally, format the invoiceNo here too
+  const billYear = new Date(bill.issueDate).getFullYear();
+  const formattedInvoiceNo = String(bill.invoiceNo).padStart(4, '0');
+  bill.dataValues.fullInvoiceNumber = `INV-${billYear}-${formattedInvoiceNo}`;
   return bill;
 };
 
@@ -226,6 +292,7 @@ const updateBill = async (id, updateBody) => {
         billingPeriodStart || bill.billingPeriodStart,
         billingPeriodEnd || bill.billingPeriodEnd
       );
+
       calculatedTotalUtilityAmount = consumption * (submeter.unitRate || 1); // Default unitRate to 1 if undefined
     } else {
       throw new ApiError(httpStatus.BAD_REQUEST, 'Unit must have at least one submeter associated for utility calculation');
@@ -236,6 +303,12 @@ const updateBill = async (id, updateBody) => {
   const { otherChargesAmount } = bill; // Retain existing value unless updated
   const totalAmount =
     parseFloat(rentAmount || bill.rentAmount) + parseFloat(calculatedTotalUtilityAmount) + parseFloat(otherChargesAmount);
+
+  // If issueDate changes, and you're using Option 2 (with an issueYear column),
+  // you would need to update issueYear here as well.
+  // if (issueDate && new Date(issueDate).getFullYear() !== bill.issueYear) {
+  //   updateBody.issueYear = new Date(issueDate).getFullYear();
+  // }
 
   await bill.update({
     accountId: accountId !== undefined ? accountId : bill.accountId,

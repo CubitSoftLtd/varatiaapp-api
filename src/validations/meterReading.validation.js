@@ -7,7 +7,7 @@ const createMeterReading = {
       submeterId: Joi.string().uuid().optional().allow(null), // submeterId is optional
       readingValue: Joi.number().required(),
       readingDate: Joi.date().required(),
-      consumption: Joi.number().required(),
+      consumption: Joi.number(),
     })
     .custom((value, helpers) => {
       // Ensure submeterId is valid only with meterId

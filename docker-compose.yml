@@ -34,7 +34,6 @@ services:
       - '3307:3306'
     volumes:
       - dbdata:/var/lib/mysql
-      - ./seed.sql:/docker-entrypoint-initdb.d/seed.sql
     networks:
       - node-network
     healthcheck:

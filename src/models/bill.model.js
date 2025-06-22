@@ -11,6 +11,11 @@ module.exports = (sequelize) => {
         allowNull: false,
         comment: 'Unique identifier for the bill',
       },
+      invoiceNo: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        comment: 'Unique invoice number for the bill, generated per account',
+      },
       tenantId: {
         type: DataTypes.UUID,
         allowNull: false,
@@ -127,12 +132,17 @@ module.exports = (sequelize) => {
         { fields: ['accountId'] },
         { fields: ['dueDate'] },
         { fields: ['paymentStatus'] },
-      ],
-      uniqueKeys: {
-        unique_bill_per_period: {
-          fields: ['tenantId', 'unitId', 'billingPeriodStart', 'billingPeriodEnd'],
+        {
+          fields: ['accountId', 'issueDate', 'invoiceNo'],
+          name: 'bill_accountId_issueDate_invoiceNo_idx',
         },
-      },
+        {
+          unique: true,
+          fields: ['tenantId', 'unitId', 'billingPeriodStart', 'billingPeriodEnd'],
+          name: 'unique_bill_per_period',
+          comment: 'Ensures that there is only one bill per tenant and unit for a specific billing period',
+        },
+      ],
     }
   );
 
