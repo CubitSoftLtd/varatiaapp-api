@@ -118,15 +118,29 @@ const getAllExpenses = async (filter, options) => {
  * @returns {Promise<Expense>}
  */
 const getExpenseById = async (id, include = []) => {
+  if (include.find((item) => item.model === 'Bill' && !item.attributes.includes('issueDate'))) {
+    /* If the Bill model is included but does not have issueDate, add it to attributes */
+    /* eslint-disable-next-line no-param-reassign */
+    include = include.map((item) => {
+      if (item.model === 'Bill') {
+        return {
+          ...item,
+          attributes: [...(item.attributes || []), 'issueDate'],
+        };
+      }
+      return item;
+    });
+  }
+
   const expense = await Expense.findByPk(id, { include });
   if (!expense || expense.isDeleted) {
     throw new ApiError(httpStatus.NOT_FOUND, `Expense not found for ID: ${id}`);
   }
-
-  if (expense.bill !== null && expense.bill.invoiceNo !== 0) {
-    const billYear = new Date(expense.bill.issueDate).getFullYear();
-    const formattedInvoiceNo = String(expense.bill.invoiceNo).padStart(4, '0');
-    expense.bill.fullInvoiceNumber = `INV-${billYear}-${formattedInvoiceNo}`;
+  // If the expense has a bill, ensure it is included in the result
+  if (expense.bill) {
+    const billYear = new Date(expense.bill.dataValues.issueDate).getFullYear();
+    const formattedInvoiceNo = String(expense.bill.dataValues.invoiceNo).padStart(4, '0');
+    expense.bill.dataValues.fullInvoiceNumber = `INV-${billYear}-${formattedInvoiceNo}`;
   }
 
   return expense;
