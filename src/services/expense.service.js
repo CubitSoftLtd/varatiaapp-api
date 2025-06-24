@@ -85,14 +85,26 @@ const getAllExpenses = async (filter, options) => {
   const page = options.page && parseInt(options.page, 10) > 0 ? parseInt(options.page, 10) : 1;
   const offset = (page - 1) * limit;
 
+  // Sorting
   const sort = [];
   if (options.sortBy) {
-    const [field, order] = filter.sortBy.split(':');
-    sort.push([field, order.toUpperCase() === 'DESC' ? 'DESC' : 'ASC']);
+    const [field, order] = options.sortBy.split(':');
+    sort.push([field, order?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC']);
   }
 
-  // Use provided include or default to empty array
-  const include = options.include || [];
+  // Clone include to avoid mutating options
+  let include = options.include || [];
+  if (include.some((item) => item.model === 'Bill')) {
+    include = include.map((item) => {
+      if (item.model === 'Bill') {
+        return {
+          ...item,
+          attributes: [...(item.attributes || []), 'issueDate', 'invoiceNo'],
+        };
+      }
+      return item;
+    });
+  }
 
   const { count, rows } = await Expense.findAndCountAll({
     where: { ...filter, isDeleted: false },
@@ -102,8 +114,20 @@ const getAllExpenses = async (filter, options) => {
     include,
   });
 
+  const results = rows.map((expense) => {
+    const clonedExpense = expense.toJSON();
+
+    if (clonedExpense.bill?.issueDate && clonedExpense.bill?.invoiceNo !== undefined) {
+      const billYear = new Date(clonedExpense.bill.issueDate).getFullYear();
+      const formattedInvoiceNo = String(clonedExpense.bill.invoiceNo).padStart(4, '0');
+      clonedExpense.bill.invoiceNo = `INV-${billYear}-${formattedInvoiceNo}`;
+    }
+
+    return clonedExpense;
+  });
+
   return {
-    results: rows,
+    results,
     page,
     limit,
     totalPages: Math.ceil(count / limit),
@@ -118,7 +142,7 @@ const getAllExpenses = async (filter, options) => {
  * @returns {Promise<Expense>}
  */
 const getExpenseById = async (id, include = []) => {
-  if (include.find((item) => item.model === 'Bill' && !item.attributes.includes('issueDate'))) {
+  if (include.find((item) => item.model === 'Bill' && !item.attributes.includes('invoiceNo'))) {
     /* If the Bill model is included but does not have issueDate, add it to attributes */
     /* eslint-disable-next-line no-param-reassign */
     include = include.map((item) => {
@@ -140,7 +164,7 @@ const getExpenseById = async (id, include = []) => {
   if (expense.bill) {
     const billYear = new Date(expense.bill.dataValues.issueDate).getFullYear();
     const formattedInvoiceNo = String(expense.bill.dataValues.invoiceNo).padStart(4, '0');
-    expense.bill.dataValues.fullInvoiceNumber = `INV-${billYear}-${formattedInvoiceNo}`;
+    expense.bill.dataValues.invoiceNo = `INV-${billYear}-${formattedInvoiceNo}`;
   }
 
   return expense;
