@@ -53,9 +53,9 @@ const createExpense = async (expenseBody) => {
     throw new ApiError(httpStatus.NOT_FOUND, `Expense category not found for ID: ${categoryId}`);
   }
 
-  // Create expense in a transaction
+  // Create expense and update bill in a transaction
   const expense = await Expense.sequelize.transaction(async (t) => {
-    return Expense.create(
+    const createdExpense = await Expense.create(
       {
         accountId,
         propertyId: propertyId || null,
@@ -69,6 +69,17 @@ const createExpense = async (expenseBody) => {
       },
       { transaction: t }
     );
+
+    // If linked to a bill, update its amounts
+    if (billId) {
+      const bill = await Bill.findByPk(billId, { transaction: t });
+      bill.otherChargesAmount = parseFloat(bill.otherChargesAmount || 0) + parseFloat(amount);
+      bill.totalAmount =
+        parseFloat(bill.rentAmount || 0) + parseFloat(bill.totalUtilityAmount || 0) + parseFloat(bill.otherChargesAmount);
+      await bill.save({ transaction: t });
+    }
+
+    return createdExpense;
   });
 
   return expense;
@@ -231,16 +242,62 @@ const updateExpense = async (id, updateBody) => {
     }
   }
 
-  // Perform the update
-  await expense.update({
-    accountId: accountId !== undefined ? accountId : expense.accountId,
-    propertyId: propertyId !== undefined ? propertyId : expense.propertyId,
-    unitId: unitId !== undefined ? unitId : expense.unitId,
-    billId: billId !== undefined ? billId : expense.billId,
-    categoryId: categoryId !== undefined ? categoryId : expense.categoryId,
-    amount: amount !== undefined ? amount : expense.amount,
-    expenseDate: expenseDate !== undefined ? expenseDate : expense.expenseDate,
-    description: description !== undefined ? description : expense.description,
+  // Store old values for bill updates
+  const oldBillId = expense.billId;
+  const oldAmount = parseFloat(expense.amount);
+
+  // Perform update and adjust bills in a transaction
+  await Expense.sequelize.transaction(async (t) => {
+    await expense.update(
+      {
+        accountId: accountId !== undefined ? accountId : expense.accountId,
+        propertyId: propertyId !== undefined ? propertyId : expense.propertyId,
+        unitId: unitId !== undefined ? unitId : expense.unitId,
+        billId: billId !== undefined ? billId : expense.billId,
+        categoryId: categoryId !== undefined ? categoryId : expense.categoryId,
+        amount: amount !== undefined ? amount : expense.amount,
+        expenseDate: expenseDate !== undefined ? expenseDate : expense.expenseDate,
+        description: description !== undefined ? description : expense.description,
+      },
+      { transaction: t }
+    );
+
+    const newBillId = expense.billId;
+    const newAmount = parseFloat(expense.amount);
+
+    // Case 1: Bill ID changed
+    if (oldBillId && oldBillId !== newBillId) {
+      const oldBill = await Bill.findByPk(oldBillId, { transaction: t });
+      if (oldBill) {
+        oldBill.otherChargesAmount = parseFloat(oldBill.otherChargesAmount || 0) - oldAmount;
+        oldBill.totalAmount =
+          parseFloat(oldBill.rentAmount || 0) +
+          parseFloat(oldBill.totalUtilityAmount || 0) +
+          parseFloat(oldBill.otherChargesAmount);
+        await oldBill.save({ transaction: t });
+      }
+    }
+    if (newBillId) {
+      const newBill = await Bill.findByPk(newBillId, { transaction: t });
+      if (newBill) {
+        newBill.otherChargesAmount = parseFloat(newBill.otherChargesAmount || 0) + newAmount;
+        newBill.totalAmount =
+          parseFloat(newBill.rentAmount || 0) +
+          parseFloat(newBill.totalUtilityAmount || 0) +
+          parseFloat(newBill.otherChargesAmount);
+        await newBill.save({ transaction: t });
+      }
+    }
+    // Case 2: Bill ID unchanged, but amount changed
+    else if (oldBillId === newBillId && oldAmount !== newAmount && newBillId) {
+      const bill = await Bill.findByPk(newBillId, { transaction: t });
+      if (bill) {
+        bill.otherChargesAmount = parseFloat(bill.otherChargesAmount || 0) - oldAmount + newAmount;
+        bill.totalAmount =
+          parseFloat(bill.rentAmount || 0) + parseFloat(bill.totalUtilityAmount || 0) + parseFloat(bill.otherChargesAmount);
+        await bill.save({ transaction: t });
+      }
+    }
   });
 
   return expense;
