@@ -123,9 +123,11 @@ const getExpenseById = async (id, include = []) => {
     throw new ApiError(httpStatus.NOT_FOUND, `Expense not found for ID: ${id}`);
   }
 
-  const billYear = new Date(expense.bill.issueDate).getFullYear();
-  const formattedInvoiceNo = String(expense.bill.invoiceNo).padStart(4, '0');
-  expense.bill.fullInvoiceNumber = `INV-${billYear}-${formattedInvoiceNo}`;
+  if (expense.bill !== null && expense.bill.invoiceNo !== 0) {
+    const billYear = new Date(expense.bill.issueDate).getFullYear();
+    const formattedInvoiceNo = String(expense.bill.invoiceNo).padStart(4, '0');
+    expense.bill.fullInvoiceNumber = `INV-${billYear}-${formattedInvoiceNo}`;
+  }
 
   return expense;
 };
