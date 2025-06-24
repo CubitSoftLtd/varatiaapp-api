@@ -94,12 +94,12 @@ const getAllExpenses = async (filter, options) => {
 
   // Clone include to avoid mutating options
   let include = options.include || [];
-  if (include.some((item) => item.model === 'Bill')) {
+  if (include.some((item) => item.model === Bill && item.attributes.includes('invoiceNo'))) {
     include = include.map((item) => {
-      if (item.model === 'Bill') {
+      if (item.model === Bill) {
         return {
           ...item,
-          attributes: [...(item.attributes || []), 'issueDate', 'invoiceNo'],
+          attributes: [...(item.attributes || []), 'issueDate'],
         };
       }
       return item;
@@ -121,6 +121,7 @@ const getAllExpenses = async (filter, options) => {
       const billYear = new Date(clonedExpense.bill.issueDate).getFullYear();
       const formattedInvoiceNo = String(clonedExpense.bill.invoiceNo).padStart(4, '0');
       clonedExpense.bill.invoiceNo = `INV-${billYear}-${formattedInvoiceNo}`;
+      delete clonedExpense.bill.issueDate;
     }
 
     return clonedExpense;
@@ -142,11 +143,11 @@ const getAllExpenses = async (filter, options) => {
  * @returns {Promise<Expense>}
  */
 const getExpenseById = async (id, include = []) => {
-  if (include.find((item) => item.model === 'Bill' && !item.attributes.includes('invoiceNo'))) {
+  if (include.find((item) => item.model === Bill && item.attributes.includes('invoiceNo'))) {
     /* If the Bill model is included but does not have issueDate, add it to attributes */
     /* eslint-disable-next-line no-param-reassign */
     include = include.map((item) => {
-      if (item.model === 'Bill') {
+      if (item.model === Bill) {
         return {
           ...item,
           attributes: [...(item.attributes || []), 'issueDate'],
@@ -165,6 +166,7 @@ const getExpenseById = async (id, include = []) => {
     const billYear = new Date(expense.bill.dataValues.issueDate).getFullYear();
     const formattedInvoiceNo = String(expense.bill.dataValues.invoiceNo).padStart(4, '0');
     expense.bill.dataValues.invoiceNo = `INV-${billYear}-${formattedInvoiceNo}`;
+    delete expense.bill.issueDate;
   }
 
   return expense;

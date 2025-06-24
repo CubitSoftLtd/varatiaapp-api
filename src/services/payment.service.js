@@ -98,7 +98,19 @@ const getAllPayments = async (filter, options) => {
     sort.push([field, order.toUpperCase() === 'DESC' ? 'DESC' : 'ASC']);
   }
 
-  const include = options.include || [];
+  // Clone include to avoid mutating options
+  let include = options.include || [];
+  if (include.some((item) => item.model === Bill && item.attributes.includes('invoiceNo'))) {
+    include = include.map((item) => {
+      if (item.model === Bill) {
+        return {
+          ...item,
+          attributes: [...(item.attributes || []), 'issueDate'],
+        };
+      }
+      return item;
+    });
+  }
 
   const { count, rows } = await Payment.findAndCountAll({
     where: { ...filter, isDeleted: false },
@@ -108,8 +120,21 @@ const getAllPayments = async (filter, options) => {
     include,
   });
 
+  const results = rows.map((payment) => {
+    const clonedPayment = payment.toJSON();
+
+    if (clonedPayment.bill?.issueDate && clonedPayment.bill?.invoiceNo !== undefined) {
+      const billYear = new Date(clonedPayment.bill.issueDate).getFullYear();
+      const formattedInvoiceNo = String(clonedPayment.bill.invoiceNo).padStart(4, '0');
+      clonedPayment.bill.invoiceNo = `INV-${billYear}-${formattedInvoiceNo}`;
+      delete clonedPayment.bill.issueDate;
+    }
+
+    return clonedPayment;
+  });
+
   return {
-    results: rows,
+    results,
     page,
     limit,
     totalPages: Math.ceil(count / limit),
@@ -130,10 +155,33 @@ const getPaymentsByBillId = async (billId, include = []) => {
 };
 
 const getPaymentById = async (paymentId, include = []) => {
+  if (include.find((item) => item.model === Bill && item.attributes.includes('invoiceNo'))) {
+    /* If the Bill model is included but does not have issueDate, add it to attributes */
+    /* eslint-disable-next-line no-param-reassign */
+    include = include.map((item) => {
+      if (item.model === Bill) {
+        return {
+          ...item,
+          attributes: [...(item.attributes || []), 'issueDate'],
+        };
+      }
+      return item;
+    });
+  }
+
   const payment = await Payment.findByPk(paymentId, { include });
   if (!payment) {
     throw new ApiError(httpStatus.NOT_FOUND, `Payment not found for ID: ${paymentId}`);
   }
+
+  // If the expense has a bill, ensure it is included in the result
+  if (payment.bill) {
+    const billYear = new Date(payment.bill.dataValues.issueDate).getFullYear();
+    const formattedInvoiceNo = String(payment.bill.dataValues.invoiceNo).padStart(4, '0');
+    payment.bill.dataValues.invoiceNo = `INV-${billYear}-${formattedInvoiceNo}`;
+    delete payment.bill.issueDate;
+  }
+
   return payment;
 };
 
