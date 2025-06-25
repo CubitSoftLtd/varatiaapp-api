@@ -121,7 +121,7 @@ const getAllUtilityTypes = async (filter, options, deleted = 'false') => {
  */
 const getUtilityTypeById = async (id, include = []) => {
   const utilityType = await UtilityType.findByPk(id, { include });
-  if (!utilityType || utilityType.isDeleted) {
+  if (!utilityType) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Utility type not found');
   }
   return utilityType;

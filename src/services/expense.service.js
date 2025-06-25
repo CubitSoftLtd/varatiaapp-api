@@ -182,7 +182,7 @@ const getExpenseById = async (id, include = []) => {
   }
 
   const expense = await Expense.findByPk(id, { include });
-  if (!expense || expense.isDeleted) {
+  if (!expense) {
     throw new ApiError(httpStatus.NOT_FOUND, `Expense not found for ID: ${id}`);
   }
   // If the expense has a bill, ensure it is included in the result

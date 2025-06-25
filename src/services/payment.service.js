@@ -157,7 +157,7 @@ const getAllPayments = async (filter, options, deleted = 'false') => {
 
 const getPaymentsByBillId = async (billId, include = []) => {
   const bill = await Bill.findByPk(billId);
-  if (!bill || bill.isDeleted) {
+  if (!bill) {
     throw new ApiError(httpStatus.NOT_FOUND, `Bill not found for ID: ${billId}`);
   }
   return Payment.findAll({

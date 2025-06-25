@@ -170,8 +170,7 @@ const getAllMeterReadings = async (filter, options, deleted = 'false') => {
 const getMeterReadingById = async (id, include = []) => {
   if (!id) throw new ApiError(httpStatus.BAD_REQUEST, 'Meter reading ID is required.');
   const meterReading = await MeterReading.findByPk(id, { include });
-  if (!meterReading || meterReading.isDeleted)
-    throw new ApiError(httpStatus.NOT_FOUND, `Meter reading with ID '${id}' not found or is deleted.`);
+  if (!meterReading) throw new ApiError(httpStatus.NOT_FOUND, `Meter reading with ID '${id}' not found or is deleted.`);
   return meterReading;
 };
 

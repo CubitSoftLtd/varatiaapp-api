@@ -87,16 +87,8 @@ const getAllAccounts = async (filter, options, deleted = 'false') => {
  * @param {boolean} [includeAssociations=false] - Include related models
  * @returns {Promise<Account>}
  */
-const getAccountById = async (id, includeAssociations) => {
-  const findOptions = {
-    where: { id },
-  };
-
-  if (includeAssociations) {
-    findOptions.include = includeAssociations;
-  }
-
-  const account = await Account.findOne(findOptions);
+const getAccountById = async (id, include = []) => {
+  const account = await Account.findByPk(id, { include });
 
   if (!account) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Account not found');

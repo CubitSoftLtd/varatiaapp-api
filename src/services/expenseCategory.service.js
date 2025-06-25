@@ -102,7 +102,7 @@ const getAllExpenseCategories = async (filter, options, deleted = 'false') => {
  */
 const getExpenseCategoryById = async (id, include = []) => {
   const category = await ExpenseCategory.findByPk(id, { include });
-  if (!category || category.isDeleted) {
+  if (!category) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Expense category not found');
   }
   return category;
