@@ -252,6 +252,25 @@ const updateMeterReading = async (meterReadingId, updateBody) => {
  */
 const deleteMeterReading = async (meterReadingId) => {
   const meterReading = await getMeterReadingById(meterReadingId);
+  if (meterReading.isDeleted) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Meter reading is already deleted.');
+  }
+  // Check if the reading is the latest for the meter/submeter
+  // TODO: Uncomment this logic if you want to enforce latest reading deletion
+  // const latestReading = await MeterReading.findOne({
+  //   where: {
+  //     meterId: meterReading.meterId,
+  //     submeterId: meterReading.submeterId,
+  //     isDeleted: false,
+  //     readingDate: { [Op.lte]: meterReading.readingDate },
+  //   },
+  //   order: [['readingDate', 'DESC'], ['createdAt', 'DESC']],
+  // });
+
+  // if (latestReading && latestReading.id !== meterReadingId) {
+  //   throw new ApiError(httpStatus.BAD_REQUEST, 'Cannot delete a meter reading that is not the latest for its meter/submeter.');
+  // }
+  // Soft delete the reading
   await meterReading.update({ isDeleted: true });
 };
 

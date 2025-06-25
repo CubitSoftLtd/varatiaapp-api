@@ -171,10 +171,10 @@ const updateMeter = async (meterId, updateBody) => {
  */
 const deleteMeter = async (meterId) => {
   const meter = await getMeterById(meterId);
-  if (meter.status === 'inactive') {
+  if (meter.isDeleted) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Meter is already inactive');
   }
-  await meter.update({ status: 'inactive' });
+  await meter.update({ status: 'inactive', isDeleted: true });
 };
 
 /**
