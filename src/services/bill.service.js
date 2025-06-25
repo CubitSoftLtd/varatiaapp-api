@@ -192,7 +192,7 @@ const getAllBills = async (filter, options, deleted = 'false') => {
  */
 const getBillById = async (id, include = []) => {
   const bill = await Bill.findByPk(id, { include });
-  if (!bill || bill.isDeleted) {
+  if (!bill) {
     throw new ApiError(httpStatus.NOT_FOUND, `Bill not found for ID: ${id}`);
   }
   // Optionally, format the invoiceNo here too

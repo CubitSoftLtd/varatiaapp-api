@@ -88,10 +88,8 @@ const getAllAccounts = async (filter, options, deleted = 'false') => {
  * @returns {Promise<Account>}
  */
 const getAccountById = async (id, includeAssociations) => {
-  // eslint-disable-next-line no-console
-  console.log(includeAssociations);
   const findOptions = {
-    where: { id }, // Using 'where' for clarity, though findByPk directly uses the ID
+    where: { id },
   };
 
   if (includeAssociations) {

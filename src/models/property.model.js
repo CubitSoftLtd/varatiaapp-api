@@ -45,6 +45,12 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: true,
         comment: 'Total number of units in the property',
       },
+      isDeleted: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+        comment: 'Soft delete flag',
+      },
     },
     {
       timestamps: true,
