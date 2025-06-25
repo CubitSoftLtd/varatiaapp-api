@@ -57,15 +57,13 @@ const getExpenses = catchAsync(async (req, res) => {
   const filter = pick(req.query, ['accountId', 'propertyId', 'unitId', 'billId', 'categoryId', 'amount', 'expenseDate']);
   const options = pick(req.query, ['sortBy', 'limit', 'page']);
   options.include = parseInclude(req.query.include);
+  const deleted = req.query.deleted || 'false'; // Default to 'false'
 
   if (req.user.role !== 'super_admin') {
     filter.accountId = req.user.accountId; // Ensure only properties for the user's account are fetched
   }
 
-  // eslint-disable-next-line no-console
-  console.log(filter, options);
-
-  const expenses = await expenseService.getAllExpenses(filter, options);
+  const expenses = await expenseService.getAllExpenses(filter, options, deleted);
   res.send(expenses);
 });
 

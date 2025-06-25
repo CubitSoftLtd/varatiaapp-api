@@ -54,7 +54,20 @@ const createUser = async (userBody) => {
  * @param {number} [options.page] - Current page (default = 1)
  * @returns {Promise<{ results: User[], page: number, limit: number, totalPages: number, totalResults: number }>}
  */
-const queryUsers = async (filter, options) => {
+const queryUsers = async (filter, options, deleted = 'false') => {
+  const whereClause = { ...filter };
+
+  // Apply the isDeleted filter based on the 'deleted' parameter
+  if (deleted === 'true') {
+    whereClause.isDeleted = true;
+  } else if (deleted === 'false') {
+    whereClause.isDeleted = false;
+  } else if (deleted === 'all') {
+    // No filter on isDeleted, allowing all bills to be returned
+  } else {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid value for deleted parameter');
+  }
+
   const limit = options.limit && parseInt(options.limit, 10) > 0 ? parseInt(options.limit, 10) : 10;
   const page = options.page && parseInt(options.page, 10) > 0 ? parseInt(options.page, 10) : 1;
   const offset = (page - 1) * limit;
@@ -66,7 +79,7 @@ const queryUsers = async (filter, options) => {
   }
 
   const { count, rows } = await User.findAndCountAll({
-    where: filter,
+    where: whereClause,
     limit,
     offset,
     order: sort.length ? sort : [['createdAt', 'DESC']],

@@ -69,7 +69,20 @@ const createUtilityType = async (utilityTypeBody) => {
  * @param {Object} options - { sortBy, limit, page, include? }
  * @returns {Promise<{ results: UtilityType[], page: number, limit: number, totalPages: number, totalResults: number }>}
  */
-const getAllUtilityTypes = async (filter, options) => {
+const getAllUtilityTypes = async (filter, options, deleted = 'false') => {
+  const whereClause = { ...filter };
+
+  // Apply the isDeleted filter based on the 'deleted' parameter
+  if (deleted === 'true') {
+    whereClause.isDeleted = true;
+  } else if (deleted === 'false') {
+    whereClause.isDeleted = false;
+  } else if (deleted === 'all') {
+    // No filter on isDeleted, allowing all bills to be returned
+  } else {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid value for deleted parameter');
+  }
+
   const limit = options.limit && parseInt(options.limit, 10) > 0 ? parseInt(options.limit, 10) : 10;
   const page = options.page && parseInt(options.page, 10) > 0 ? parseInt(options.page, 10) : 1;
   const offset = (page - 1) * limit;
@@ -84,7 +97,7 @@ const getAllUtilityTypes = async (filter, options) => {
   const include = options.include || [];
 
   const { count, rows } = await UtilityType.findAndCountAll({
-    where: { ...filter, isDeleted: false },
+    where: whereClause,
     limit,
     offset,
     order: sort.length ? sort : [['name', 'ASC']],

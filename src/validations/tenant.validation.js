@@ -141,6 +141,10 @@ const getTenants = {
     include: Joi.string().optional().messages({
       'string.base': 'include must be a string',
     }), // Added include parameter
+    deleted: Joi.string().valid('true', 'false', 'all').optional().messages({
+      'string.base': 'Deleted must be a string',
+      'any.only': 'Deleted must be one of "true", "false", or "all"',
+    }),
   }),
 };
 

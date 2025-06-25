@@ -77,6 +77,7 @@ const getUnits = catchAsync(async (req, res) => {
   ]);
   const options = pick(req.query, ['sortBy', 'limit', 'page']);
   options.include = parseInclude(req.query.include); // Custom function to parse include query
+  const deleted = req.query.deleted || 'false'; // Default to 'false'
 
   // Restrict units to the user's account for non-super_admin users
   if (req.user.role !== 'super_admin') {
@@ -89,7 +90,7 @@ const getUnits = catchAsync(async (req, res) => {
   }
 
   // Fetch units using a service layer (assumed to handle Sequelize queries)
-  const units = await unitService.getAllUnits(filter, options);
+  const units = await unitService.getAllUnits(filter, options, deleted);
   res.send(units);
 });
 

@@ -84,6 +84,12 @@ const router = express.Router();
  *           enum: [property_related, tenant_chargeable, administrative, personal]
  *         description: Filter by category type
  *       - in: query
+ *         name: deleted
+ *         schema:
+ *           type: string
+ *           enum: [true, false, all]
+ *         description: 'Filter accounts by deletion status (default: false)'
+ *       - in: query
  *         name: sortBy
  *         schema:
  *           type: string

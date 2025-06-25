@@ -66,12 +66,13 @@ const getMeters = catchAsync(async (req, res) => {
   const filter = pick(req.query, ['number', 'status', 'propertyId', 'utilityTypeId']);
   const options = pick(req.query, ['sortBy', 'limit', 'page']);
   options.include = parseInclude(req.query.include);
+  const deleted = req.query.deleted || 'false'; // Default to 'false'
 
   if (req.user.role !== 'super_admin') {
     filter.accountId = req.user.accountId; // Ensure only properties for the user's account are fetched
   }
 
-  const meters = await meterService.getAllMeters(filter, options);
+  const meters = await meterService.getAllMeters(filter, options, deleted);
   res.send(meters);
 });
 

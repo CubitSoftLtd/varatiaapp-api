@@ -87,7 +87,20 @@ const createPayment = async (paymentData) => {
   });
 };
 
-const getAllPayments = async (filter, options) => {
+const getAllPayments = async (filter, options, deleted = 'false') => {
+  const whereClause = { ...filter };
+
+  // Apply the isDeleted filter based on the 'deleted' parameter
+  if (deleted === 'true') {
+    whereClause.isDeleted = true;
+  } else if (deleted === 'false') {
+    whereClause.isDeleted = false;
+  } else if (deleted === 'all') {
+    // No filter on isDeleted, allowing all bills to be returned
+  } else {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid value for deleted parameter');
+  }
+
   const limit = Math.max(parseInt(options.limit, 10) || 10, 1);
   const page = Math.max(parseInt(options.page, 10) || 1, 1);
   const offset = (page - 1) * limit;
@@ -113,7 +126,7 @@ const getAllPayments = async (filter, options) => {
   }
 
   const { count, rows } = await Payment.findAndCountAll({
-    where: { ...filter, isDeleted: false },
+    where: whereClause,
     limit,
     offset,
     order: sort.length ? sort : [['paymentDate', 'DESC']],

@@ -68,7 +68,9 @@ const getExpenseCategories = catchAsync(async (req, res) => {
   const filter = pick(req.query, ['name', 'categoryType']);
   const options = pick(req.query, ['sortBy', 'limit', 'page']);
   options.include = parseInclude(req.query.include);
-  const categories = await expenseCategoryService.getAllExpenseCategories(filter, options);
+  const deleted = req.query.deleted || 'false'; // Default to 'false'
+
+  const categories = await expenseCategoryService.getAllExpenseCategories(filter, options, deleted);
   res.send(categories);
 });
 

@@ -81,8 +81,3 @@ app.use(errorConverter);
 app.use(errorHandler);
 
 module.exports = app;
-
-// Note: Server start (e.g., app.listen(config.port, () => console.log(`Server running on port ${config.port}`)))
-// should be handled in a separate file or script (e.g., src/server.js).
-
-// Last updated: June 03, 2025, 03:17 PM +06

@@ -127,7 +127,20 @@ const createMeterReading = async (meterReadingBody) => {
  * @param {Object} options - { sortBy, limit, page, include? }
  * @returns {Promise<{ results: MeterReading[], page: number, limit: number, totalPages: number, totalResults: number }>}
  */
-const getAllMeterReadings = async (filter, options) => {
+const getAllMeterReadings = async (filter, options, deleted = 'false') => {
+  const whereClause = { ...filter };
+
+  // Apply the isDeleted filter based on the 'deleted' parameter
+  if (deleted === 'true') {
+    whereClause.isDeleted = true;
+  } else if (deleted === 'false') {
+    whereClause.isDeleted = false;
+  } else if (deleted === 'all') {
+    // No filter on isDeleted, allowing all bills to be returned
+  } else {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid value for deleted parameter');
+  }
+
   const { limit = 10, page = 1, sortBy, include = [] } = options;
   const offset = (page - 1) * limit;
 
@@ -138,7 +151,7 @@ const getAllMeterReadings = async (filter, options) => {
         ['createdAt', 'DESC'],
       ];
   const { count, rows } = await MeterReading.findAndCountAll({
-    where: { ...filter, isDeleted: false },
+    where: whereClause,
     limit,
     offset,
     order,

@@ -70,8 +70,9 @@ const createAccount = catchAsync(async (req, res) => {
 const getAccounts = catchAsync(async (req, res) => {
   const filter = pick(req.query, ['name', 'subscriptionType']);
   const options = pick(req.query, ['sortBy', 'limit', 'page']);
+  const deleted = req.query.deleted || 'false'; // Default to 'false'
   options.include = parseInclude(req.query.include);
-  const accounts = await accountService.getAllAccounts(filter, options);
+  const accounts = await accountService.getAllAccounts(filter, options, deleted);
 
   res.send(accounts);
 });

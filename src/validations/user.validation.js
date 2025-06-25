@@ -101,6 +101,10 @@ const getUsers = {
       'number.integer': 'Page must be an integer',
       'number.min': 'Page must be at least 1',
     }),
+    deleted: Joi.string().valid('true', 'false', 'all').optional().messages({
+      'string.base': 'Deleted must be a string',
+      'any.only': 'Deleted must be one of "true", "false", or "all"',
+    }),
   }),
 };
 

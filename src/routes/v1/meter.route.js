@@ -120,6 +120,12 @@ const router = express.Router();
  *           format: uuid
  *         description: Utility type ID
  *       - in: query
+ *         name: deleted
+ *         schema:
+ *           type: string
+ *           enum: [true, false, all]
+ *         description: 'Filter accounts by deletion status (default: false)'
+ *       - in: query
  *         name: sortBy
  *         schema:
  *           type: string

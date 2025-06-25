@@ -67,12 +67,13 @@ const getPayments = catchAsync(async (req, res) => {
   const filter = pick(req.query, ['billId', 'tenantId', 'accountId', 'paymentDate', 'paymentMethod']);
   const options = pick(req.query, ['sortBy', 'limit', 'page']);
   options.include = parseInclude(req.query.include);
+  const deleted = req.query.deleted || 'false'; // Default to 'false'
 
   if (req.user.role !== 'super_admin') {
     filter.accountId = req.user.accountId;
   }
 
-  const payments = await paymentService.getAllPayments(filter, options);
+  const payments = await paymentService.getAllPayments(filter, options, deleted);
   res.json(payments);
 });
 

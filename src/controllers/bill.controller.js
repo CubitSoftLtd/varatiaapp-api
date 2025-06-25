@@ -66,12 +66,13 @@ const getBills = catchAsync(async (req, res) => {
   ]);
   const options = pick(req.query, ['sortBy', 'limit', 'page']);
   options.include = parseInclude(req.query.include);
+  const deleted = req.query.deleted || 'false'; // Default to 'false'
 
   if (req.user.role !== 'super_admin') {
-    filter.accountId = req.user.accountId; // Ensure only bills for the user's account are fetched
+    filter.accountId = req.user.accountId;
   }
 
-  const bills = await billService.getAllBills(filter, options);
+  const bills = await billService.getAllBills(filter, options, deleted);
   res.send(bills);
 });
 

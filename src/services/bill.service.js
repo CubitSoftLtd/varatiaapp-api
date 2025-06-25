@@ -165,7 +165,20 @@ const createBill = async (billBody) => {
  * @param {Object} options - { sortBy, limit, page, include? }
  * @returns {Promise<{ results: Bill[], page: number, limit: number, totalPages: number, totalResults: number }>}
  */
-const getAllBills = async (filter, options) => {
+const getAllBills = async (filter, options, deleted = 'false') => {
+  const whereClause = { ...filter };
+
+  // Apply the isDeleted filter based on the 'deleted' parameter
+  if (deleted === 'true') {
+    whereClause.isDeleted = true;
+  } else if (deleted === 'false') {
+    whereClause.isDeleted = false;
+  } else if (deleted === 'all') {
+    // No filter on isDeleted, allowing all bills to be returned
+  } else {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid value for deleted parameter');
+  }
+
   const limit = options.limit && parseInt(options.limit, 10) > 0 ? parseInt(options.limit, 10) : 10;
   const page = options.page && parseInt(options.page, 10) > 0 ? parseInt(options.page, 10) : 1;
   const offset = (page - 1) * limit;
@@ -179,21 +192,20 @@ const getAllBills = async (filter, options) => {
   const include = options.include || [];
 
   const { count, rows } = await Bill.findAndCountAll({
-    where: { ...filter, isDeleted: false },
+    where: whereClause,
     limit,
     offset,
     order: sort.length ? sort : [['createdAt', 'DESC']],
     include,
   });
 
-  // Optionally, you might want to format the invoiceNo for all results here as well
-  /* eslint-disable no-param-reassign */
+  // Format invoice numbers for all results
   rows.forEach((bill) => {
     const billYear = new Date(bill.issueDate).getFullYear();
     const formattedInvoiceNo = String(bill.invoiceNo).padStart(4, '0');
+    /* eslint-disable-next-line no-param-reassign */
     bill.dataValues.fullInvoiceNumber = `INV-${billYear}-${formattedInvoiceNo}`;
   });
-  /* eslint-enable no-param-reassign */
 
   return {
     results: rows,
