@@ -1,6 +1,6 @@
 const httpStatus = require('http-status');
 const { Op } = require('sequelize'); // <--- ADD THIS LINE: Import Op for date range queries
-const { Bill, Account, Unit, Tenant } = require('../models');
+const { Bill, Account, Meter, UtilityType, Unit, Tenant } = require('../models');
 const ApiError = require('../utils/ApiError');
 const meterReadingService = require('./meterReading.service');
 
@@ -19,144 +19,112 @@ const createBill = async (billBody) => {
     rentAmount,
     totalUtilityAmount,
     dueDate,
-    issueDate, // This will be used to determine the year for sequential numbering
+    issueDate = new Date(),
     notes,
   } = billBody;
 
-  // Validate required fields
+  // **Validate Required Fields**
   if (!accountId || !tenantId || !unitId || !billingPeriodStart || !billingPeriodEnd || !rentAmount || !dueDate) {
-    throw new ApiError(
-      httpStatus.BAD_REQUEST,
-      'Account ID, tenant ID, unit ID, billing period start, billing period end, rent amount, and due date are required'
-    );
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Missing required fields');
   }
 
-  // Validate foreign keys
-  const account = await Account.findByPk(accountId);
-  if (!account) {
-    throw new ApiError(httpStatus.NOT_FOUND, `Account not found for ID: ${accountId}`);
-  }
+  // **Validate Foreign Keys**
+  const [account, tenant, unit] = await Promise.all([
+    Account.findByPk(accountId),
+    Tenant.findByPk(tenantId),
+    Unit.findByPk(unitId),
+  ]);
+  if (!account) throw new ApiError(httpStatus.NOT_FOUND, `Account not found: ${accountId}`);
+  if (!tenant) throw new ApiError(httpStatus.NOT_FOUND, `Tenant not found: ${tenantId}`);
+  if (!unit) throw new ApiError(httpStatus.NOT_FOUND, `Unit not found: ${unitId}`);
 
-  const tenant = await Tenant.findByPk(tenantId);
-  if (!tenant) {
-    throw new ApiError(httpStatus.NOT_FOUND, `Tenant not found for ID: ${tenantId}`);
-  }
-
-  const unit = await Unit.findByPk(unitId);
-  if (!unit) {
-    throw new ApiError(httpStatus.NOT_FOUND, `Unit not found for ID: ${unitId}`);
-  }
-
-  // Validate billing period
+  // **Validate Billing Period**
   if (new Date(billingPeriodStart) > new Date(billingPeriodEnd)) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Billing period start must be before or equal to billing period end');
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid billing period: start must be <= end');
   }
 
-  // Calculate totalUtilityAmount if not provided
+  // **Calculate totalUtilityAmount if not provided**
   let calculatedTotalUtilityAmount = totalUtilityAmount || 0;
-  if (!totalUtilityAmount) {
-    const submeters = await unit.getSubmeters(); // Get all submeters associated with the unit
-    let consumption = 0;
-
-    if (submeters && submeters.length > 0) {
-      const submeter = submeters[0]; // Use the first submeter (adjust logic if multiple submeters need handling)
-      const associatedMeter = await submeter.getMeter(); // Assuming Submeter has a getMeter association
-      if (!associatedMeter) {
-        throw new ApiError(httpStatus.BAD_REQUEST, 'Submeter must be associated with a meter');
-      }
-      consumption = await meterReadingService.calculateConsumption(
-        associatedMeter.id,
-        submeter.id,
-        billingPeriodStart,
-        billingPeriodEnd
-      );
-      calculatedTotalUtilityAmount += consumption * (submeter.unitRate || 1); // Default unitRate to 1 if undefined
+  if (totalUtilityAmount === undefined) {
+    const submeters = await unit.getSubmeters({
+      include: [{ model: Meter, as: 'meter', include: [{ model: UtilityType, as: 'utilityType' }] }],
+    });
+    if (submeters.length === 0 && rentAmount > 0) {
+      calculatedTotalUtilityAmount = 0; // Allow rent-only bills
+    } else if (submeters.length === 0) {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'No submeters found for utility calculation');
     } else {
-      // NOTE: Original code threw an error here. Consider if this is the desired behavior
-      // when a unit might not have a submeter but utility calculation isn't needed (e.g., only rent bill).
-      // For now, retaining original behavior.
-      throw new ApiError(httpStatus.BAD_REQUEST, 'Unit must have at least one submeter associated for utility calculation');
+      // Use Promise.all with map to parallelize consumption calculations
+      const utilityCharges = await Promise.all(
+        submeters.map(async (submeter) => {
+          const { meter } = submeter;
+          if (!meter) throw new ApiError(httpStatus.BAD_REQUEST, `Submeter ${submeter.id} lacks associated meter`);
+          const { utilityType } = meter;
+          if (!utilityType) throw new ApiError(httpStatus.BAD_REQUEST, `Meter ${meter.id} lacks utility type`);
+          if (!utilityType.unitRate)
+            throw new ApiError(httpStatus.BAD_REQUEST, `Utility type ${utilityType.id} missing unitRate`);
+
+          const consumption = await meterReadingService.calculateConsumption(
+            meter.id,
+            submeter.id,
+            billingPeriodStart,
+            billingPeriodEnd
+          );
+          return parseFloat(consumption) * parseFloat(utilityType.unitRate);
+        })
+      );
+      // Sum the charges using reduce
+      calculatedTotalUtilityAmount = utilityCharges.reduce((sum, charge) => sum + charge, 0);
     }
   }
 
-  // Calculate totalAmount
-  const otherChargesAmount = 0.0; // Default to 0 as per model
+  // **Calculate totalAmount**
+  const otherChargesAmount = 0.0; // Placeholder: Update with expense logic if needed
   const totalAmount = parseFloat(rentAmount) + parseFloat(calculatedTotalUtilityAmount) + parseFloat(otherChargesAmount);
 
-  // Determine the issue date. Default to current date if not provided.
-  // This date is crucial for determining the year for sequential invoice numbering.
-  const billIssueDate = issueDate ? new Date(issueDate) : new Date();
+  // **Issue Date and Invoice Number**
+  const billIssueDate = new Date(issueDate);
   const currentYear = billIssueDate.getFullYear();
+  const startOfYear = new Date(currentYear, 0, 1);
+  const endOfYear = new Date(currentYear, 11, 31, 23, 59, 59, 999);
 
-  // Define the start and end of the current year for filtering bills
-  // to find the last invoice number for the current account and year.
-  const startOfYear = new Date(currentYear, 0, 1); // January 1st of the current year
-  const endOfYear = new Date(currentYear, 11, 31, 23, 59, 59, 999); // December 31st of the current year (end of day)
-
-  // Create bill in a transaction to ensure atomic operations,
-  // especially for sequential invoice number generation.
+  // **Transaction for Atomicity**
   const bill = await Bill.sequelize.transaction(async (t) => {
-    // Step 1: Find the last invoice number for the given accountId within the current year.
     const lastBill = await Bill.findOne({
-      where: {
-        accountId,
-        issueDate: {
-          [Op.between]: [startOfYear, endOfYear], // Filter by the current year
-        },
-      },
-      order: [['invoiceNo', 'DESC']], // Get the highest invoice number
-      transaction: t, // Ensure this query is part of the same transaction for concurrency safety
+      where: { accountId, issueDate: { [Op.between]: [startOfYear, endOfYear] } },
+      order: [['invoiceNo', 'DESC']],
+      transaction: t,
     });
-
-    // Step 2: Determine the next sequential invoice number.
-    // If no bills exist for this account in this year, start with 1.
     const nextInvoiceNo = lastBill ? lastBill.invoiceNo + 1 : 1;
 
-    try {
-      // Step 3: Create the new bill record.
-      const createdBill = await Bill.create(
-        {
-          accountId,
-          tenantId,
-          unitId,
-          invoiceNo: nextInvoiceNo, // <--- Assign the newly generated sequential invoice number
-          billingPeriodStart,
-          billingPeriodEnd,
-          rentAmount: parseFloat(rentAmount),
-          totalUtilityAmount: parseFloat(calculatedTotalUtilityAmount),
-          otherChargesAmount,
-          totalAmount, // Explicitly set totalAmount
-          amountPaid: 0.0,
-          dueDate,
-          issueDate: billIssueDate, // Use the determined issue date
-          paymentStatus: 'unpaid',
-          notes: notes || null,
-          isDeleted: false,
-        },
-        { transaction: t } // Link the creation to the current transaction
-      );
+    const createdBill = await Bill.create(
+      {
+        accountId,
+        tenantId,
+        unitId,
+        invoiceNo: nextInvoiceNo,
+        billingPeriodStart,
+        billingPeriodEnd,
+        rentAmount: parseFloat(rentAmount),
+        totalUtilityAmount: parseFloat(calculatedTotalUtilityAmount),
+        otherChargesAmount,
+        totalAmount,
+        amountPaid: 0.0,
+        dueDate,
+        issueDate: billIssueDate,
+        paymentStatus: 'unpaid',
+        notes: notes || null,
+        isDeleted: false,
+      },
+      { transaction: t }
+    );
 
-      // Step 4: Generate the full formatted invoice number for display purposes.
-      // This 'fullInvoiceNumber' is not stored in the database but is added to the
-      // returned object for convenience in the application layer.
-      // Pad the invoice number with leading zeros (e.g., 1 becomes 0001, 15 becomes 0015).
-      const formattedInvoiceNo = String(createdBill.invoiceNo).padStart(4, '0'); // Adjust '4' for desired padding length
-      createdBill.dataValues.fullInvoiceNumber = `INV-${currentYear}-${formattedInvoiceNo}`;
-
-      return createdBill;
-    } catch (error) {
-      if (error.name === 'SequelizeUniqueConstraintError') {
-        throw new ApiError(
-          httpStatus.CONFLICT,
-          'Ensures that there is only one bill per tenant and unit for a specific billing period'
-        );
-      } else {
-        throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'An error occurred while creating the bill');
-      }
-    }
+    const formattedInvoiceNo = String(createdBill.invoiceNo).padStart(4, '0');
+    createdBill.dataValues.fullInvoiceNumber = `INV-${currentYear}-${formattedInvoiceNo}`;
+    return createdBill;
   });
 
-  return bill; // Return the created bill
+  return bill;
 };
 
 /**
@@ -237,105 +205,106 @@ const getBillById = async (id, include = []) => {
 /**
  * Update an existing bill by ID
  * @param {string} id - Bill UUID
- * @param {Object} updateBody - { accountId?, tenantId?, unitId?, billingPeriodStart?, billingPeriodEnd?, rentAmount?, totalUtilityAmount?, dueDate?, issueDate?, notes? }
+ * @param {Object} updateBody - Fields to update
  * @returns {Promise<Bill>}
  */
 const updateBill = async (id, updateBody) => {
   const bill = await getBillById(id);
-
   const {
+    accountId = bill.accountId,
+    tenantId = bill.tenantId,
+    unitId = bill.unitId,
+    billingPeriodStart = bill.billingPeriodStart,
+    billingPeriodEnd = bill.billingPeriodEnd,
+    rentAmount = bill.rentAmount,
+    totalUtilityAmount,
+    dueDate = bill.dueDate,
+    issueDate = bill.issueDate,
+    notes = bill.notes,
+  } = updateBody;
+
+  // **Validate Foreign Keys**
+  if (accountId !== bill.accountId) {
+    const account = await Account.findByPk(accountId);
+    if (!account) throw new ApiError(httpStatus.NOT_FOUND, `Account not found: ${accountId}`);
+  }
+  if (tenantId !== bill.tenantId) {
+    const tenant = await Tenant.findByPk(tenantId);
+    if (!tenant) throw new ApiError(httpStatus.NOT_FOUND, `Tenant not found: ${tenantId}`);
+  }
+  if (unitId !== bill.unitId) {
+    const unit = await Unit.findByPk(unitId);
+    if (!unit) throw new ApiError(httpStatus.NOT_FOUND, `Unit not found: ${unitId}`);
+  }
+
+  // **Validate Billing Period**
+  if (new Date(billingPeriodStart) > new Date(billingPeriodEnd)) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid billing period: start must be <= end');
+  }
+
+  // **Recalculate totalUtilityAmount if billing period changes or totalUtilityAmount provided**
+  let calculatedTotalUtilityAmount = totalUtilityAmount !== undefined ? totalUtilityAmount : bill.totalUtilityAmount;
+  if (
+    totalUtilityAmount === undefined &&
+    (billingPeriodStart !== bill.billingPeriodStart || billingPeriodEnd !== bill.billingPeriodEnd || unitId !== bill.unitId)
+  ) {
+    const unit = await Unit.findByPk(unitId);
+    const submeters = await unit.getSubmeters({
+      include: [{ model: Meter, as: 'meter', include: [{ model: UtilityType, as: 'utilityType' }] }],
+    });
+    if (submeters.length === 0 && rentAmount > 0) {
+      calculatedTotalUtilityAmount = 0; // Allow rent-only bills
+    } else if (submeters.length === 0) {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'No submeters found for utility calculation');
+    } else {
+      // Use Promise.all with map to parallelize consumption calculations
+      const utilityCharges = await Promise.all(
+        submeters.map(async (submeter) => {
+          const { meter } = submeter;
+          if (!meter) throw new ApiError(httpStatus.BAD_REQUEST, `Submeter ${submeter.id} lacks associated meter`);
+          const { utilityType } = meter;
+          if (!utilityType) throw new ApiError(httpStatus.BAD_REQUEST, `Meter ${meter.id} lacks utility type`);
+          if (!utilityType.unitRate)
+            throw new ApiError(httpStatus.BAD_REQUEST, `Utility type ${utilityType.id} missing unitRate`);
+
+          const consumption = await meterReadingService.calculateConsumption(
+            meter.id,
+            submeter.id,
+            billingPeriodStart,
+            billingPeriodEnd
+          );
+          return parseFloat(consumption) * parseFloat(utilityType.unitRate);
+        })
+      );
+      // Sum the charges using reduce
+      calculatedTotalUtilityAmount = utilityCharges.reduce((sum, charge) => sum + charge, 0);
+    }
+  }
+
+  // **Calculate totalAmount**
+  const { otherChargesAmount } = bill; // Placeholder: Update if expense logic added
+  const totalAmount = parseFloat(rentAmount) + parseFloat(calculatedTotalUtilityAmount) + parseFloat(otherChargesAmount);
+
+  // **Update Bill**
+  await bill.update({
     accountId,
     tenantId,
     unitId,
     billingPeriodStart,
     billingPeriodEnd,
-    rentAmount,
-    totalUtilityAmount,
+    rentAmount: parseFloat(rentAmount),
+    totalUtilityAmount: parseFloat(calculatedTotalUtilityAmount),
+    otherChargesAmount,
+    totalAmount,
     dueDate,
     issueDate,
     notes,
-  } = updateBody;
-
-  // Validate foreign keys if provided
-  if (accountId && accountId !== bill.accountId) {
-    const account = await Account.findByPk(accountId);
-    if (!account) {
-      throw new ApiError(httpStatus.NOT_FOUND, `Account not found for ID: ${accountId}`);
-    }
-  }
-
-  if (tenantId && tenantId !== bill.tenantId) {
-    const tenant = await Tenant.findByPk(tenantId);
-    if (!tenant) {
-      throw new ApiError(httpStatus.NOT_FOUND, `Tenant not found for ID: ${tenantId}`);
-    }
-  }
-
-  if (unitId && unitId !== bill.unitId) {
-    const unit = await Unit.findByPk(unitId);
-    if (!unit) {
-      throw new ApiError(httpStatus.NOT_FOUND, `Unit not found for ID: ${unitId}`);
-    }
-  }
-
-  if (billingPeriodStart && billingPeriodEnd && new Date(billingPeriodStart) > new Date(billingPeriodEnd)) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Billing period start must be before or equal to billing period end');
-  }
-
-  // Recalculate totalUtilityAmount if billing period changes
-  let calculatedTotalUtilityAmount = totalUtilityAmount || bill.totalUtilityAmount;
-  if (
-    (billingPeriodStart || billingPeriodEnd) &&
-    (billingPeriodStart !== bill.billingPeriodStart || billingPeriodEnd !== bill.billingPeriodEnd)
-  ) {
-    const unit = await Unit.findByPk(bill.unitId);
-    const submeters = await unit.getSubmeters(); // Get all submeters associated with the unit
-    let consumption = 0;
-
-    if (submeters && submeters.length > 0) {
-      const submeter = submeters[0]; // Use the first submeter
-      const associatedMeter = await submeter.getMeter(); // Assuming Submeter has a getMeter association
-      if (!associatedMeter) {
-        throw new ApiError(httpStatus.BAD_REQUEST, 'Submeter must be associated with a meter');
-      }
-      consumption = await meterReadingService.calculateConsumption(
-        associatedMeter.id,
-        submeter.id,
-        billingPeriodStart || bill.billingPeriodStart,
-        billingPeriodEnd || bill.billingPeriodEnd
-      );
-
-      calculatedTotalUtilityAmount = consumption * (submeter.unitRate || 1); // Default unitRate to 1 if undefined
-    } else {
-      throw new ApiError(httpStatus.BAD_REQUEST, 'Unit must have at least one submeter associated for utility calculation');
-    }
-  }
-
-  // Calculate totalAmount
-  const { otherChargesAmount } = bill; // Retain existing value unless updated
-  const totalAmount =
-    parseFloat(rentAmount || bill.rentAmount) + parseFloat(calculatedTotalUtilityAmount) + parseFloat(otherChargesAmount);
-
-  // If issueDate changes, and you're using Option 2 (with an issueYear column),
-  // you would need to update issueYear here as well.
-  // if (issueDate && new Date(issueDate).getFullYear() !== bill.issueYear) {
-  //   updateBody.issueYear = new Date(issueDate).getFullYear();
-  // }
-
-  await bill.update({
-    accountId: accountId !== undefined ? accountId : bill.accountId,
-    tenantId: tenantId !== undefined ? tenantId : bill.tenantId,
-    unitId: unitId !== undefined ? unitId : bill.unitId,
-    billingPeriodStart: billingPeriodStart !== undefined ? billingPeriodStart : bill.billingPeriodStart,
-    billingPeriodEnd: billingPeriodEnd !== undefined ? billingPeriodEnd : bill.billingPeriodEnd,
-    rentAmount: rentAmount !== undefined ? parseFloat(rentAmount) : bill.rentAmount,
-    totalUtilityAmount: totalUtilityAmount !== undefined ? parseFloat(totalUtilityAmount) : calculatedTotalUtilityAmount,
-    otherChargesAmount: bill.otherChargesAmount, // Keep as is unless updated (add if needed in updateBody)
-    totalAmount, // Explicitly set totalAmount
-    dueDate: dueDate !== undefined ? dueDate : bill.dueDate,
-    issueDate: issueDate !== undefined ? issueDate : bill.issueDate,
-    notes: notes !== undefined ? notes : bill.notes,
   });
+
+  // **Add Formatted Invoice Number**
+  const billYear = new Date(bill.issueDate).getFullYear();
+  const formattedInvoiceNo = String(bill.invoiceNo).padStart(4, '0');
+  bill.dataValues.fullInvoiceNumber = `INV-${billYear}-${formattedInvoiceNo}`;
 
   return bill;
 };
