@@ -118,11 +118,6 @@ module.exports = (sequelize) => {
       timestamps: true,
       tableName: 'bills',
       modelName: 'bill',
-      defaultScope: {
-        where: {
-          isDeleted: false,
-        },
-      },
       scopes: {
         all: { where: {} },
       },

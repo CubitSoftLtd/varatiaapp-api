@@ -158,10 +158,11 @@ const updateProperty = async (propertyId, updateBody) => {
  */
 const deleteProperty = async (propertyId) => {
   const property = await getPropertyById(propertyId);
-  if (!property.isActive) {
+  if (property.isDeleted) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Property is already inactive');
   }
-  await property.update({ isActive: false });
+
+  await property.update({ isDeleted: true });
 };
 
 /**

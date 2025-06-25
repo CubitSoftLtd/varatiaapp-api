@@ -1,6 +1,6 @@
 const httpStatus = require('http-status');
 const { Op } = require('sequelize'); // <--- ADD THIS LINE: Import Op for date range queries
-const { Bill, Account, Meter, UtilityType, Unit, Tenant } = require('../models');
+const { Bill, Account, Meter, Property, UtilityType, Unit, Tenant } = require('../models');
 const ApiError = require('../utils/ApiError');
 const meterReadingService = require('./meterReading.service');
 
@@ -332,6 +332,92 @@ const hardDeleteBill = async (id) => {
   await bill.destroy();
 };
 
+/**
+ * Get all bills for a property within a date range, formatted for printing
+ * @param {string} propertyId - Property UUID
+ * @param {Object} filter - { startDate, endDate, accountId? }
+ * @param {Object} options - { sortBy, limit, page, include?, forPrint? }
+ * @param {string} deleted - 'true', 'false', or 'all'
+ * @returns {Promise<{ results: Bill[], page: number, limit: number, totalPages: number, totalResults: number }>}
+ */
+const getBillsByPropertyAndDateRange = async (propertyId, filter, options, deleted = 'false') => {
+  // Validate property exists
+  const property = await Property.findByPk(propertyId);
+  if (!property) throw new ApiError(httpStatus.NOT_FOUND, `Property not found: ${propertyId}`);
+
+  // Build where clause
+  const whereClause = {
+    billingPeriodStart: { [Op.lte]: filter.endDate },
+    billingPeriodEnd: { [Op.gte]: filter.startDate },
+  };
+
+  // Apply accountId filter if provided
+  if (filter.accountId) whereClause.accountId = filter.accountId;
+
+  // Apply isDeleted filter
+  if (deleted === 'true') whereClause.isDeleted = true;
+  else if (deleted === 'false') whereClause.isDeleted = false;
+  else if (deleted !== 'all') throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid deleted parameter');
+
+  // Get unit IDs for the property
+  const units = await Unit.findAll({ where: { propertyId }, attributes: ['id'] });
+  const unitIds = units.map((unit) => unit.id);
+  if (unitIds.length === 0) {
+    return { results: [], page: 1, limit: options.limit || 10, totalPages: 0, totalResults: 0 };
+  }
+
+  // Filter bills by unitIds
+  whereClause.unitId = { [Op.in]: unitIds };
+
+  // Pagination and sorting
+  const limit = Math.max(parseInt(options.limit, 10) || 10, 1);
+  const page = Math.max(parseInt(options.page, 10) || 1, 1);
+  const offset = (page - 1) * limit;
+  const sort = options.sortBy
+    ? [[options.sortBy.split(':')[0], options.sortBy.split(':')[1].toUpperCase() === 'DESC' ? 'DESC' : 'ASC']]
+    : [['createdAt', 'DESC']];
+
+  // Include associations for printing
+  const defaultInclude = [
+    { model: Tenant, as: 'tenant', attributes: ['id', 'name'] },
+    { model: Unit, as: 'unit', attributes: ['id', 'name', 'address'] },
+  ];
+  const include = options.forPrint ? defaultInclude : [...defaultInclude, ...(options.include || [])];
+
+  // Query bills
+  const { count, rows } = await Bill.findAndCountAll({
+    where: whereClause,
+    limit,
+    offset,
+    order: sort,
+    include,
+  });
+
+  // Format bills for printing
+  const formattedResults = rows.map((bill) => {
+    const billYear = new Date(bill.issueDate).getFullYear();
+    const formattedInvoiceNo = String(bill.invoiceNo).padStart(4, '0');
+    return {
+      ...bill.toJSON(),
+      fullInvoiceNumber: `INV-${billYear}-${formattedInvoiceNo}`,
+      rentAmountFormatted: bill.rentAmount.toFixed(2),
+      totalUtilityAmountFormatted: bill.totalUtilityAmount.toFixed(2),
+      totalAmountFormatted: bill.totalAmount.toFixed(2),
+      tenantName: bill.tenant?.name || 'N/A',
+      unitName: bill.unit?.name || 'N/A',
+      unitAddress: bill.unit?.address || 'N/A',
+    };
+  });
+
+  return {
+    results: formattedResults,
+    page,
+    limit,
+    totalPages: Math.ceil(count / limit),
+    totalResults: count,
+  };
+};
+
 module.exports = {
   createBill,
   getAllBills,
@@ -339,4 +425,5 @@ module.exports = {
   updateBill,
   deleteBill,
   hardDeleteBill,
+  getBillsByPropertyAndDateRange,
 };

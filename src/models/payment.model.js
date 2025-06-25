@@ -74,7 +74,6 @@ module.exports = (sequelize) => {
       timestamps: true,
       tableName: 'payments',
       modelName: 'payment',
-      defaultScope: { where: { isDeleted: false } },
       scopes: { all: { where: {} } },
       indexes: [{ fields: ['billId'] }, { fields: ['tenantId'] }, { fields: ['accountId'] }, { fields: ['paymentDate'] }],
     }

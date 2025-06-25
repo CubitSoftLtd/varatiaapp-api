@@ -382,6 +382,240 @@ const router = express.Router();
  *         $ref: '#/components/responses/NotFound'
  */
 
+/**
+ * @swagger
+ * /bills/property/{propertyId}:
+ *   get:
+ *     summary: Get all tenant bills for a property within a date range
+ *     description: |
+ *       Retrieves bills for all tenants in units belonging to the specified property, filtered by a date range.
+ *       Only admins can access bills for any property. Account owners can access bills for their own properties.
+ *       Last updated: June 25, 2025, 03:58 PM +06.
+ *     tags:
+ *       - Bills
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: propertyId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Property ID
+ *       - in: query
+ *         name: startDate
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Start date of the billing period range (e.g., 2025-06-01)
+ *       - in: query
+ *         name: endDate
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: End date of the billing period range (e.g., 2025-06-30)
+ *       - in: query
+ *         name: deleted
+ *         schema:
+ *           type: string
+ *           enum: [true, false, all]
+ *           default: false
+ *         description: Filter bills by deletion status
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           pattern: '^[a-zA-Z]+:(asc|desc)$'
+ *         description: Sort by field (e.g., billingPeriodStart:asc)
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 10
+ *         description: Maximum number of bills
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: include
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of associations (e.g., tenant:id,name|unit:id,name)
+ *     responses:
+ *       '200':
+ *         description: OK
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 results:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Bill'
+ *                 page:
+ *                   type: integer
+ *                   example: 1
+ *                 limit:
+ *                   type: integer
+ *                   example: 10
+ *                 totalPages:
+ *                   type: integer
+ *                   example: 1
+ *                 totalResults:
+ *                   type: integer
+ *                   example: 1
+ *       '400':
+ *         $ref: '#/components/responses/BadRequest'
+ *       '401':
+ *         $ref: '#/components/responses/Unauthorized'
+ *       '403':
+ *         $ref: '#/components/responses/Forbidden'
+ *       '404':
+ *         $ref: '#/components/responses/NotFound'
+ */
+
+/**
+ * @swagger
+ * /bills/property/{propertyId}/print:
+ *   get:
+ *     summary: Get tenant bills for a property within a date range for printing
+ *     description: |
+ *       Retrieves bills for all tenants in units belonging to the specified property, formatted for printing (e.g., invoices).
+ *       Includes tenant and unit details. Only admins can access bills for any property. Account owners can access bills for their own properties.
+ *       Last updated: June 25, 2025, 03:58 PM +06.
+ *     tags:
+ *       - Bills
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: propertyId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Property ID
+ *       - in: query
+ *         name: startDate
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Start date of the billing period range (e.g., 2025-06-01)
+ *       - in: query
+ *         name: endDate
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: End date of the billing period range (e.g., 2025-06-30)
+ *       - in: query
+ *         name: deleted
+ *         schema:
+ *           type: string
+ *           enum: [true, false, all]
+ *           default: false
+ *         description: Filter bills by deletion status
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           pattern: '^[a-zA-Z]+:(asc|desc)$'
+ *         description: Sort by field (e.g., billingPeriodStart:asc)
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 10
+ *         description: Maximum number of bills
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number
+ *     responses:
+ *       '200':
+ *         description: OK
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 results:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         format: uuid
+ *                       invoiceNo:
+ *                         type: integer
+ *                       fullInvoiceNumber:
+ *                         type: string
+ *                       tenantId:
+ *                         type: string
+ *                         format: uuid
+ *                       unitId:
+ *                         type: string
+ *                         format: uuid
+ *                       billingPeriodStart:
+ *                         type: string
+ *                         format: date
+ *                       billingPeriodEnd:
+ *                         type: string
+ *                         format: date
+ *                       rentAmountFormatted:
+ *                         type: string
+ *                       totalUtilityAmountFormatted:
+ *                         type: string
+ *                       totalAmountFormatted:
+ *                         type: string
+ *                       dueDate:
+ *                         type: string
+ *                         format: date
+ *                       paymentStatus:
+ *                         type: string
+ *                       tenantName:
+ *                         type: string
+ *                       unitName:
+ *                         type: string
+ *                       unitAddress:
+ *                         type: string
+ *                 page:
+ *                   type: integer
+ *                   example: 1
+ *                 limit:
+ *                   type: integer
+ *                   example: 10
+ *                 totalPages:
+ *                   type: integer
+ *                   example: 1
+ *                 totalResults:
+ *                   type: integer
+ *                   example: 1
+ *       '400':
+ *         $ref: '#/components/responses/BadRequest'
+ *       '401':
+ *         $ref: '#/components/responses/Unauthorized'
+ *       '403':
+ *         $ref: '#/components/responses/Forbidden'
+ *       '404':
+ *         $ref: '#/components/responses/NotFound'
+ */
+
 router
   .route('/')
   .post(auth(), validate(billValidation.createBill), billController.createBill)
@@ -394,6 +628,14 @@ router
   .delete(auth(), validate(billValidation.deleteBill), billController.deleteBillById);
 
 router.route('/:id/hard').delete(auth(), validate(billValidation.deleteBill), billController.hardDeleteBillById);
+
+router
+  .route('/property/:propertyId')
+  .get(auth(), validate(billValidation.getBillsByPropertyAndDateRange), billController.getBillsByPropertyAndDateRange);
+
+router
+  .route('/property/:propertyId/print')
+  .get(auth(), validate(billValidation.getBillsByPropertyForPrint), billController.getBillsByPropertyForPrint);
 
 router.use('/:billId/payments', paymentRouter);
 

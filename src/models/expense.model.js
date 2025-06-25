@@ -179,5 +179,3 @@ module.exports = (sequelize, DataTypes) => {
 
   return Expense;
 };
-
-// Last updated: Wednesday, June 04, 2025, 04:23 PM +06

@@ -231,10 +231,95 @@ const deleteBill = {
   }),
 };
 
+const getBillsByPropertyAndDateRange = {
+  params: Joi.object().keys({
+    propertyId: Joi.string().uuid({ version: 'uuidv4' }).required().messages({
+      'string.base': 'Property ID must be a string',
+      'string.uuid': 'Property ID must be a valid UUID',
+      'any.required': 'Property ID is required',
+    }),
+  }),
+  query: Joi.object().keys({
+    startDate: Joi.date().required().messages({
+      'date.base': 'Start date must be a valid date',
+      'any.required': 'Start date is required',
+    }),
+    endDate: Joi.date().required().messages({
+      'date.base': 'End date must be a valid date',
+      'any.required': 'End date is required',
+    }),
+    deleted: Joi.string().valid('true', 'false', 'all').default('false').messages({
+      'string.base': 'Deleted must be a string',
+      'any.only': 'Deleted must be one of "true", "false", or "all"',
+    }),
+    sortBy: Joi.string()
+      .pattern(/^[a-zA-Z]+:(asc|desc)$/)
+      .messages({
+        'string.base': 'SortBy must be a string',
+        'string.pattern.base': 'SortBy must be in the format "field:asc" or "field:desc"',
+      }),
+    limit: Joi.number().integer().min(1).default(10).messages({
+      'number.base': 'Limit must be a number',
+      'number.integer': 'Limit must be an integer',
+      'number.min': 'Limit must be at least 1',
+    }),
+    page: Joi.number().integer().min(1).default(1).messages({
+      'number.base': 'Page must be a number',
+      'number.integer': 'Page must be an integer',
+      'number.min': 'Page must be at least 1',
+    }),
+    include: Joi.string().optional().messages({
+      'string.base': 'Include must be a string',
+    }),
+  }),
+};
+
+const getBillsByPropertyForPrint = {
+  params: Joi.object().keys({
+    propertyId: Joi.string().uuid({ version: 'uuidv4' }).required().messages({
+      'string.base': 'Property ID must be a string',
+      'string.uuid': 'Property ID must be a valid UUID',
+      'any.required': 'Property ID is required',
+    }),
+  }),
+  query: Joi.object().keys({
+    startDate: Joi.date().required().messages({
+      'date.base': 'Start date must be a valid date',
+      'any.required': 'Start date is required',
+    }),
+    endDate: Joi.date().required().messages({
+      'date.base': 'End date must be a valid date',
+      'any.required': 'End date is required',
+    }),
+    deleted: Joi.string().valid('true', 'false', 'all').default('false').messages({
+      'string.base': 'Deleted must be a string',
+      'any.only': 'Deleted must be one of "true", "false", or "all"',
+    }),
+    sortBy: Joi.string()
+      .pattern(/^[a-zA-Z]+:(asc|desc)$/)
+      .messages({
+        'string.base': 'SortBy must be a string',
+        'string.pattern.base': 'SortBy must be in the format "field:asc" or "field:desc"',
+      }),
+    limit: Joi.number().integer().min(1).default(10).messages({
+      'number.base': 'Limit must be a number',
+      'number.integer': 'Limit must be an integer',
+      'number.min': 'Limit must be at least 1',
+    }),
+    page: Joi.number().integer().min(1).default(1).messages({
+      'number.base': 'Page must be a number',
+      'number.integer': 'Page must be an integer',
+      'number.min': 'Page must be at least 1',
+    }),
+  }),
+};
+
 module.exports = {
   createBill,
   getBills,
   getBill,
   updateBill,
   deleteBill,
+  getBillsByPropertyAndDateRange,
+  getBillsByPropertyForPrint,
 };

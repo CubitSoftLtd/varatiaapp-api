@@ -96,6 +96,48 @@ const hardDeleteBillById = catchAsync(async (req, res) => {
   res.status(httpStatus.NO_CONTENT).send();
 });
 
+/**
+ * Get bills for a property within a date range, formatted for printing
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const getBillsByPropertyForPrint = catchAsync(async (req, res) => {
+  const { propertyId } = req.params;
+  const filter = pick(req.query, ['startDate', 'endDate']);
+  const options = pick(req.query, ['sortBy', 'limit', 'page']);
+  const { deleted } = req.query;
+
+  // Restrict non-super admins to their own account
+  if (req.user.role !== 'super_admin') {
+    filter.accountId = req.user.accountId;
+  }
+
+  // Set forPrint flag
+  options.forPrint = true;
+
+  const result = await billService.getBillsByPropertyAndDateRange(propertyId, filter, options, deleted);
+  res.status(httpStatus.OK).send(result);
+});
+
+/**
+ * Get bills for a property within a date range
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const getBillsByPropertyAndDateRange = catchAsync(async (req, res) => {
+  const { propertyId } = req.params;
+  const filter = pick(req.query, ['startDate', 'endDate']);
+  const options = pick(req.query, ['sortBy', 'limit', 'page', 'include']);
+  const { deleted } = req.query;
+
+  if (req.user.role !== 'super_admin') {
+    filter.accountId = req.user.accountId;
+  }
+
+  const result = await billService.getBillsByPropertyAndDateRange(propertyId, filter, options, deleted);
+  res.status(httpStatus.OK).send(result);
+});
+
 module.exports = {
   createBill,
   getBills,
@@ -103,4 +145,6 @@ module.exports = {
   updateBillById,
   deleteBillById,
   hardDeleteBillById,
+  getBillsByPropertyAndDateRange,
+  getBillsByPropertyForPrint,
 };

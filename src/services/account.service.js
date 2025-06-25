@@ -31,10 +31,6 @@ const createAccount = async (accountBody) => {
  * Query for accounts with pagination, sorting, and optional associations
  * @param {Object} filter - Sequelize filter
  * @param {Object} options - Query options
- * @param {string} [options.sortBy] - Sort option in the format: sortField:(desc|asc)
- * @param {number} [options.limit] - Maximum number of results per page (default = 10)
- * @param {number} [options.page] - Current page (default = 1)
- * @param {boolean} [options.includeAssociations] - Include related models (default = false)
  * @returns {Promise<{ results: Account[], page: number, limit: number, totalPages: number, totalResults: number }>}
  */
 const getAllAccounts = async (filter, options, deleted = 'false') => {

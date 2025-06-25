@@ -157,10 +157,16 @@ const updateUnit = async (unitId, updateBody) => {
  */
 const deleteUnit = async (unitId) => {
   const unit = await getUnitById(unitId);
-  if (unit.status === 'inactive') {
+  if (unit.isDeleted) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Unit is already inactive');
   }
-  await unit.update({ status: 'inactive' });
+  // Ensure the submeter is not associated with any unit before hard deleting
+  const property = await Property.findByPk(unit.propertyId);
+  if (property && !property.isDeleted) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Cannot hard delete unit associated with a active property');
+  }
+
+  await unit.update({ status: 'inactive', isDeleted: true });
 };
 
 /**

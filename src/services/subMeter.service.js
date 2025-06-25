@@ -169,10 +169,10 @@ const updateSubmeter = async (submeterId, updateBody) => {
  */
 const deleteSubmeter = async (submeterId) => {
   const submeter = await getSubmeter(submeterId);
-  if (submeter.status === 'inactive') {
+  if (submeter.isDeleted) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Submeter is already inactive');
   }
-  await submeter.update({ status: 'inactive' });
+  await submeter.update({ status: 'inactive', isDeleted: true });
 };
 
 /**
@@ -182,6 +182,16 @@ const deleteSubmeter = async (submeterId) => {
  */
 const hardDeleteSubmeter = async (submeterId) => {
   const submeter = await getSubmeter(submeterId);
+  if (!submeter.isDeleted) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Submeter can not be deleted');
+  }
+
+  // Ensure the submeter is not associated with any unit before hard deleting
+  const unit = await Unit.findByPk(submeter.unitId);
+  if (unit && !unit.isDeleted) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Cannot hard delete submeter associated with a unit');
+  }
+
   await submeter.destroy();
 };
 

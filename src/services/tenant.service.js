@@ -176,10 +176,10 @@ const updateTenant = async (tenantId, updateBody) => {
  */
 const deleteTenant = async (tenantId) => {
   const tenant = await getTenantById(tenantId);
-  if (tenant.status === 'inactive') {
+  if (tenant.isDeleted) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Tenant is already inactive');
   }
-  await tenant.update({ status: 'inactive' });
+  await tenant.update({ status: 'inactive', isDeleted: true });
 };
 
 /**
