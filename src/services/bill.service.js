@@ -375,7 +375,7 @@ const getBillsByPropertyAndDateRange = async (propertyId, filter, options) => {
   // Include associations for printing
   const defaultInclude = [
     { model: Tenant, as: 'tenant', attributes: ['id', 'name'] },
-    { model: Unit, as: 'unit', attributes: ['id', 'name', 'address'] },
+    { model: Unit, as: 'unit', attributes: ['id', 'name'] },
   ];
   const include = options.forPrint ? defaultInclude : [...defaultInclude, ...(options.include || [])];
 
@@ -400,7 +400,6 @@ const getBillsByPropertyAndDateRange = async (propertyId, filter, options) => {
       totalAmountFormatted: bill.totalAmount.toFixed(2),
       tenantName: bill.tenant?.name || 'N/A',
       unitName: bill.unit?.name || 'N/A',
-      unitAddress: bill.unit?.address || 'N/A',
     };
   });
 

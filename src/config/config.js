@@ -47,7 +47,7 @@ module.exports = {
       password: envVars.DB_PASSWORD,
       host: envVars.DB_HOST,
       port: envVars.DB_PORT,
-      dialect: 'mysql',
+      dialect: 'mssql',
       timezone: '+06:00',
       pool: {
         max: 5,
