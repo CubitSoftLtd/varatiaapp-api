@@ -27,7 +27,6 @@ module.exports = (sequelize, DataTypes) => {
           model: 'units', // References the 'units' table
           key: 'id',
         },
-
         comment: 'ID of the unit to which this submeter is installed',
       },
       accountId: {

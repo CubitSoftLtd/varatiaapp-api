@@ -105,7 +105,6 @@ const getBillsByPropertyForPrint = catchAsync(async (req, res) => {
   const { propertyId } = req.params;
   const filter = pick(req.query, ['startDate', 'endDate']);
   const options = pick(req.query, ['sortBy', 'limit', 'page']);
-  const { deleted } = req.query;
 
   // Restrict non-super admins to their own account
   if (req.user.role !== 'super_admin') {
@@ -115,7 +114,7 @@ const getBillsByPropertyForPrint = catchAsync(async (req, res) => {
   // Set forPrint flag
   options.forPrint = true;
 
-  const result = await billService.getBillsByPropertyAndDateRange(propertyId, filter, options, deleted);
+  const result = await billService.getBillsByPropertyAndDateRange(propertyId, filter, options);
   res.status(httpStatus.OK).send(result);
 });
 
@@ -128,13 +127,12 @@ const getBillsByPropertyAndDateRange = catchAsync(async (req, res) => {
   const { propertyId } = req.params;
   const filter = pick(req.query, ['startDate', 'endDate']);
   const options = pick(req.query, ['sortBy', 'limit', 'page', 'include']);
-  const { deleted } = req.query;
 
   if (req.user.role !== 'super_admin') {
     filter.accountId = req.user.accountId;
   }
 
-  const result = await billService.getBillsByPropertyAndDateRange(propertyId, filter, options, deleted);
+  const result = await billService.getBillsByPropertyAndDateRange(propertyId, filter, options);
   res.status(httpStatus.OK).send(result);
 });
 

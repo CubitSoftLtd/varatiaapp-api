@@ -131,6 +131,7 @@ const createBill = async (billBody) => {
  * Query for all bills matching a filter
  * @param {Object} filter - Sequelize filter
  * @param {Object} options - { sortBy, limit, page, include? }
+ * @param {string} deleted - 'true', 'false', or 'all'
  * @returns {Promise<{ results: Bill[], page: number, limit: number, totalPages: number, totalResults: number }>}
  */
 const getAllBills = async (filter, options, deleted = 'false') => {
@@ -337,10 +338,9 @@ const hardDeleteBill = async (id) => {
  * @param {string} propertyId - Property UUID
  * @param {Object} filter - { startDate, endDate, accountId? }
  * @param {Object} options - { sortBy, limit, page, include?, forPrint? }
- * @param {string} deleted - 'true', 'false', or 'all'
  * @returns {Promise<{ results: Bill[], page: number, limit: number, totalPages: number, totalResults: number }>}
  */
-const getBillsByPropertyAndDateRange = async (propertyId, filter, options, deleted = 'false') => {
+const getBillsByPropertyAndDateRange = async (propertyId, filter, options) => {
   // Validate property exists
   const property = await Property.findByPk(propertyId);
   if (!property) throw new ApiError(httpStatus.NOT_FOUND, `Property not found: ${propertyId}`);
@@ -353,11 +353,6 @@ const getBillsByPropertyAndDateRange = async (propertyId, filter, options, delet
 
   // Apply accountId filter if provided
   if (filter.accountId) whereClause.accountId = filter.accountId;
-
-  // Apply isDeleted filter
-  if (deleted === 'true') whereClause.isDeleted = true;
-  else if (deleted === 'false') whereClause.isDeleted = false;
-  else if (deleted !== 'all') throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid deleted parameter');
 
   // Get unit IDs for the property
   const units = await Unit.findAll({ where: { propertyId }, attributes: ['id'] });
@@ -386,7 +381,7 @@ const getBillsByPropertyAndDateRange = async (propertyId, filter, options, delet
 
   // Query bills
   const { count, rows } = await Bill.findAndCountAll({
-    where: whereClause,
+    where: { ...whereClause, isDeleted: false },
     limit,
     offset,
     order: sort,

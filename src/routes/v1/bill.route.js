@@ -418,13 +418,6 @@ const router = express.Router();
  *           format: date
  *         description: End date of the billing period range (e.g., 2025-06-30)
  *       - in: query
- *         name: deleted
- *         schema:
- *           type: string
- *           enum: [true, false, all]
- *           default: false
- *         description: Filter bills by deletion status
- *       - in: query
  *         name: sortBy
  *         schema:
  *           type: string
@@ -518,13 +511,6 @@ const router = express.Router();
  *           type: string
  *           format: date
  *         description: End date of the billing period range (e.g., 2025-06-30)
- *       - in: query
- *         name: deleted
- *         schema:
- *           type: string
- *           enum: [true, false, all]
- *           default: false
- *         description: Filter bills by deletion status
  *       - in: query
  *         name: sortBy
  *         schema:

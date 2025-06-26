@@ -248,10 +248,6 @@ const getBillsByPropertyAndDateRange = {
       'date.base': 'End date must be a valid date',
       'any.required': 'End date is required',
     }),
-    deleted: Joi.string().valid('true', 'false', 'all').default('false').messages({
-      'string.base': 'Deleted must be a string',
-      'any.only': 'Deleted must be one of "true", "false", or "all"',
-    }),
     sortBy: Joi.string()
       .pattern(/^[a-zA-Z]+:(asc|desc)$/)
       .messages({
@@ -290,10 +286,6 @@ const getBillsByPropertyForPrint = {
     endDate: Joi.date().required().messages({
       'date.base': 'End date must be a valid date',
       'any.required': 'End date is required',
-    }),
-    deleted: Joi.string().valid('true', 'false', 'all').default('false').messages({
-      'string.base': 'Deleted must be a string',
-      'any.only': 'Deleted must be one of "true", "false", or "all"',
     }),
     sortBy: Joi.string()
       .pattern(/^[a-zA-Z]+:(asc|desc)$/)

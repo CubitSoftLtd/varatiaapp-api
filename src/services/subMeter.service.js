@@ -172,6 +172,7 @@ const deleteSubmeter = async (submeterId) => {
   if (submeter.isDeleted) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Submeter is already inactive');
   }
+
   await submeter.update({ status: 'inactive', isDeleted: true });
 };
 
