@@ -358,14 +358,14 @@ const router = express.Router();
 
 router
   .route('/')
-  .post(auth(), validate(expenseValidation.createExpense), expenseController.createExpense)
-  .get(auth(), validate(expenseValidation.getExpenses), expenseController.getExpenses);
+  .post(auth('expense:management'), validate(expenseValidation.createExpense), expenseController.createExpense)
+  .get(auth('expense:management'), validate(expenseValidation.getExpenses), expenseController.getExpenses);
 
 router
   .route('/:id')
-  .get(auth(), validate(expenseValidation.getExpense), expenseController.getExpenseById)
-  .patch(auth(), validate(expenseValidation.updateExpense), expenseController.updateExpenseById)
-  .delete(auth(), validate(expenseValidation.deleteExpense), expenseController.deleteExpenseById);
+  .get(auth('expense:management'), validate(expenseValidation.getExpense), expenseController.getExpenseById)
+  .patch(auth('expense:management'), validate(expenseValidation.updateExpense), expenseController.updateExpenseById)
+  .delete(auth('expense:management'), validate(expenseValidation.deleteExpense), expenseController.deleteExpenseById);
 
 router.route('/:id/hard').delete(auth(), validate(expenseValidation.deleteExpense), expenseController.hardDeleteExpenseById);
 

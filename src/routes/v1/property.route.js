@@ -333,17 +333,21 @@ const router = express.Router();
 
 router
   .route('/')
-  .post(auth(), validate(propertyValidation.createProperty), propertyController.createProperty)
-  .get(auth(), validate(propertyValidation.getProperties), propertyController.getProperties);
+  .post(auth('property:management'), validate(propertyValidation.createProperty), propertyController.createProperty)
+  .get(auth('property:management'), validate(propertyValidation.getProperties), propertyController.getProperties);
 
 router
   .route('/:id')
-  .get(auth(), validate(propertyValidation.getProperty), propertyController.getPropertyById)
-  .patch(auth(), validate(propertyValidation.updateProperty), propertyController.updatePropertyById)
-  .delete(auth(), validate(propertyValidation.deleteProperty), propertyController.deletePropertyById);
+  .get(auth('property:management'), validate(propertyValidation.getProperty), propertyController.getPropertyById)
+  .patch(auth('property:management'), validate(propertyValidation.updateProperty), propertyController.updatePropertyById)
+  .delete(auth('property:management'), validate(propertyValidation.deleteProperty), propertyController.deletePropertyById);
 
 router
   .route('/:id/hard')
-  .delete(auth(), validate(propertyValidation.deleteProperty), propertyController.hardDeletePropertyById);
+  .delete(
+    auth('property:management'),
+    validate(propertyValidation.deleteProperty),
+    propertyController.hardDeletePropertyById
+  );
 
 module.exports = router;

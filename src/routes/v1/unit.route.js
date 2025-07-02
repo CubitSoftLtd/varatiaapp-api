@@ -334,14 +334,14 @@ const router = express.Router();
 
 router
   .route('/')
-  .post(auth(), validate(unitValidation.createUnit), unitController.createUnit)
-  .get(auth(), validate(unitValidation.getUnits), unitController.getUnits);
+  .post(auth('unit:management'), validate(unitValidation.createUnit), unitController.createUnit)
+  .get(auth('unit:management'), validate(unitValidation.getUnits), unitController.getUnits);
 
 router
   .route('/:id')
-  .get(auth(), validate(unitValidation.getUnit), unitController.getUnitById)
-  .patch(auth(), validate(unitValidation.updateUnit), unitController.updateUnitById)
-  .delete(auth(), validate(unitValidation.deleteUnit), unitController.deleteUnitById);
+  .get(auth('unit:management'), validate(unitValidation.getUnit), unitController.getUnitById)
+  .patch(auth('unit:management'), validate(unitValidation.updateUnit), unitController.updateUnitById)
+  .delete(auth('unit:management'), validate(unitValidation.deleteUnit), unitController.deleteUnitById);
 
 router.route('/:id/hard').delete(auth(), validate(unitValidation.deleteUnit), unitController.hardDeleteUnitById);
 

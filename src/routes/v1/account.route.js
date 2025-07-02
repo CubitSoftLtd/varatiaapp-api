@@ -343,14 +343,14 @@ const router = express.Router();
 
 router
   .route('/')
-  .post(auth(), validate(accountValidation.createAccount), accountController.createAccount)
-  .get(auth(), validate(accountValidation.getAccounts), accountController.getAccounts);
+  .post(auth('account:management'), validate(accountValidation.createAccount), accountController.createAccount)
+  .get(auth('account:management'), validate(accountValidation.getAccounts), accountController.getAccounts);
 
 router
   .route('/:id')
-  .get(auth(), validate(accountValidation.getAccount), accountController.getAccountById)
-  .patch(auth(), validate(accountValidation.updateAccount), accountController.updateAccountById)
-  .delete(auth(), validate(accountValidation.deleteAccount), accountController.deleteAccountById);
+  .get(auth('account:management'), validate(accountValidation.getAccount), accountController.getAccountById)
+  .patch(auth('account:management'), validate(accountValidation.updateAccount), accountController.updateAccountById)
+  .delete(auth('account:management'), validate(accountValidation.deleteAccount), accountController.deleteAccountById);
 
 router.route('/:id/hard').delete(auth(), validate(accountValidation.deleteAccount), accountController.hardDeleteAccountById);
 

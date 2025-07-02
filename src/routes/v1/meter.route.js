@@ -349,14 +349,14 @@ const router = express.Router();
 
 router
   .route('/')
-  .post(auth(), validate(meterValidation.createMeter), meterController.createMeter)
-  .get(auth(), validate(meterValidation.getMeters), meterController.getMeters);
+  .post(auth('meter:management'), validate(meterValidation.createMeter), meterController.createMeter)
+  .get(auth('meter:management'), validate(meterValidation.getMeters), meterController.getMeters);
 
 router
   .route('/:id')
-  .get(auth(), validate(meterValidation.getMeter), meterController.getMeterById)
-  .patch(auth(), validate(meterValidation.updateMeter), meterController.updateMeterById)
-  .delete(auth(), validate(meterValidation.deleteMeter), meterController.deleteMeterById);
+  .get(auth('meter:management'), validate(meterValidation.getMeter), meterController.getMeterById)
+  .patch(auth('meter:management'), validate(meterValidation.updateMeter), meterController.updateMeterById)
+  .delete(auth('meter:management'), validate(meterValidation.deleteMeter), meterController.deleteMeterById);
 
 router.route('/:id/hard').delete(auth(), validate(meterValidation.deleteMeter), meterController.hardDeleteMeterById);
 

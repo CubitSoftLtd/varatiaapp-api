@@ -246,13 +246,13 @@ const router = express.Router();
 
 router
   .route('/')
-  .post(auth(), validate(userValidation.createUser), userController.createUser)
-  .get(auth(), validate(userValidation.getUsers), userController.getUsers);
+  .post(auth('user:management'), validate(userValidation.createUser), userController.createUser)
+  .get(auth('user:management'), validate(userValidation.getUsers), userController.getUsers);
 
 router
   .route('/:userId')
-  .get(auth(), validate(userValidation.getUser), userController.getUser)
-  .patch(auth(), validate(userValidation.updateUser), userController.updateUser)
-  .delete(auth(), validate(userValidation.deleteUser), userController.deleteUser);
+  .get(auth('user:management'), validate(userValidation.getUser), userController.getUser)
+  .patch(auth('user:management'), validate(userValidation.updateUser), userController.updateUser)
+  .delete(auth('user:management'), validate(userValidation.deleteUser), userController.deleteUser);
 
 module.exports = router;

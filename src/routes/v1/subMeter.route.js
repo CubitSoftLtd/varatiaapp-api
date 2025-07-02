@@ -327,17 +327,21 @@ const router = express.Router();
 
 router
   .route('/')
-  .post(auth(), validate(submeterValidation.createSubmeter), submeterController.createSubmeter)
-  .get(auth(), validate(submeterValidation.getSubmeters), submeterController.getSubmeters);
+  .post(auth('sub_meter:management'), validate(submeterValidation.createSubmeter), submeterController.createSubmeter)
+  .get(auth('sub_meter:management'), validate(submeterValidation.getSubmeters), submeterController.getSubmeters);
 
 router
   .route('/:id')
-  .get(auth(), validate(submeterValidation.getSubmeter), submeterController.getSubmeterById)
-  .patch(auth(), validate(submeterValidation.updateSubmeter), submeterController.updateSubmeterById)
-  .delete(auth(), validate(submeterValidation.deleteSubmeter), submeterController.deleteSubmeterById);
+  .get(auth('sub_meter:management'), validate(submeterValidation.getSubmeter), submeterController.getSubmeterById)
+  .patch(auth('sub_meter:management'), validate(submeterValidation.updateSubmeter), submeterController.updateSubmeterById)
+  .delete(auth('sub_meter:management'), validate(submeterValidation.deleteSubmeter), submeterController.deleteSubmeterById);
 
 router
   .route('/:id/hard')
-  .delete(auth(), validate(submeterValidation.deleteSubmeter), submeterController.hardDeleteSubmeterById);
+  .delete(
+    auth('sub_meter:management'),
+    validate(submeterValidation.deleteSubmeter),
+    submeterController.hardDeleteSubmeterById
+  );
 
 module.exports = router;

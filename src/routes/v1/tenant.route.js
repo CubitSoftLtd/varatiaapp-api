@@ -550,16 +550,18 @@ const router = express.Router();
 
 router
   .route('/')
-  .post(auth(), validate(tenantValidation.createTenant), tenantController.createTenant)
-  .get(auth(), validate(tenantValidation.getTenants), tenantController.getTenants);
+  .post(auth('tenant:tenant_create'), validate(tenantValidation.createTenant), tenantController.createTenant)
+  .get(auth('tenant:view_all', 'tenant:view_own'), validate(tenantValidation.getTenants), tenantController.getTenants);
 
 router
   .route('/:id')
-  .get(auth(), validate(tenantValidation.getTenant), tenantController.getTenantById)
-  .patch(auth(), validate(tenantValidation.updateTenant), tenantController.updateTenantById)
-  .delete(auth(), validate(tenantValidation.deleteTenant), tenantController.deleteTenantById);
+  .get(auth('tenant:view_all', 'tenant:view_own'), validate(tenantValidation.getTenant), tenantController.getTenantById)
+  .patch(auth('tenant:tenant_update'), validate(tenantValidation.updateTenant), tenantController.updateTenantById)
+  .delete(auth('tenant:delete'), validate(tenantValidation.deleteTenant), tenantController.deleteTenantById);
 
-router.route('/:id/hard').delete(auth(), validate(tenantValidation.deleteTenant), tenantController.hardDeleteTenantById);
+router
+  .route('/:id/hard')
+  .delete(auth('tenant:hard_delete'), validate(tenantValidation.deleteTenant), tenantController.hardDeleteTenantById);
 
 router
   .route('/property/:propertyId/unit/:unitId')

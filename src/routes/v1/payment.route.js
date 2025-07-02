@@ -389,16 +389,22 @@ const router = express.Router({ mergeParams: true }); // mergeParams to inherit 
 
 router
   .route('/')
-  .post(auth(), validate(paymentValidation.createPayment), paymentController.createPayment)
-  .get(auth(), validate(paymentValidation.getPayments), paymentController.getPayments)
-  .get(auth(), validate(paymentValidation.getPaymentsByBillId), paymentController.getPaymentsByBillId);
+  .post(auth('payment:create'), validate(paymentValidation.createPayment), paymentController.createPayment)
+  .get(auth('payment:view', 'payment:view_own'), validate(paymentValidation.getPayments), paymentController.getPayments)
+  .get(
+    auth('payment:view', 'payment:view_own'),
+    validate(paymentValidation.getPaymentsByBillId),
+    paymentController.getPaymentsByBillId
+  );
 
 router
   .route('/:id')
-  .get(auth(), validate(paymentValidation.getPayment), paymentController.getPaymentById)
-  .patch(auth(), validate(paymentValidation.updatePayment), paymentController.updatePaymentById)
-  .delete(auth(), validate(paymentValidation.deletePayment), paymentController.deletePaymentById);
+  .get(auth('payment:view', 'payment:view_own'), validate(paymentValidation.getPayment), paymentController.getPaymentById)
+  .patch(auth('payment:update'), validate(paymentValidation.updatePayment), paymentController.updatePaymentById)
+  .delete(auth('payment:delete'), validate(paymentValidation.deletePayment), paymentController.deletePaymentById);
 
-router.route('/:id/hard').delete(auth(), validate(paymentValidation.deletePayment), paymentController.hardDeletePaymentById);
+router
+  .route('/:id/hard')
+  .delete(auth('payment:hard_delete'), validate(paymentValidation.deletePayment), paymentController.hardDeletePaymentById);
 
 module.exports = router;

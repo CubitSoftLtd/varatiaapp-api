@@ -8,11 +8,11 @@ const getFinancialReport = async (filter) => {
   if (endDate) where.createdAt = { [Op.lte]: new Date(endDate) };
   if (propertyId) where.propertyId = propertyId;
 
-  const totalRevenue = (await Payment.sum('amount', { where })) || 0;
+  const totalRevenue = (await Payment.sum('amountPaid', { where })) || 0;
   const totalExpenses = (await Expense.sum('amount', { where })) || 0;
   const outstandingPayments =
-    (await Bill.sum('amount', {
-      where: { status: 'pending', ...where },
+    (await Bill.sum('totalAmount', {
+      where: { paymentStatus: 'pending', ...where },
     })) || 0;
 
   return {
@@ -32,23 +32,23 @@ const getTenantActivityReport = async (filter) => {
   if (tenantId) where.tenantId = tenantId;
   if (unitId) where.unitId = unitId;
 
-  const leases = await Lease.findAll({ where });
-  const payments = await Payment.findAll({ where });
-  const maintenanceRequests = await MaintenanceRequest.findAll({ where });
+  const leases = await Lease?.findAll({ where });
+  const payments = await Payment?.findAll({ where });
+  const maintenanceRequests = await MaintenanceRequest?.findAll({ where });
 
   return {
-    leases: leases.map((l) => ({
+    leases: leases?.map((l) => ({
       id: l.id,
       status: l.status,
       startDate: l.startDate,
       endDate: l.endDate,
     })),
-    payments: payments.map((p) => ({
+    payments: payments?.map((p) => ({
       id: p.id,
       amount: p.amount,
       paymentDate: p.paymentDate,
     })),
-    maintenanceRequests: maintenanceRequests.map((m) => ({
+    maintenanceRequests: maintenanceRequests?.map((m) => ({
       id: m.id,
       description: m.description,
       status: m.status,

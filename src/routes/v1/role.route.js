@@ -86,6 +86,6 @@ router.route('/').get(auth('role:management'), validate(roleValidation.getRoles)
  *         $ref: '#/components/responses/NotFound'
  */
 
-router.route('/me/permissions').get(auth(), roleController.getMyPermissions);
+router.route('/me/permissions').get(auth('role:management'), roleController.getMyPermissions);
 
 module.exports = router;
