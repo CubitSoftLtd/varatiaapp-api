@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 const express = require('express');
 const auth = require('../../middlewares/auth');
 const validate = require('../../middlewares/validate');
@@ -329,6 +330,32 @@ const router = express.Router();
  *         $ref: '#/components/responses/Forbidden'
  *       "404":
  *         $ref: '#/components/responses/NotFound'
+ * /properties/{id}/restore:
+ *   delete:
+ *     summary: Restore a property by ID
+ *     description: |
+ *       Restore the property and its associated data. Only admins can perform a restore.
+ *       Last updated: June 11, 2025, 11:07 AM +06.
+ *     tags: [Properties]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Property ID
+ *     responses:
+ *       "204":
+ *         description: No content
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
+ *       "404":
+ *         $ref: '#/components/responses/NotFound'
  */
 
 router
@@ -348,6 +375,13 @@ router
     auth('property:management'),
     validate(propertyValidation.deleteProperty),
     propertyController.hardDeletePropertyById
+  );
+router
+  .route('/:id/restore')
+  .delete(
+    auth('property:management'),
+    validate(propertyValidation.deleteProperty),
+    propertyController.restorePropertyById
   );
 
 module.exports = router;

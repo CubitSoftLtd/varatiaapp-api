@@ -314,6 +314,32 @@ const router = express.Router();
  *         $ref: '#/components/responses/Forbidden'
  *       "404":
  *         $ref: '#/components/responses/NotFound'
+ * /meter-readings/{id}/restore:
+ *   delete:
+ *     summary: Restore a meter reading by ID
+ *     description: |
+ *       Only admins can restore.
+ *       Last updated: Thursday, June 12, 2025, 12:21 PM +06.
+ *     tags: [MeterReadings]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Meter reading ID
+ *     responses:
+ *       "204":
+ *         description: No content
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
+ *       "404":
+ *         $ref: '#/components/responses/NotFound'
  *
  * /meter-readings/calculate-consumption:
  *   post:
@@ -384,6 +410,10 @@ router
 router
   .route('/:id/hard')
   .delete(auth(), validate(meterReadingValidation.deleteMeterReading), meterReadingController.hardDeleteMeterReadingById);
+
+router
+  .route('/:id/restore')
+  .delete(auth(), validate(meterReadingValidation.deleteMeterReading), meterReadingController.restoreMeterReadingById);
 
 router
   .route('/calculate-consumption')

@@ -81,6 +81,10 @@ const deleteExpenseById = catchAsync(async (req, res) => {
   await expenseService.deleteExpense(req.params.id);
   res.status(httpStatus.NO_CONTENT).send();
 });
+const restoreExpenseById = catchAsync(async (req, res) => {
+  await expenseService.restoreExpense(req.params.id);
+  res.status(httpStatus.NO_CONTENT).send();
+});
 
 const hardDeleteExpenseById = catchAsync(async (req, res) => {
   await expenseService.hardDeleteExpense(req.params.id);
@@ -93,5 +97,6 @@ module.exports = {
   getExpenseById,
   updateExpenseById,
   deleteExpenseById,
+  restoreExpenseById,
   hardDeleteExpenseById,
 };

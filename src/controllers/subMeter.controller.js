@@ -89,6 +89,10 @@ const deleteSubmeterById = catchAsync(async (req, res) => {
   await subMeterService.deleteSubmeter(req.params.id);
   res.status(httpStatus.NO_CONTENT).send();
 });
+const restoreSubmeterById = catchAsync(async (req, res) => {
+  await subMeterService.restoreSubmeter(req.params.id);
+  res.status(httpStatus.NO_CONTENT).send();
+});
 
 const hardDeleteSubmeterById = catchAsync(async (req, res) => {
   await subMeterService.hardDeleteSubmeter(req.params.id);
@@ -101,5 +105,6 @@ module.exports = {
   getSubmeterById,
   updateSubmeterById,
   deleteSubmeterById,
+  restoreSubmeterById,
   hardDeleteSubmeterById,
 };

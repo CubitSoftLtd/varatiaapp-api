@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 const express = require('express');
 const auth = require('../../middlewares/auth');
 const validate = require('../../middlewares/validate');
@@ -347,6 +348,32 @@ const router = express.Router({ mergeParams: true }); // mergeParams to inherit 
  *         $ref: '#/components/responses/Forbidden'
  *       "404":
  *         $ref: '#/components/responses/NotFound'
+ * /payments/{id}/restore:
+ *   delete:
+ *     summary: Restore a payment by ID
+ *     description: |
+ *       Restore the payment. Only admins can perform a Restore.
+ *       Last updated: June 11, 2025, 12:34 PM +06.
+ *     tags: [Payments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Payment ID
+ *     responses:
+ *       "204":
+ *         description: No content
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
+ *       "404":
+ *         $ref: '#/components/responses/NotFound'
  *
  * /bills/{billId}/payments:
  *   get:
@@ -390,21 +417,24 @@ const router = express.Router({ mergeParams: true }); // mergeParams to inherit 
 router
   .route('/')
   .post(auth('payment:create'), validate(paymentValidation.createPayment), paymentController.createPayment)
-  .get(auth('payment:view', 'payment:view_own'), validate(paymentValidation.getPayments), paymentController.getPayments)
+  .get(auth('payment:view_all'), validate(paymentValidation.getPayments), paymentController.getPayments)
   .get(
-    auth('payment:view', 'payment:view_own'),
+    auth('payment:view'),
     validate(paymentValidation.getPaymentsByBillId),
     paymentController.getPaymentsByBillId
   );
 
 router
   .route('/:id')
-  .get(auth('payment:view', 'payment:view_own'), validate(paymentValidation.getPayment), paymentController.getPaymentById)
+  .get(auth('payment:view'), validate(paymentValidation.getPayment), paymentController.getPaymentById)
   .patch(auth('payment:update'), validate(paymentValidation.updatePayment), paymentController.updatePaymentById)
   .delete(auth('payment:delete'), validate(paymentValidation.deletePayment), paymentController.deletePaymentById);
 
 router
   .route('/:id/hard')
   .delete(auth('payment:hard_delete'), validate(paymentValidation.deletePayment), paymentController.hardDeletePaymentById);
+router
+  .route('/:id/restore')
+  .delete(auth('payment:restore'), validate(paymentValidation.deletePayment), paymentController.restorePaymentById);
 
 module.exports = router;

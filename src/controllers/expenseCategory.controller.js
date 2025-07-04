@@ -88,6 +88,10 @@ const deleteExpenseCategoryById = catchAsync(async (req, res) => {
   await expenseCategoryService.deleteExpenseCategory(req.params.id);
   res.status(httpStatus.NO_CONTENT).send();
 });
+const restoreExpenseCategoryById = catchAsync(async (req, res) => {
+  await expenseCategoryService.restoreExpenseCategory(req.params.id);
+  res.status(httpStatus.NO_CONTENT).send();
+});
 
 const hardDeleteExpenseCategoryById = catchAsync(async (req, res) => {
   await expenseCategoryService.hardDeleteExpenseCategory(req.params.id);
@@ -100,5 +104,6 @@ module.exports = {
   getExpenseCategoryById,
   updateExpenseCategoryById,
   deleteExpenseCategoryById,
+  restoreExpenseCategoryById,
   hardDeleteExpenseCategoryById,
 };

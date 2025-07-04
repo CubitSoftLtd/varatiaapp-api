@@ -439,6 +439,32 @@ const router = express.Router();
  *         $ref: '#/components/responses/Forbidden'
  *       "404":
  *         $ref: '#/components/responses/NotFound'
+ * /tenants/{id}/restore:
+ *   delete:
+ *     summary: Restore a tenant by ID
+ *     description: |
+ *       Restore the tenant. Only admins can perform a Restore.
+ *       Last updated: June 11, 2025, 11:11 AM +06.
+ *     tags: [Tenants]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Tenant ID
+ *     responses:
+ *       "204":
+ *         description: No content
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
+ *       "404":
+ *         $ref: '#/components/responses/NotFound'
  *
  * /tenants/property/{propertyId}/unit/{unitId}:
  *   get:
@@ -551,17 +577,20 @@ const router = express.Router();
 router
   .route('/')
   .post(auth('tenant:tenant_create'), validate(tenantValidation.createTenant), tenantController.createTenant)
-  .get(auth('tenant:view_all', 'tenant:view_own'), validate(tenantValidation.getTenants), tenantController.getTenants);
+  .get(auth('tenant:view_all'), validate(tenantValidation.getTenants), tenantController.getTenants);
 
 router
   .route('/:id')
-  .get(auth('tenant:view_all', 'tenant:view_own'), validate(tenantValidation.getTenant), tenantController.getTenantById)
+  .get(auth('tenant:view'), validate(tenantValidation.getTenant), tenantController.getTenantById)
   .patch(auth('tenant:tenant_update'), validate(tenantValidation.updateTenant), tenantController.updateTenantById)
   .delete(auth('tenant:delete'), validate(tenantValidation.deleteTenant), tenantController.deleteTenantById);
 
 router
   .route('/:id/hard')
   .delete(auth('tenant:hard_delete'), validate(tenantValidation.deleteTenant), tenantController.hardDeleteTenantById);
+router
+  .route('/:id/restore')
+  .delete(auth('tenant:restore'), validate(tenantValidation.deleteTenant), tenantController.restoreTenantById);
 
 router
   .route('/property/:propertyId/unit/:unitId')

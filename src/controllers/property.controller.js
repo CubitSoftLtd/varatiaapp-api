@@ -77,6 +77,10 @@ const deletePropertyById = catchAsync(async (req, res) => {
   await propertyService.deleteProperty(req.params.id);
   res.status(httpStatus.NO_CONTENT).send();
 });
+const restorePropertyById = catchAsync(async (req, res) => {
+  await propertyService.restoreProperty(req.params.id);
+  res.status(httpStatus.NO_CONTENT).send();
+});
 
 const hardDeletePropertyById = catchAsync(async (req, res) => {
   await propertyService.hardDeleteProperty(req.params.id);
@@ -89,5 +93,6 @@ module.exports = {
   getPropertyById,
   updatePropertyById,
   deletePropertyById,
+  restorePropertyById,
   hardDeletePropertyById,
 };

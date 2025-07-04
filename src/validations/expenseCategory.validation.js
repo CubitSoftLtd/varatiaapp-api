@@ -132,6 +132,18 @@ const deleteExpenseCategory = {
       }),
   }),
 };
+const restoreExpenseCategory = {
+  params: Joi.object().keys({
+    id: Joi.string()
+      .uuid({ version: ['uuidv4'] })
+      .required()
+      .messages({
+        'string.base': 'ID must be a string',
+        'string.empty': 'ID is required',
+        'string.uuid': 'ID must be a valid UUID',
+      }),
+  }),
+};
 
 const deleteHardExpenseCategory = {
   params: Joi.object().keys({
@@ -152,5 +164,6 @@ module.exports = {
   getExpenseCategory,
   updateExpenseCategory,
   deleteExpenseCategory,
+  restoreExpenseCategory,
   deleteHardExpenseCategory,
 };

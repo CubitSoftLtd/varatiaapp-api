@@ -3,24 +3,28 @@ const allRoles = {
     // Bill permissions
     'bill:create',
     'bill:view',
-    'bill:view_own', // Included for completeness
+    'bill:view_all',
     'bill:update',
     'bill:delete',
     'bill:hard_delete',
+    'bill:restore',
     // Payment permissions
     'payment:create',
     'payment:view',
-    'payment:view_own', // Included for completeness
+    'payment:view_all',
     'payment:update',
     'payment:delete',
     'payment:hard_delete',
+    'payment:restore',
+
     // Tenant permissions
     'tenant:tenant_create',
     'tenant:view_all',
-    'tenant:view_own', // Included for completeness
+    'tenant:view', // Included for completeness
     'tenant:tenant_update',
     'tenant:delete',
     'tenant:hard_delete',
+    'tenant:restore',
 
     // Unit permissions
     'unit:management',
@@ -48,12 +52,14 @@ const allRoles = {
     // Bill permissions
     'bill:create',
     'bill:view',
+    'bill:view_all',
     'bill:amount_update',
     'bill:delete',
     'bill:hard_delete',
     // Payment permissions
     'payment:payment_create',
     'payment:view_all',
+    'payment:view',
     'payment:payment_update',
     'payment:ddelete',
     'payment:hard_ddelete',
@@ -88,10 +94,10 @@ const allRoles = {
   ],
   tenant: [
     // Scoped permissions
-    'bill:view_own',
-    'payment:view_own',
+    // 'bill:view_own',
+    // 'payment:view_own',
     'payment:payment_create', // Tenants can submit payments for their bills
-    'tenant:view_own',
+    // 'tenant:view_own',
     'role:management',
   ],
 };

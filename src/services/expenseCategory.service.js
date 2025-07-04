@@ -162,6 +162,17 @@ const deleteExpenseCategory = async (categoryId) => {
   }
   await category.update({ isDeleted: true });
 };
+const restoreExpenseCategory = async (categoryId) => {
+  const category = await getExpenseCategoryById(categoryId);
+  if (!category.isDeleted) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Expense category is already restore');
+  }
+  const expenses = await Expense.findAll({ where: { categoryId } });
+  if (expenses.length > 0) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Cannot restore category with associated expenses');
+  }
+  await category.update({ isDeleted: false });
+};
 
 /**
  * Hard delete an expense category by ID
@@ -183,5 +194,6 @@ module.exports = {
   getExpenseCategoryById,
   updateExpenseCategory,
   deleteExpenseCategory,
+  restoreExpenseCategory,
   hardDeleteExpenseCategory,
 };

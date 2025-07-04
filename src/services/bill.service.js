@@ -1,3 +1,4 @@
+/* eslint-disable spaced-comment */
 const httpStatus = require('http-status');
 const { Op } = require('sequelize'); // <--- ADD THIS LINE: Import Op for date range queries
 const { Bill, Account, Meter, Property, UtilityType, Unit, Tenant } = require('../models');
@@ -322,7 +323,14 @@ const deleteBill = async (id) => {
   }
   await bill.update({ isDeleted: true });
 };
-
+//restore
+const restoreBill = async (id) => {
+  const bill = await getBillById(id);
+  if (!bill.isDeleted) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Bill is already activated');
+  }
+  await bill.update({ isDeleted: false });
+};
 /**
  * Hard delete a bill by ID
  * @param {string} id - Bill UUID
@@ -419,6 +427,7 @@ module.exports = {
   getBillById,
   updateBill,
   deleteBill,
+  restoreBill,
   hardDeleteBill,
   getBillsByPropertyAndDateRange,
 };

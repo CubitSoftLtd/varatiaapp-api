@@ -287,6 +287,32 @@ const router = express.Router();
  *         $ref: '#/components/responses/Forbidden'
  *       "404":
  *         $ref: '#/components/responses/NotFound'
+ * /expense-categories/{id}/restore:
+ *   delete:
+ *     summary: Restore an expense category by ID
+ *     description: |
+ *       Restore the expense category. Only admins can perform a restore.
+ *       Last updated: June 11, 2025, 12:08 PM +06.
+ *     tags: [ExpenseCategories]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Expense category ID
+ *     responses:
+ *       "204":
+ *         description: No content
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
+ *       "404":
+ *         $ref: '#/components/responses/NotFound'
  */
 
 router
@@ -314,6 +340,13 @@ router
     auth(),
     validate(expenseCategoryValidation.deleteExpenseCategory),
     expenseCategoryController.hardDeleteExpenseCategoryById
+  );
+router
+  .route('/:id/restore')
+  .delete(
+    auth(),
+    validate(expenseCategoryValidation.restoreExpenseCategory),
+    expenseCategoryController.restoreExpenseCategoryById
   );
 
 module.exports = router;

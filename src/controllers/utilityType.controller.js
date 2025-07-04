@@ -88,6 +88,10 @@ const deleteUtilityTypeById = catchAsync(async (req, res) => {
   await utilityTypeService.deleteUtilityType(req.params.id);
   res.status(httpStatus.NO_CONTENT).send();
 });
+const restoreUtilityTypeById = catchAsync(async (req, res) => {
+  await utilityTypeService.restoreUtilityType(req.params.id);
+  res.status(httpStatus.NO_CONTENT).send();
+});
 
 const hardDeleteUtilityTypeById = catchAsync(async (req, res) => {
   await utilityTypeService.hardDeleteUtilityType(req.params.id);
@@ -100,5 +104,6 @@ module.exports = {
   getUtilityTypeById,
   updateUtilityTypeById,
   deleteUtilityTypeById,
+  restoreUtilityTypeById,
   hardDeleteUtilityTypeById,
 };

@@ -97,9 +97,9 @@ const getAccounts = {
     include: Joi.string().optional().messages({
       'string.base': 'Include must be a string',
     }), // Added include parameter
-    deleted: Joi.string().valid('true', 'false', 'all').optional().messages({
-      'string.base': 'Deleted must be a string',
-      'any.only': 'Deleted must be one of "true", "false", or "all"',
+    isActive: Joi.string().valid('true', 'false', 'all').optional().messages({
+      'string.base': 'isActive must be a string',
+      'any.only': 'isActive must be one of "true", "false", or "all"',
     }),
   }),
 };
@@ -170,6 +170,18 @@ const deleteAccount = {
       }),
   }),
 };
+const restoreAccount = {
+  params: Joi.object().keys({
+    id: Joi.string()
+      .uuid({ version: ['uuidv4'] })
+      .required()
+      .messages({
+        'string.base': 'ID must be a string',
+        'string.empty': 'ID is required',
+        'string.uuid': 'ID must be a valid UUID',
+      }),
+  }),
+};
 
 module.exports = {
   subscriptionTypes,
@@ -177,5 +189,6 @@ module.exports = {
   getAccounts,
   getAccount,
   updateAccount,
+  restoreAccount,
   deleteAccount,
 };

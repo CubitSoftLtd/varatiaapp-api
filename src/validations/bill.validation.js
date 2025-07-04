@@ -230,6 +230,11 @@ const deleteBill = {
     id: idSchema,
   }),
 };
+const restoreBill = {
+  params: Joi.object().keys({
+    id: idSchema,
+  }),
+};
 
 const getBillsByPropertyAndDateRange = {
   params: Joi.object().keys({
@@ -312,6 +317,7 @@ module.exports = {
   getBill,
   updateBill,
   deleteBill,
+  restoreBill,
   getBillsByPropertyAndDateRange,
   getBillsByPropertyForPrint,
 };

@@ -185,6 +185,18 @@ const deleteMeter = {
       }),
   }),
 };
+const restoreMeter = {
+  params: Joi.object().keys({
+    id: Joi.string()
+      .uuid({ version: ['uuidv4'] })
+      .required()
+      .messages({
+        'string.base': 'ID must be a string',
+        'string.empty': 'ID is required',
+        'string.uuid': 'ID must be a valid UUID',
+      }),
+  }),
+};
 
 const deleteHardMeter = {
   params: Joi.object().keys({
@@ -205,5 +217,6 @@ module.exports = {
   getMeter,
   updateMeter,
   deleteMeter,
+  restoreMeter,
   deleteHardMeter,
 };

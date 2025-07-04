@@ -96,6 +96,10 @@ const deletePaymentById = catchAsync(async (req, res) => {
   await paymentService.deletePayment(req.params.id);
   res.status(httpStatus.NO_CONTENT).send();
 });
+const restorePaymentById = catchAsync(async (req, res) => {
+  await paymentService.restorePayment(req.params.id);
+  res.status(httpStatus.NO_CONTENT).send();
+});
 
 const hardDeletePaymentById = catchAsync(async (req, res) => {
   await paymentService.hardDeletePayment(req.params.id);
@@ -109,5 +113,6 @@ module.exports = {
   getPaymentsByBillId,
   updatePaymentById,
   deletePaymentById,
+  restorePaymentById,
   hardDeletePaymentById,
 };

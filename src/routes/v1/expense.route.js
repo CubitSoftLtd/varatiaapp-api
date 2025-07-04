@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 const express = require('express');
 const auth = require('../../middlewares/auth');
 const validate = require('../../middlewares/validate');
@@ -354,6 +355,32 @@ const router = express.Router();
  *         $ref: '#/components/responses/Forbidden'
  *       "404":
  *         $ref: '#/components/responses/NotFound'
+ * /expenses/{id}/restore:
+ *   delete:
+ *     summary: Restore an expense by ID
+ *     description: |
+ *      Restore the expense. Only admins can perform a restore.
+ *       Last updated: June 11, 2025, 12:00 PM +06.
+ *     tags: [Expenses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Expense ID
+ *     responses:
+ *       "204":
+ *         description: No content
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
+ *       "404":
+ *         $ref: '#/components/responses/NotFound'
  */
 
 router
@@ -368,5 +395,6 @@ router
   .delete(auth('expense:management'), validate(expenseValidation.deleteExpense), expenseController.deleteExpenseById);
 
 router.route('/:id/hard').delete(auth(), validate(expenseValidation.deleteExpense), expenseController.hardDeleteExpenseById);
+router.route('/:id/restore').delete(auth(), validate(expenseValidation.restoreExpense), expenseController.restoreExpenseById);
 
 module.exports = router;

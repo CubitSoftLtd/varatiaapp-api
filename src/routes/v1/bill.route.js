@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 const express = require('express');
 const auth = require('../../middlewares/auth');
 const validate = require('../../middlewares/validate');
@@ -353,7 +354,33 @@ const router = express.Router();
  *         $ref: '#/components/responses/Forbidden'
  *       "404":
  *         $ref: '#/components/responses/NotFound'
- *
+ * 
+ * /bills/{id}/restore:
+ *   delete:
+ *     summary: Restore a bill by ID
+ *     description: |
+ *      Restore a bill. Only admins can perform a restore.
+ *       Last updated: June 15, 2025, 1:06 PM +06.
+ *     tags: [Bills]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Bill ID
+ *     responses:
+ *       "204":
+ *         description: No content
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
+ *       "404":
+ *         $ref: '#/components/responses/NotFound'
  * /bills/{id}/hard:
  *   delete:
  *     summary: Hard delete a bill by ID
@@ -605,15 +632,17 @@ const router = express.Router();
 router
   .route('/')
   .post(auth('bill:create'), validate(billValidation.createBill), billController.createBill)
-  .get(auth('bill:view', 'bill:view_own'), validate(billValidation.getBills), billController.getBills);
+  .get(auth('bill:view_all',), validate(billValidation.getBills), billController.getBills);
 
 router
   .route('/:id')
-  .get(auth('bill:view', 'bill:view_own'), validate(billValidation.getBill), billController.getBillById)
+  .get(auth('bill:view'), validate(billValidation.getBill), billController.getBillById)
   .patch(auth('bill:update'), validate(billValidation.updateBill), billController.updateBillById)
-  .delete(auth('bill:delete'), validate(billValidation.deleteBill), billController.deleteBillById);
+  .delete(auth('bill:delete'), validate(billValidation.deleteBill), billController.deleteBillById)
+  // .delete(auth('bill:delete'), validate(billValidation.restoreBill), billController.restoreBillById);
 
-router.route('/:id/hard').delete(auth(), validate(billValidation.deleteBill), billController.hardDeleteBillById);
+router.route('/:id/hard').delete(auth('bill:hard_delete'), validate(billValidation.deleteBill), billController.hardDeleteBillById);
+router.route('/:id/restore').delete(auth('bill:restore'), validate(billValidation.restoreBill), billController.restoreBillById);
 
 router
   .route('/property/:propertyId')
@@ -622,7 +651,7 @@ router
 router
   .route('/property/:propertyId/print')
   .get(
-    auth('bill:hard_delete'),
+    auth(),
     validate(billValidation.getBillsByPropertyForPrint),
     billController.getBillsByPropertyForPrint
   );

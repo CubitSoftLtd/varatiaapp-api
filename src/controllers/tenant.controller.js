@@ -72,6 +72,10 @@ const deleteTenantById = catchAsync(async (req, res) => {
   await tenantService.deleteTenant(req.params.id);
   res.status(httpStatus.NO_CONTENT).send();
 });
+const restoreTenantById = catchAsync(async (req, res) => {
+  await tenantService.restoreTenant(req.params.id);
+  res.status(httpStatus.NO_CONTENT).send();
+});
 
 const hardDeleteTenantById = catchAsync(async (req, res) => {
   await tenantService.hardDeleteTenant(req.params.id);
@@ -97,6 +101,7 @@ module.exports = {
   getTenantById,
   updateTenantById,
   deleteTenantById,
+  restoreTenantById,
   hardDeleteTenantById,
   getTenantsByUnitAndProperty,
   getHistoricalTenantsByUnit,

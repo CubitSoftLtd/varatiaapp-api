@@ -90,6 +90,10 @@ const deleteMeterById = catchAsync(async (req, res) => {
   await meterService.deleteMeter(req.params.id);
   res.status(httpStatus.NO_CONTENT).send();
 });
+const restoreMeterById = catchAsync(async (req, res) => {
+  await meterService.restoreMeter(req.params.id);
+  res.status(httpStatus.NO_CONTENT).send();
+});
 
 const hardDeleteMeterById = catchAsync(async (req, res) => {
   await meterService.hardDeleteMeter(req.params.id);
@@ -102,5 +106,6 @@ module.exports = {
   getMeterById,
   updateMeterById,
   deleteMeterById,
+  restoreMeterById,
   hardDeleteMeterById,
 };

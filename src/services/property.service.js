@@ -164,6 +164,14 @@ const deleteProperty = async (propertyId) => {
 
   await property.update({ isDeleted: true });
 };
+const restoreProperty = async (propertyId) => {
+  const property = await getPropertyById(propertyId);
+  if (!property.isDeleted) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Property is already activated');
+  }
+
+  await property.update({ isDeleted: false });
+};
 
 /**
  * Permanently delete property by id (hard delete)
@@ -181,5 +189,6 @@ module.exports = {
   getPropertyById,
   updateProperty,
   deleteProperty,
+  restoreProperty,
   hardDeleteProperty,
 };
