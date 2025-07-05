@@ -33,6 +33,7 @@ const allRoles = {
     // Meter/Submeter permissions
     'meter:management',
     'sub_meter:management',
+    'meter_reading:management',
     // Expense permissions
     'expense:management',
     // Expense Category permissions
@@ -47,6 +48,7 @@ const allRoles = {
     'utility_type:management',
     // Role management
     'role:management',
+    'role:permission',
   ],
   account_admin: [
     // Bill permissions
@@ -61,17 +63,14 @@ const allRoles = {
     'payment:view_all',
     'payment:view',
     'payment:payment_update',
-    'payment:ddelete',
+    'payment:delete',
     'payment:hard_ddelete',
     // Account permissions
     'account:management',
     // Read-only permissions for context
     'tenant:view_all',
-    'unit:view',
-    'meter:view',
-    'expense:view',
-    'property:view',
-    'role:management',
+    'expense:management',
+    'role:permission',
   ],
   property_manager: [
     // Tenant permissions
@@ -90,7 +89,7 @@ const allRoles = {
     // Read-only permissions for financial oversight
     'bill:view_all',
     'payment:view_all',
-    'role:management',
+    'role:permission',
   ],
   tenant: [
     // Scoped permissions
@@ -98,7 +97,7 @@ const allRoles = {
     // 'payment:view_own',
     'payment:payment_create', // Tenants can submit payments for their bills
     // 'tenant:view_own',
-    'role:management',
+    'role:permission',
   ],
 };
 

@@ -398,25 +398,57 @@ const router = express.Router();
 
 router
   .route('/')
-  .post(auth(), validate(meterReadingValidation.createMeterReading), meterReadingController.createMeterReading)
-  .get(auth(), validate(meterReadingValidation.getMeterReadings), meterReadingController.getMeterReadings);
+  .post(
+    auth('meter_reading:management'),
+    validate(meterReadingValidation.createMeterReading),
+    meterReadingController.createMeterReading
+  )
+  .get(
+    auth('meter_reading:management'),
+    validate(meterReadingValidation.getMeterReadings),
+    meterReadingController.getMeterReadings
+  );
 
 router
   .route('/:id')
-  .get(auth(), validate(meterReadingValidation.getMeterReading), meterReadingController.getMeterReadingById)
-  .patch(auth(), validate(meterReadingValidation.updateMeterReading), meterReadingController.updateMeterReadingById)
-  .delete(auth(), validate(meterReadingValidation.deleteMeterReading), meterReadingController.deleteMeterReadingById);
+  .get(
+    auth('meter_reading:management'),
+    validate(meterReadingValidation.getMeterReading),
+    meterReadingController.getMeterReadingById
+  )
+  .patch(
+    auth('meter_reading:management'),
+    validate(meterReadingValidation.updateMeterReading),
+    meterReadingController.updateMeterReadingById
+  )
+  .delete(
+    auth('meter_reading:management'),
+    validate(meterReadingValidation.deleteMeterReading),
+    meterReadingController.deleteMeterReadingById
+  );
 
 router
   .route('/:id/hard')
-  .delete(auth(), validate(meterReadingValidation.deleteMeterReading), meterReadingController.hardDeleteMeterReadingById);
+  .delete(
+    auth('meter_reading:management'),
+    validate(meterReadingValidation.deleteMeterReading),
+    meterReadingController.hardDeleteMeterReadingById
+  );
 
 router
   .route('/:id/restore')
-  .delete(auth(), validate(meterReadingValidation.deleteMeterReading), meterReadingController.restoreMeterReadingById);
+  .delete(
+    auth('meter_reading:management'),
+    validate(meterReadingValidation.deleteMeterReading),
+    meterReadingController.restoreMeterReadingById
+  );
 
 router
   .route('/calculate-consumption')
-  .post(auth(), validate(meterReadingValidation.calculateConsumption), meterReadingController.calculateConsumption);
+  .post(
+    auth('meter_reading:management'),
+    validate(meterReadingValidation.calculateConsumption),
+    meterReadingController.calculateConsumption
+  );
 
 module.exports = router;
