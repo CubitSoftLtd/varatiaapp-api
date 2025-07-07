@@ -417,7 +417,7 @@ const router = express.Router({ mergeParams: true }); // mergeParams to inherit 
 router
   .route('/')
   .post(auth('payment:create'), validate(paymentValidation.createPayment), paymentController.createPayment)
-  .get(auth('payment:view_all'), validate(paymentValidation.getPayments), paymentController.getPayments)
+  .get(auth('payment:view_all', 'payment:view_own'), validate(paymentValidation.getPayments), paymentController.getPayments)
   .get(auth('payment:view'), validate(paymentValidation.getPaymentsByBillId), paymentController.getPaymentsByBillId);
 
 router

@@ -49,6 +49,7 @@ const allRoles = {
     // Role management
     'role:management',
     'role:permission',
+    'report:management',
   ],
   account_admin: [
     // Bill permissions
@@ -59,7 +60,7 @@ const allRoles = {
     'bill:delete',
     'bill:hard_delete',
     // Payment permissions
-    'payment:payment_create',
+    'payment:create',
     'payment:view_all',
     'payment:view',
     'payment:payment_update',
@@ -71,6 +72,7 @@ const allRoles = {
     'tenant:view_all',
     'expense:management',
     'role:permission',
+    'report:management',
   ],
   property_manager: [
     // Tenant permissions
@@ -92,12 +94,13 @@ const allRoles = {
     'bill:view_all',
     'payment:view_all',
     'role:permission',
+    'report:management',
   ],
   tenant: [
     // Scoped permissions
-    // 'bill:view_own',
-    // 'payment:view_own',
-    'payment:payment_create', // Tenants can submit payments for their bills
+    'bill:view_own',
+    'payment:view_own',
+    'payment:create', // Tenants can submit payments for their bills
     'tenant:view_own',
     'role:permission',
   ],
