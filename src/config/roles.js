@@ -82,6 +82,8 @@ const allRoles = {
     'unit:management',
     // Meter/Submeter permissions
     'meter:management',
+    'sub_meter:management',
+    'meter_reading:management',
     // Expense permissions
     'expense:management',
     // Property permissions
@@ -96,7 +98,7 @@ const allRoles = {
     // 'bill:view_own',
     // 'payment:view_own',
     'payment:payment_create', // Tenants can submit payments for their bills
-    // 'tenant:view_own',
+    'tenant:view_own',
     'role:permission',
   ],
 };

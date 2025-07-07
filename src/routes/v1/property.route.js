@@ -378,10 +378,6 @@ router
   );
 router
   .route('/:id/restore')
-  .delete(
-    auth('property:management'),
-    validate(propertyValidation.deleteProperty),
-    propertyController.restorePropertyById
-  );
+  .delete(auth('property:management'), validate(propertyValidation.deleteProperty), propertyController.restorePropertyById);
 
 module.exports = router;

@@ -395,6 +395,8 @@ router
   .delete(auth('expense:management'), validate(expenseValidation.deleteExpense), expenseController.deleteExpenseById);
 
 router.route('/:id/hard').delete(auth(), validate(expenseValidation.deleteExpense), expenseController.hardDeleteExpenseById);
-router.route('/:id/restore').delete(auth(), validate(expenseValidation.restoreExpense), expenseController.restoreExpenseById);
+router
+  .route('/:id/restore')
+  .delete(auth(), validate(expenseValidation.restoreExpense), expenseController.restoreExpenseById);
 
 module.exports = router;

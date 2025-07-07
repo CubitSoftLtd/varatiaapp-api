@@ -354,7 +354,7 @@ const router = express.Router();
  *         $ref: '#/components/responses/Forbidden'
  *       "404":
  *         $ref: '#/components/responses/NotFound'
- * 
+ *
  * /bills/{id}/restore:
  *   delete:
  *     summary: Restore a bill by ID
@@ -632,17 +632,21 @@ const router = express.Router();
 router
   .route('/')
   .post(auth('bill:create'), validate(billValidation.createBill), billController.createBill)
-  .get(auth('bill:view_all',), validate(billValidation.getBills), billController.getBills);
+  .get(auth('bill:view_all'), validate(billValidation.getBills), billController.getBills);
 
 router
   .route('/:id')
   .get(auth('bill:view'), validate(billValidation.getBill), billController.getBillById)
   .patch(auth('bill:update'), validate(billValidation.updateBill), billController.updateBillById)
-  .delete(auth('bill:delete'), validate(billValidation.deleteBill), billController.deleteBillById)
-  // .delete(auth('bill:delete'), validate(billValidation.restoreBill), billController.restoreBillById);
+  .delete(auth('bill:delete'), validate(billValidation.deleteBill), billController.deleteBillById);
+// .delete(auth('bill:delete'), validate(billValidation.restoreBill), billController.restoreBillById);
 
-router.route('/:id/hard').delete(auth('bill:hard_delete'), validate(billValidation.deleteBill), billController.hardDeleteBillById);
-router.route('/:id/restore').delete(auth('bill:restore'), validate(billValidation.restoreBill), billController.restoreBillById);
+router
+  .route('/:id/hard')
+  .delete(auth('bill:hard_delete'), validate(billValidation.deleteBill), billController.hardDeleteBillById);
+router
+  .route('/:id/restore')
+  .delete(auth('bill:restore'), validate(billValidation.restoreBill), billController.restoreBillById);
 
 router
   .route('/property/:propertyId')
@@ -650,11 +654,7 @@ router
 
 router
   .route('/property/:propertyId/print')
-  .get(
-    auth(),
-    validate(billValidation.getBillsByPropertyForPrint),
-    billController.getBillsByPropertyForPrint
-  );
+  .get(auth(), validate(billValidation.getBillsByPropertyForPrint), billController.getBillsByPropertyForPrint);
 
 router.use('/:billId/payments', paymentRouter);
 

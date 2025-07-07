@@ -382,9 +382,11 @@ router
   .get(auth('account:management'), validate(accountValidation.getAccount), accountController.getAccountById)
   .patch(auth('account:management'), validate(accountValidation.updateAccount), accountController.updateAccountById)
   .delete(auth('account:management'), validate(accountValidation.deleteAccount), accountController.deleteAccountById);
-  // .delete(auth('account:management'), validate(accountValidation.restoreAccount), accountController.restoreAccountById);
+// .delete(auth('account:management'), validate(accountValidation.restoreAccount), accountController.restoreAccountById);
 
 router.route('/:id/hard').delete(auth(), validate(accountValidation.deleteAccount), accountController.hardDeleteAccountById);
-router.route('/:id/restore').delete(auth(), validate(accountValidation.restoreAccount), accountController.restoreAccountById);
+router
+  .route('/:id/restore')
+  .delete(auth(), validate(accountValidation.restoreAccount), accountController.restoreAccountById);
 
 module.exports = router;

@@ -40,7 +40,7 @@ const verifyCallback = (req, resolve, reject, requiredRights) => async (err, use
     if (!userRights) {
       return reject(new ApiError(httpStatus.FORBIDDEN, `Role '${user.role}' not recognized`));
     }
-    const hasRequiredRights = requiredRights.every((requiredRight) => userRights.includes(requiredRight));
+    const hasRequiredRights = requiredRights.some((requiredRight) => userRights.includes(requiredRight));
     // Check if user has required rights or is accessing their own data
     if (!hasRequiredRights && req.params.userId !== user.id) {
       return reject(new ApiError(httpStatus.FORBIDDEN, 'Forbidden'));

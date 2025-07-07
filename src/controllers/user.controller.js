@@ -13,12 +13,12 @@ const createUser = catchAsync(async (req, res) => {
 const getUsers = catchAsync(async (req, res) => {
   const filter = pick(req.query, ['name', 'role']);
   const options = pick(req.query, ['sortBy', 'limit', 'page']);
-  const deleted= req.query.deleted || 'false';
+  const deleted = req.query.deleted || 'false';
   if (req.user.role !== 'super_admin') {
     filter.accountId = req.user.accountId; // Ensure only properties for the user's account are fetched
   }
 
-  const result = await userService.queryUsers(filter, options,deleted);
+  const result = await userService.queryUsers(filter, options, deleted);
   res.send(result);
 });
 

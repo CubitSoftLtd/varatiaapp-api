@@ -372,10 +372,6 @@ router
   );
 router
   .route('/:id/restore')
-  .delete(
-    auth('sub_meter:management'),
-    validate(submeterValidation.deleteSubmeter),
-    submeterController.restoreSubmeterById
-  );
+  .delete(auth('sub_meter:management'), validate(submeterValidation.deleteSubmeter), submeterController.restoreSubmeterById);
 
 module.exports = router;

@@ -577,7 +577,7 @@ const router = express.Router();
 router
   .route('/')
   .post(auth('tenant:tenant_create'), validate(tenantValidation.createTenant), tenantController.createTenant)
-  .get(auth('tenant:view_all'), validate(tenantValidation.getTenants), tenantController.getTenants);
+  .get(auth('tenant:view_all', 'tenant:view_own'), validate(tenantValidation.getTenants), tenantController.getTenants);
 
 router
   .route('/:id')
