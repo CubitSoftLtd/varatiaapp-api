@@ -70,9 +70,9 @@ const createAccount = catchAsync(async (req, res) => {
 const getAccounts = catchAsync(async (req, res) => {
   const filter = pick(req.query, ['name', 'subscriptionType']);
   const options = pick(req.query, ['sortBy', 'limit', 'page']);
-  const deleted = req.query.deleted || 'false'; // Default to 'false'
+  const isActive = req.query.isActive || 'true'; // Default to 'false'
   options.include = parseInclude(req.query.include);
-  const accounts = await accountService.getAllAccounts(filter, options, deleted);
+  const accounts = await accountService.getAllAccounts(filter, options, isActive);
 
   res.send(accounts);
 });
@@ -91,6 +91,10 @@ const deleteAccountById = catchAsync(async (req, res) => {
   await accountService.deleteAccount(req.params.id);
   res.status(httpStatus.NO_CONTENT).send();
 });
+const restoreAccountById = catchAsync(async (req, res) => {
+  await accountService.restoreAccount(req.params.id);
+  res.status(httpStatus.NO_CONTENT).send();
+});
 
 const hardDeleteAccountById = catchAsync(async (req, res) => {
   await accountService.hardDeleteAccount(req.params.id);
@@ -103,5 +107,6 @@ module.exports = {
   getAccountById,
   updateAccountById,
   deleteAccountById,
+  restoreAccountById,
   hardDeleteAccountById,
 };

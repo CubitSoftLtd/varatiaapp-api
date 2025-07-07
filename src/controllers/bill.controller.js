@@ -90,6 +90,10 @@ const deleteBillById = catchAsync(async (req, res) => {
   await billService.deleteBill(req.params.id);
   res.status(httpStatus.NO_CONTENT).send();
 });
+const restoreBillById = catchAsync(async (req, res) => {
+  await billService.restoreBill(req.params.id);
+  res.status(httpStatus.NO_CONTENT).send();
+});
 
 const hardDeleteBillById = catchAsync(async (req, res) => {
   await billService.hardDeleteBill(req.params.id);
@@ -142,6 +146,7 @@ module.exports = {
   getBillById,
   updateBillById,
   deleteBillById,
+  restoreBillById,
   hardDeleteBillById,
   getBillsByPropertyAndDateRange,
   getBillsByPropertyForPrint,

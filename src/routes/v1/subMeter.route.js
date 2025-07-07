@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 const express = require('express');
 const auth = require('../../middlewares/auth');
 const validate = require('../../middlewares/validate');
@@ -323,21 +324,58 @@ const router = express.Router();
  *         $ref: '#/components/responses/Forbidden'
  *       "404":
  *         $ref: '#/components/responses/NotFound'
+ * /sub-meters/{id}/restore:
+ *   delete:
+ *     summary: Restore a submeter by ID
+ *     description: |
+ *       Restore the submeter. Only admins can perform a Restore.
+ *       Last updated: June 11, 2025, 10:51 AM +06.
+ *     tags: [Submeters]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Submeter ID
+ *     responses:
+ *       "204":
+ *         description: No content
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
+ *       "404":
+ *         $ref: '#/components/responses/NotFound'
  */
 
 router
   .route('/')
-  .post(auth(), validate(submeterValidation.createSubmeter), submeterController.createSubmeter)
-  .get(auth(), validate(submeterValidation.getSubmeters), submeterController.getSubmeters);
+  .post(auth('sub_meter:management'), validate(submeterValidation.createSubmeter), submeterController.createSubmeter)
+  .get(auth('sub_meter:management'), validate(submeterValidation.getSubmeters), submeterController.getSubmeters);
 
 router
   .route('/:id')
-  .get(auth(), validate(submeterValidation.getSubmeter), submeterController.getSubmeterById)
-  .patch(auth(), validate(submeterValidation.updateSubmeter), submeterController.updateSubmeterById)
-  .delete(auth(), validate(submeterValidation.deleteSubmeter), submeterController.deleteSubmeterById);
+  .get(auth('sub_meter:management'), validate(submeterValidation.getSubmeter), submeterController.getSubmeterById)
+  .patch(auth('sub_meter:management'), validate(submeterValidation.updateSubmeter), submeterController.updateSubmeterById)
+  .delete(auth('sub_meter:management'), validate(submeterValidation.deleteSubmeter), submeterController.deleteSubmeterById);
 
 router
   .route('/:id/hard')
-  .delete(auth(), validate(submeterValidation.deleteSubmeter), submeterController.hardDeleteSubmeterById);
+  .delete(
+    auth('sub_meter:management'),
+    validate(submeterValidation.deleteSubmeter),
+    submeterController.hardDeleteSubmeterById
+  );
+router
+  .route('/:id/restore')
+  .delete(
+    auth('sub_meter:management'),
+    validate(submeterValidation.deleteSubmeter),
+    submeterController.restoreSubmeterById
+  );
 
 module.exports = router;

@@ -314,6 +314,32 @@ const router = express.Router();
  *         $ref: '#/components/responses/Forbidden'
  *       "404":
  *         $ref: '#/components/responses/NotFound'
+ * /meter-readings/{id}/restore:
+ *   delete:
+ *     summary: Restore a meter reading by ID
+ *     description: |
+ *       Only admins can restore.
+ *       Last updated: Thursday, June 12, 2025, 12:21 PM +06.
+ *     tags: [MeterReadings]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Meter reading ID
+ *     responses:
+ *       "204":
+ *         description: No content
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
+ *       "404":
+ *         $ref: '#/components/responses/NotFound'
  *
  * /meter-readings/calculate-consumption:
  *   post:
@@ -372,21 +398,57 @@ const router = express.Router();
 
 router
   .route('/')
-  .post(auth(), validate(meterReadingValidation.createMeterReading), meterReadingController.createMeterReading)
-  .get(auth(), validate(meterReadingValidation.getMeterReadings), meterReadingController.getMeterReadings);
+  .post(
+    auth('meter_reading:management'),
+    validate(meterReadingValidation.createMeterReading),
+    meterReadingController.createMeterReading
+  )
+  .get(
+    auth('meter_reading:management'),
+    validate(meterReadingValidation.getMeterReadings),
+    meterReadingController.getMeterReadings
+  );
 
 router
   .route('/:id')
-  .get(auth(), validate(meterReadingValidation.getMeterReading), meterReadingController.getMeterReadingById)
-  .patch(auth(), validate(meterReadingValidation.updateMeterReading), meterReadingController.updateMeterReadingById)
-  .delete(auth(), validate(meterReadingValidation.deleteMeterReading), meterReadingController.deleteMeterReadingById);
+  .get(
+    auth('meter_reading:management'),
+    validate(meterReadingValidation.getMeterReading),
+    meterReadingController.getMeterReadingById
+  )
+  .patch(
+    auth('meter_reading:management'),
+    validate(meterReadingValidation.updateMeterReading),
+    meterReadingController.updateMeterReadingById
+  )
+  .delete(
+    auth('meter_reading:management'),
+    validate(meterReadingValidation.deleteMeterReading),
+    meterReadingController.deleteMeterReadingById
+  );
 
 router
   .route('/:id/hard')
-  .delete(auth(), validate(meterReadingValidation.deleteMeterReading), meterReadingController.hardDeleteMeterReadingById);
+  .delete(
+    auth('meter_reading:management'),
+    validate(meterReadingValidation.deleteMeterReading),
+    meterReadingController.hardDeleteMeterReadingById
+  );
+
+router
+  .route('/:id/restore')
+  .delete(
+    auth('meter_reading:management'),
+    validate(meterReadingValidation.deleteMeterReading),
+    meterReadingController.restoreMeterReadingById
+  );
 
 router
   .route('/calculate-consumption')
-  .post(auth(), validate(meterReadingValidation.calculateConsumption), meterReadingController.calculateConsumption);
+  .post(
+    auth('meter_reading:management'),
+    validate(meterReadingValidation.calculateConsumption),
+    meterReadingController.calculateConsumption
+  );
 
 module.exports = router;

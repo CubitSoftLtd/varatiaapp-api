@@ -76,6 +76,10 @@ const deleteMeterReadingById = catchAsync(async (req, res) => {
   await meterReadingService.deleteMeterReading(req.params.id);
   res.status(httpStatus.NO_CONTENT).send();
 });
+const restoreMeterReadingById = catchAsync(async (req, res) => {
+  await meterReadingService.restoreMeterReading(req.params.id);
+  res.status(httpStatus.NO_CONTENT).send();
+});
 
 const hardDeleteMeterReadingById = catchAsync(async (req, res) => {
   await meterReadingService.hardDeleteMeterReading(req.params.id);
@@ -94,6 +98,7 @@ module.exports = {
   getMeterReadingById,
   updateMeterReadingById,
   deleteMeterReadingById,
+  restoreMeterReadingById,
   hardDeleteMeterReadingById,
   calculateConsumption,
 };

@@ -328,6 +328,13 @@ const deleteExpense = async (id) => {
   }
   await expense.update({ isDeleted: true });
 };
+const restoreExpense = async (id) => {
+  const expense = await getExpenseById(id);
+  if (!expense.isDeleted) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Expense is already restored');
+  }
+  await expense.update({ isDeleted: false });
+};
 
 /**
  * Hard delete an expense by ID
@@ -344,6 +351,7 @@ module.exports = {
   getAllExpenses,
   getExpenseById,
   updateExpense,
+  restoreExpense,
   deleteExpense,
   hardDeleteExpense,
 };

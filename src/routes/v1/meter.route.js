@@ -345,19 +345,46 @@ const router = express.Router();
  *         $ref: '#/components/responses/Forbidden'
  *       "404":
  *         $ref: '#/components/responses/NotFound'
+ * /meters/{id}/restore:
+ *   delete:
+ *     summary: Restore a meter by ID
+ *     description: |
+ *      Restore the meter and its associated data. Only admins can perform a restore.
+ *       Last updated: June 11, 2025, 10:47 AM +06.
+ *     tags: [Meters]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Meter ID
+ *     responses:
+ *       "204":
+ *         description: No content
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
+ *       "404":
+ *         $ref: '#/components/responses/NotFound'
  */
 
 router
   .route('/')
-  .post(auth(), validate(meterValidation.createMeter), meterController.createMeter)
-  .get(auth(), validate(meterValidation.getMeters), meterController.getMeters);
+  .post(auth('meter:management'), validate(meterValidation.createMeter), meterController.createMeter)
+  .get(auth('meter:management'), validate(meterValidation.getMeters), meterController.getMeters);
 
 router
   .route('/:id')
-  .get(auth(), validate(meterValidation.getMeter), meterController.getMeterById)
-  .patch(auth(), validate(meterValidation.updateMeter), meterController.updateMeterById)
-  .delete(auth(), validate(meterValidation.deleteMeter), meterController.deleteMeterById);
+  .get(auth('meter:management'), validate(meterValidation.getMeter), meterController.getMeterById)
+  .patch(auth('meter:management'), validate(meterValidation.updateMeter), meterController.updateMeterById)
+  .delete(auth('meter:management'), validate(meterValidation.deleteMeter), meterController.deleteMeterById);
 
 router.route('/:id/hard').delete(auth(), validate(meterValidation.deleteMeter), meterController.hardDeleteMeterById);
+router.route('/:id/restore').delete(auth(), validate(meterValidation.restoreMeter), meterController.restoreMeterById);
 
 module.exports = router;

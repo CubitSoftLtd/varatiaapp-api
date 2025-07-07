@@ -176,6 +176,13 @@ const deleteMeter = async (meterId) => {
   }
   await meter.update({ status: 'inactive', isDeleted: true });
 };
+const restoreMeter = async (meterId) => {
+  const meter = await getMeterById(meterId);
+  if (!meter.isDeleted) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Meter is already activated');
+  }
+  await meter.update({ status: 'inactive', isDeleted: false });
+};
 
 /**
  * Permanently delete meter by id (hard delete)
@@ -193,5 +200,6 @@ module.exports = {
   getMeterById,
   updateMeter,
   deleteMeter,
+  restoreMeter,
   hardDeleteMeter,
 };

@@ -168,6 +168,19 @@ const deleteUnit = async (unitId) => {
 
   await unit.update({ status: 'inactive', isDeleted: true });
 };
+const restoreUnit = async (unitId) => {
+  const unit = await getUnitById(unitId);
+  if (!unit.isDeleted) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Unit is already activated');
+  }
+  // Ensure the submeter is not associated with any unit before hard deleting
+  const property = await Property.findByPk(unit.propertyId);
+  if (property && !property.isDeleted) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Cannot hard delete unit associated with a active property');
+  }
+
+  await unit.update({ status: 'inactive', isDeleted: false });
+};
 
 /**
  * Permanently delete unit by id (hard delete)
@@ -185,5 +198,6 @@ module.exports = {
   getUnitById,
   updateUnit,
   deleteUnit,
+  restoreUnit,
   hardDeleteUnit,
 };

@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 const httpStatus = require('http-status');
 const pick = require('../utils/pick');
 const ApiError = require('../utils/ApiError');
@@ -12,12 +13,12 @@ const createUser = catchAsync(async (req, res) => {
 const getUsers = catchAsync(async (req, res) => {
   const filter = pick(req.query, ['name', 'role']);
   const options = pick(req.query, ['sortBy', 'limit', 'page']);
-
+  const deleted= req.query.deleted || 'false';
   if (req.user.role !== 'super_admin') {
     filter.accountId = req.user.accountId; // Ensure only properties for the user's account are fetched
   }
 
-  const result = await userService.queryUsers(filter, options);
+  const result = await userService.queryUsers(filter, options,deleted);
   res.send(result);
 });
 
@@ -38,11 +39,16 @@ const deleteUser = catchAsync(async (req, res) => {
   await userService.deleteUserById(req.params.userId);
   res.status(httpStatus.NO_CONTENT).send();
 });
+const restoreUser = catchAsync(async (req, res) => {
+  await userService.restoreUserById(req.params.userId);
+  res.status(httpStatus.NO_CONTENT).send();
+});
 
 module.exports = {
   createUser,
   getUsers,
   getUser,
   updateUser,
+  restoreUser,
   deleteUser,
 };

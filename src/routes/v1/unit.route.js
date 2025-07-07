@@ -330,19 +330,46 @@ const router = express.Router();
  *         $ref: '#/components/responses/Forbidden'
  *       "404":
  *         $ref: '#/components/responses/NotFound'
+ * /units/{id}/restore:
+ *   delete:
+ *     summary: Restore a unit by ID
+ *     description: |
+ *       Restore the unit and its associated data. Only admins can perform a Restore.
+ *       Last updated: June 11, 2025, 11:55 AM +06.
+ *     tags: [Units]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Unit ID
+ *     responses:
+ *       "204":
+ *         description: No content
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
+ *       "404":
+ *         $ref: '#/components/responses/NotFound'
  */
 
 router
   .route('/')
-  .post(auth(), validate(unitValidation.createUnit), unitController.createUnit)
-  .get(auth(), validate(unitValidation.getUnits), unitController.getUnits);
+  .post(auth('unit:management'), validate(unitValidation.createUnit), unitController.createUnit)
+  .get(auth('unit:management'), validate(unitValidation.getUnits), unitController.getUnits);
 
 router
   .route('/:id')
-  .get(auth(), validate(unitValidation.getUnit), unitController.getUnitById)
-  .patch(auth(), validate(unitValidation.updateUnit), unitController.updateUnitById)
-  .delete(auth(), validate(unitValidation.deleteUnit), unitController.deleteUnitById);
+  .get(auth('unit:management'), validate(unitValidation.getUnit), unitController.getUnitById)
+  .patch(auth('unit:management'), validate(unitValidation.updateUnit), unitController.updateUnitById)
+  .delete(auth('unit:management'), validate(unitValidation.deleteUnit), unitController.deleteUnitById);
 
 router.route('/:id/hard').delete(auth(), validate(unitValidation.deleteUnit), unitController.hardDeleteUnitById);
+router.route('/:id/restore').delete(auth(), validate(unitValidation.deleteUnit), unitController.restoreUnitById);
 
 module.exports = router;

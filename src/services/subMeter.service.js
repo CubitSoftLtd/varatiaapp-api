@@ -175,6 +175,14 @@ const deleteSubmeter = async (submeterId) => {
 
   await submeter.update({ status: 'inactive', isDeleted: true });
 };
+const restoreSubmeter = async (submeterId) => {
+  const submeter = await getSubmeter(submeterId);
+  if (!submeter.isDeleted) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Submeter is already activated');
+  }
+
+  await submeter.update({ status: 'inactive', isDeleted: false });
+};
 
 /**
  * Permanently delete submeter by ID (hard delete)
@@ -202,5 +210,6 @@ module.exports = {
   getSubmeter,
   updateSubmeter,
   deleteSubmeter,
+  restoreSubmeter,
   hardDeleteSubmeter,
 };

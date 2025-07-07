@@ -293,6 +293,32 @@ const router = express.Router();
  *         $ref: '#/components/responses/Forbidden'
  *       "404":
  *         $ref: '#/components/responses/NotFound'
+ * /utility-types/{id}/restore:
+ *   delete:
+ *     summary: Hard delete a utility type by ID
+ *     description: |
+ *       Permanently deletes the utility type. Only admins can perform a hard delete.
+ *       Last updated: June 11, 2025, 12:14 PM +06.
+ *     tags: [UtilityTypes]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Utility type ID
+ *     responses:
+ *       "204":
+ *         description: No content
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
+ *       "404":
+ *         $ref: '#/components/responses/NotFound'
  */
 
 router
@@ -309,5 +335,8 @@ router
 router
   .route('/:id/hard')
   .delete(auth(), validate(utilityTypeValidation.deleteUtilityType), utilityTypeController.hardDeleteUtilityTypeById);
+router
+  .route('/:id/restore')
+  .delete(auth(), validate(utilityTypeValidation.deleteUtilityType), utilityTypeController.restoreUtilityTypeById);
 
 module.exports = router;

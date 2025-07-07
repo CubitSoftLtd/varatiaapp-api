@@ -290,6 +290,30 @@ const deletePayment = async (paymentId) => {
     await bill.update({ amountPaid: totalPaid, paymentStatus: newStatus }, { transaction: t });
   });
 };
+const restorePayment = async (paymentId) => {
+  const payment = await getPaymentById(paymentId);
+  if (!payment.isDeleted) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Payment is already activated');
+  }
+
+  const bill = await Bill.findByPk(payment.billId);
+  if (bill.paymentStatus === 'cancelled') {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Cannot delete payment for a cancelled bill');
+  }
+
+  return Payment.sequelize.transaction(async (t) => {
+    await payment.update({ isDeleted: false }, { transaction: t });
+
+    const payments = await Payment.findAll({ where: { billId: payment.billId, isDeleted: false } });
+    const totalPaid = payments.reduce((sum, p) => sum + parseFloat(p.amountPaid), 0);
+    let newStatus = 'unpaid';
+    if (totalPaid >= parseFloat(bill.totalAmount)) newStatus = 'paid';
+    else if (totalPaid > 0) newStatus = 'partially_paid';
+    if (newStatus !== 'paid' && new Date(bill.dueDate) < new Date()) newStatus = 'overdue';
+
+    await bill.update({ amountPaid: totalPaid, paymentStatus: newStatus }, { transaction: t });
+  });
+};
 
 const hardDeletePayment = async (paymentId) => {
   const payment = await getPaymentById(paymentId);
@@ -319,5 +343,6 @@ module.exports = {
   getPaymentById,
   updatePayment,
   deletePayment,
+  restorePayment,
   hardDeletePayment,
 };

@@ -160,6 +160,15 @@ const deleteExpense = {
     }),
   }),
 };
+const restoreExpense = {
+  params: Joi.object().keys({
+    id: uuidV4Schema.required().messages({
+      'string.base': 'ID must be a string',
+      'string.empty': 'ID is required',
+      'string.uuid': 'ID must be a valid UUID',
+    }),
+  }),
+};
 
 const deleteHardExpense = {
   params: Joi.object().keys({
@@ -177,5 +186,6 @@ module.exports = {
   getExpense,
   updateExpense,
   deleteExpense,
+  restoreExpense,
   deleteHardExpense,
 };

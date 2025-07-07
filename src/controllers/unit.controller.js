@@ -108,6 +108,10 @@ const deleteUnitById = catchAsync(async (req, res) => {
   await unitService.deleteUnit(req.params.id);
   res.status(httpStatus.NO_CONTENT).send();
 });
+const restoreUnitById = catchAsync(async (req, res) => {
+  await unitService.restoreUnit(req.params.id);
+  res.status(httpStatus.NO_CONTENT).send();
+});
 
 const hardDeleteUnitById = catchAsync(async (req, res) => {
   await unitService.hardDeleteUnit(req.params.id);
@@ -119,6 +123,7 @@ module.exports = {
   getUnits,
   getUnitById,
   updateUnitById,
+  restoreUnitById,
   deleteUnitById,
   hardDeleteUnitById,
 };

@@ -181,6 +181,17 @@ const deleteUtilityType = async (utilityTypeId) => {
   }
   await utilityType.update({ isDeleted: true });
 };
+const restoreUtilityType = async (utilityTypeId) => {
+  const utilityType = await getUtilityTypeById(utilityTypeId);
+  if (!utilityType.isDeleted) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Utility type is already Activated');
+  }
+  const meters = await Meter.findAll({ where: { utilityTypeId } });
+  if (meters.length > 0) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Cannot delete utility type with associated meters');
+  }
+  await utilityType.update({ isDeleted: false });
+};
 
 /**
  * Hard delete a utility type by ID
@@ -202,5 +213,6 @@ module.exports = {
   getUtilityTypeById,
   updateUtilityType,
   deleteUtilityType,
+  restoreUtilityType,
   hardDeleteUtilityType,
 };

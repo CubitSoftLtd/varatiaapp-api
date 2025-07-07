@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 const express = require('express');
 const auth = require('../../middlewares/auth');
 const validate = require('../../middlewares/validate');
@@ -114,7 +115,7 @@ const router = express.Router();
  *           enum: [free, basic, premium, enterprise]
  *         description: Subscription type
  *       - in: query
- *         name: deleted
+ *         name: isActive
  *         schema:
  *           type: string
  *           enum: [true, false, all]
@@ -312,6 +313,36 @@ const router = express.Router();
 
 /**
  * @swagger
+ * /accounts/{id}/restore:
+ *   delete:
+ *     summary: Restore an account by ID
+ *     description: |
+ *      Restore the account . Only admins can restore.
+ *       Last updated: June 11, 2025, 1:09 PM +06.
+ *     tags:
+ *       - Accounts
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Account ID
+ *     responses:
+ *       '204':
+ *         description: No content
+ *       '401':
+ *         $ref: '#/components/responses/Unauthorized'
+ *       '403':
+ *         $ref: '#/components/responses/Forbidden'
+ *       '404':
+ *         $ref: '#/components/responses/NotFound'
+ */
+/**
+ * @swagger
  * /accounts/{id}/hard:
  *   delete:
  *     summary: Hard delete an account by ID
@@ -343,15 +374,17 @@ const router = express.Router();
 
 router
   .route('/')
-  .post(auth(), validate(accountValidation.createAccount), accountController.createAccount)
-  .get(auth(), validate(accountValidation.getAccounts), accountController.getAccounts);
+  .post(auth('account:management'), validate(accountValidation.createAccount), accountController.createAccount)
+  .get(auth('account:management'), validate(accountValidation.getAccounts), accountController.getAccounts);
 
 router
   .route('/:id')
-  .get(auth(), validate(accountValidation.getAccount), accountController.getAccountById)
-  .patch(auth(), validate(accountValidation.updateAccount), accountController.updateAccountById)
-  .delete(auth(), validate(accountValidation.deleteAccount), accountController.deleteAccountById);
+  .get(auth('account:management'), validate(accountValidation.getAccount), accountController.getAccountById)
+  .patch(auth('account:management'), validate(accountValidation.updateAccount), accountController.updateAccountById)
+  .delete(auth('account:management'), validate(accountValidation.deleteAccount), accountController.deleteAccountById);
+  // .delete(auth('account:management'), validate(accountValidation.restoreAccount), accountController.restoreAccountById);
 
 router.route('/:id/hard').delete(auth(), validate(accountValidation.deleteAccount), accountController.hardDeleteAccountById);
+router.route('/:id/restore').delete(auth(), validate(accountValidation.restoreAccount), accountController.restoreAccountById);
 
 module.exports = router;

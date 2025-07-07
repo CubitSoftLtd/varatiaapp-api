@@ -222,6 +222,10 @@ const deleteUserById = async (userId) => {
   const user = await getUserById(userId);
   await user.destroy();
 };
+const restoreUserById = async (userId) => {
+  const user = await getUserById(userId);
+  await user.destroy();
+};
 
 module.exports = {
   createUser,
@@ -229,5 +233,6 @@ module.exports = {
   getUserByEmail,
   getUserById,
   updateUserById,
+  restoreUserById,
   deleteUserById,
 };

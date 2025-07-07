@@ -33,15 +33,15 @@ const createAccount = async (accountBody) => {
  * @param {Object} options - Query options
  * @returns {Promise<{ results: Account[], page: number, limit: number, totalPages: number, totalResults: number }>}
  */
-const getAllAccounts = async (filter, options, deleted = 'false') => {
+const getAllAccounts = async (filter, options, isActive) => {
   const whereClause = { ...filter };
 
   // Apply the isDeleted filter based on the 'deleted' parameter
-  if (deleted === 'true') {
-    whereClause.isDeleted = true;
-  } else if (deleted === 'false') {
-    whereClause.isDeleted = false;
-  } else if (deleted === 'all') {
+  if (isActive === 'true') {
+    whereClause.isActive = true;
+  } else if (isActive === 'false') {
+    whereClause.isActive = false;
+  } else if (isActive === 'all') {
     // No filter on isDeleted, allowing all bills to be returned
   } else {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid value for deleted parameter');
@@ -134,6 +134,13 @@ const deleteAccount = async (accountId) => {
   }
   await account.update({ isActive: false });
 };
+const restoreAccount = async (accountId) => {
+  const account = await getAccountById(accountId);
+  if (account.isActive) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Account is already active');
+  }
+  await account.update({ isActive: true });
+};
 
 /**
  * Permanently delete account by id (hard delete)
@@ -151,5 +158,6 @@ module.exports = {
   getAccountById,
   updateAccount,
   deleteAccount,
+  restoreAccount,
   hardDeleteAccount,
 };

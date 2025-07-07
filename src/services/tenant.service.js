@@ -181,6 +181,13 @@ const deleteTenant = async (tenantId) => {
   }
   await tenant.update({ isDeleted: true });
 };
+const restoreTenant = async (tenantId) => {
+  const tenant = await getTenantById(tenantId);
+  if (!tenant.isDeleted) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Tenant is already inactive');
+  }
+  await tenant.update({ isDeleted: false });
+};
 
 /**
  * Permanently delete tenant by id (hard delete)
@@ -271,6 +278,7 @@ module.exports = {
   getTenantById,
   updateTenant,
   deleteTenant,
+  restoreTenant,
   hardDeleteTenant,
   getTenantsByUnitAndProperty,
   getHistoricalTenantsByUnit,

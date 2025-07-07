@@ -242,17 +242,44 @@ const router = express.Router();
  *         $ref: '#/components/responses/Forbidden'
  *       "404":
  *         $ref: '#/components/responses/NotFound'
+ * /users/{id}/restore:
+ *   delete:
+ *     summary: Restore a user by ID
+ *     description: |
+ *       Restore the user and its associated data. Only admins can perform a Restore.
+ *       Last updated: June 11, 2025, 11:55 AM +06.
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Unit ID
+ *     responses:
+ *       "204":
+ *         description: No content
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
+ *       "404":
+ *         $ref: '#/components/responses/NotFound'
  */
 
 router
   .route('/')
-  .post(auth(), validate(userValidation.createUser), userController.createUser)
-  .get(auth(), validate(userValidation.getUsers), userController.getUsers);
+  .post(auth('user:management'), validate(userValidation.createUser), userController.createUser)
+  .get(auth('user:management'), validate(userValidation.getUsers), userController.getUsers);
 
 router
   .route('/:userId')
-  .get(auth(), validate(userValidation.getUser), userController.getUser)
-  .patch(auth(), validate(userValidation.updateUser), userController.updateUser)
-  .delete(auth(), validate(userValidation.deleteUser), userController.deleteUser);
+  .get(auth('user:management'), validate(userValidation.getUser), userController.getUser)
+  .patch(auth('user:management'), validate(userValidation.updateUser), userController.updateUser)
+  .delete(auth('user:management'), validate(userValidation.deleteUser), userController.deleteUser);
+router.route('/:id/restore').delete(auth(), validate(userValidation.deleteUser), userController.restoreUser);
 
 module.exports = router;
