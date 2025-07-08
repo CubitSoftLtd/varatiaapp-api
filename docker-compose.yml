@@ -18,32 +18,10 @@ services:
       - PORT=3000
     ports:
       - '3000:3000'
-    depends_on:
-      - mysql
     volumes:
       - .:/usr/src/varatiya-app
     networks:
       - node-network
-
-  mysql:
-    image: mysql:8.0
-    environment:
-      MYSQL_ROOT_PASSWORD: your_mysql_password
-      MYSQL_DATABASE: tenant_management
-    ports:
-      - '3307:3306'
-    volumes:
-      - dbdata:/var/lib/mysql
-    networks:
-      - node-network
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-volumes:
-  dbdata:
 
 networks:
   node-network:
