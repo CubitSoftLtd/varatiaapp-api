@@ -8,7 +8,6 @@ services:
       - DB_PASSWORD=your_mysql_password
       - DB_NAME=tenant_management
       - DB_PORT=3306
-      - DB_SSL=false
       - JWT_SECRET=thisisasamplesecret
       - JWT_ACCESS_EXPIRATION_MINUTES=30
       - JWT_REFRESH_EXPIRATION_DAYS=30
