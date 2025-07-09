@@ -55,7 +55,7 @@ const parseInclude = (include) => {
 };
 
 const createUtilityType = catchAsync(async (req, res) => {
-  const utilityType = await utilityTypeService.createUtilityType({ ...req.body, accountId: req.user.accountId });
+  const utilityType = await utilityTypeService.createUtilityType(req.body);
   res.status(httpStatus.CREATED).send(utilityType);
 });
 
@@ -64,11 +64,7 @@ const getUtilityTypes = catchAsync(async (req, res) => {
   const options = pick(req.query, ['sortBy', 'limit', 'page']);
   options.include = parseInclude(req.query.include);
 
-  const deleted = req.query.deleted || 'false'; // Default to 'false'
-
-  if (req.user.role !== 'super_admin') {
-    filter.accountId = req.user.accountId; // Ensure only properties for the user's account are fetched
-  }
+  const deleted = req.query.deleted || 'false';
 
   const utilityTypes = await utilityTypeService.getAllUtilityTypes(filter, options, deleted);
   res.send(utilityTypes);
