@@ -1,6 +1,7 @@
 const httpStatus = require('http-status');
 const { UtilityType, Meter } = require('../models');
 const ApiError = require('../utils/ApiError');
+const { accountService } = require('.');
 
 /**
  * Create a new utility type with validation and transaction
@@ -8,11 +9,19 @@ const ApiError = require('../utils/ApiError');
  * @returns {Promise<UtilityType>}
  */
 const createUtilityType = async (utilityTypeBody) => {
-  const { name, unitRate, unitOfMeasurement, description } = utilityTypeBody;
+  const { accountId, name, unitRate, unitOfMeasurement, description } = utilityTypeBody;
 
   // Validate required fields
   if (!name || unitRate === undefined || !unitOfMeasurement) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Name, unit rate, and unit of measurement are required');
+  }
+
+  if (!accountId) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Account ID is required');
+  }
+
+  if ((await accountService.getAccountById(accountId)) === null) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Account does not exist');
   }
 
   // Validate unitRate
@@ -39,6 +48,7 @@ const createUtilityType = async (utilityTypeBody) => {
         unitRate,
         unitOfMeasurement,
         description: description || null,
+        accountId,
         isDeleted: false,
       },
       { transaction: t }
