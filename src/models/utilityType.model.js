@@ -32,6 +32,13 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: true,
         comment: 'Detailed description of the utility type',
       },
+      accountId: {
+        type: DataTypes.UUID,
+        allowNull: false,
+        references: { model: 'accounts', key: 'id' },
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
+      },
       isDeleted: {
         type: DataTypes.BOOLEAN,
         allowNull: false,
@@ -47,6 +54,7 @@ module.exports = (sequelize, DataTypes) => {
         {
           fields: ['name'], // Already unique, but explicitly indexing can help
         },
+        { fields: ['accountId'] },
       ],
     }
   );
@@ -60,6 +68,8 @@ module.exports = (sequelize, DataTypes) => {
       onDelete: 'RESTRICT',
       onUpdate: 'CASCADE',
     });
+
+    UtilityType.belongsTo(models.Account, { foreignKey: 'accountId', as: 'account' });
   };
 
   return UtilityType;
