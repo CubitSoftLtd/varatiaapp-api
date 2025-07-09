@@ -53,7 +53,7 @@ const allRoles = {
     'user:management',
     // Utility Type management
     // 'utility_type:management',
-    'utility_type:create',
+    // 'utility_type:create',
     'utility_type:view',
     'utility_type:view_all',
     'utility_type:update',
@@ -113,6 +113,7 @@ const allRoles = {
     // 'user:management',
     // Utility Type management
     'utility_type:view_all',
+    'utility_type:create',
     'role:permission',
     'report:management',
   ],
@@ -128,6 +129,8 @@ const allRoles = {
     'meter:management',
     'sub_meter:management',
     'meter_reading:management',
+    'utility_type:view_all',
+    'expense_category:view_all',
     // Expense permissions
     'expense:management',
     // Property permissions
