@@ -38,10 +38,10 @@ const allRoles = {
     'expense:management',
     // Expense Category permissions
     // 'expense_category:management',
-    'expense_category:create',
+    // 'expense_category:create',
     'expense_category:view_all',
     'expense_category:view', // Included for completeness
-    'expense_category:update',
+    // 'expense_category:update',
     'expense_category:delete',
     'expense_category:hard_delete',
     'expense_category:restore',
@@ -56,7 +56,7 @@ const allRoles = {
     // 'utility_type:create',
     'utility_type:view',
     'utility_type:view_all',
-    'utility_type:update',
+    // 'utility_type:update',
     'utility_type:delete',
     'utility_type:hard_delete',
     'utility_type:restore',
@@ -103,17 +103,27 @@ const allRoles = {
     // Expense permissions
     'expense:management',
     // Expense Category permissions
+    'expense_category:create',
     'expense_category:view_all',
+    'expense_category:view', // Included for completeness
+    'expense_category:update',
+    'expense_category:delete',
+    'expense_category:hard_delete',
+    'expense_category:restore',
 
     // Expense permissions
     'expense:management',
     // Property permissions
     'property:management',
     // User management
-    // 'user:management',
+    'user:management',
     // Utility Type management
+    'utility_type:view',
     'utility_type:view_all',
-    'utility_type:create',
+    'utility_type:update',
+    'utility_type:delete',
+    'utility_type:hard_delete',
+    'utility_type:restore',
     'role:permission',
     'report:management',
   ],
