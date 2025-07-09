@@ -130,6 +130,7 @@ const allRoles = {
     'sub_meter:management',
     'meter_reading:management',
     'utility_type:view_all',
+    'utility_type:create',
     'expense_category:view_all',
     // Expense permissions
     'expense:management',
