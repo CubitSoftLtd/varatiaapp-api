@@ -55,6 +55,11 @@ const parseInclude = (include) => {
 };
 
 const createUtilityType = catchAsync(async (req, res) => {
+  if (req.user.role !== 'super_admin') {
+    res.status(httpStatus.FORBIDDEN).send();
+    return;
+  }
+
   const utilityType = await utilityTypeService.createUtilityType(req.body);
   res.status(httpStatus.CREATED).send(utilityType);
 });
@@ -76,20 +81,38 @@ const getUtilityTypeById = catchAsync(async (req, res) => {
 });
 
 const updateUtilityTypeById = catchAsync(async (req, res) => {
+  if (req.user.role !== 'super_admin') {
+    res.status(httpStatus.FORBIDDEN).send();
+    return;
+  }
+
   const utilityType = await utilityTypeService.updateUtilityType(req.params.id, req.body);
   res.send(utilityType);
 });
 
 const deleteUtilityTypeById = catchAsync(async (req, res) => {
+  if (req.user.role !== 'super_admin') {
+    res.status(httpStatus.FORBIDDEN).send();
+    return;
+  }
+
   await utilityTypeService.deleteUtilityType(req.params.id);
   res.status(httpStatus.NO_CONTENT).send();
 });
 const restoreUtilityTypeById = catchAsync(async (req, res) => {
+  if (req.user.role !== 'super_admin') {
+    res.status(httpStatus.FORBIDDEN).send();
+    return;
+  }
   await utilityTypeService.restoreUtilityType(req.params.id);
   res.status(httpStatus.NO_CONTENT).send();
 });
 
 const hardDeleteUtilityTypeById = catchAsync(async (req, res) => {
+  if (req.user.role !== 'super_admin') {
+    res.status(httpStatus.FORBIDDEN).send();
+    return;
+  }
   await utilityTypeService.hardDeleteUtilityType(req.params.id);
   res.status(httpStatus.NO_CONTENT).send();
 });

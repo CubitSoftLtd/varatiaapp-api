@@ -60,11 +60,6 @@ const createExpenseCategory = catchAsync(async (req, res) => {
 });
 
 const getExpenseCategories = catchAsync(async (req, res) => {
-  if (req.user.role !== 'super_admin') {
-    res.status(httpStatus.FORBIDDEN).send();
-    return;
-  }
-
   const filter = pick(req.query, ['name', 'categoryType']);
   const options = pick(req.query, ['sortBy', 'limit', 'page']);
   options.include = parseInclude(req.query.include);
@@ -80,20 +75,37 @@ const getExpenseCategoryById = catchAsync(async (req, res) => {
 });
 
 const updateExpenseCategoryById = catchAsync(async (req, res) => {
+  if (req.user.role !== 'super_admin') {
+    res.status(httpStatus.FORBIDDEN).send();
+    return;
+  }
+
   const category = await expenseCategoryService.updateExpenseCategory(req.params.id, req.body);
   res.send(category);
 });
 
 const deleteExpenseCategoryById = catchAsync(async (req, res) => {
+  if (req.user.role !== 'super_admin') {
+    res.status(httpStatus.FORBIDDEN).send();
+    return;
+  }
   await expenseCategoryService.deleteExpenseCategory(req.params.id);
   res.status(httpStatus.NO_CONTENT).send();
 });
 const restoreExpenseCategoryById = catchAsync(async (req, res) => {
+  if (req.user.role !== 'super_admin') {
+    res.status(httpStatus.FORBIDDEN).send();
+    return;
+  }
   await expenseCategoryService.restoreExpenseCategory(req.params.id);
   res.status(httpStatus.NO_CONTENT).send();
 });
 
 const hardDeleteExpenseCategoryById = catchAsync(async (req, res) => {
+  if (req.user.role !== 'super_admin') {
+    res.status(httpStatus.FORBIDDEN).send();
+    return;
+  }
   await expenseCategoryService.hardDeleteExpenseCategory(req.params.id);
   res.status(httpStatus.NO_CONTENT).send();
 });
