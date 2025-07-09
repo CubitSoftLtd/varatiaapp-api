@@ -113,6 +113,7 @@ const allRoles = {
     // 'user:management',
     // Utility Type management
     'utility_type:view_all',
+    'utility_type:create',
     'role:permission',
     'report:management',
   ],
