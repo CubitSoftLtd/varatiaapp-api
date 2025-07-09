@@ -95,7 +95,7 @@ const allRoles = {
     // Unit permissions
     'unit:management',
     // Account permissions
-    'account:management',
+    // 'account:management',
     // Meter/Submeter permissions
     'meter:management',
     'sub_meter:management',
