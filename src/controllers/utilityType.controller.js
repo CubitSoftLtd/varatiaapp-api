@@ -66,7 +66,9 @@ const getUtilityTypes = catchAsync(async (req, res) => {
 
   const deleted = req.query.deleted || 'false';
 
-  filter.accountId = req.user.accountId; // Ensure we filter by the user's account ID
+  if (req.user.role !== 'super_admin') {
+    filter.accountId = req.user.accountId; // Ensure only properties for the user's account are fetched
+  }
 
   const utilityTypes = await utilityTypeService.getAllUtilityTypes(filter, options, deleted);
   res.send(utilityTypes);
