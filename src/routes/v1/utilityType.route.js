@@ -323,20 +323,44 @@ const router = express.Router();
 
 router
   .route('/')
-  .post(auth(), validate(utilityTypeValidation.createUtilityType), utilityTypeController.createUtilityType)
-  .get(auth(), validate(utilityTypeValidation.getUtilityTypes), utilityTypeController.getUtilityTypes);
+  .post(
+    auth('utility_type:create'),
+    validate(utilityTypeValidation.createUtilityType),
+    utilityTypeController.createUtilityType
+  )
+  .get(
+    auth('utility_type:view_all'),
+    validate(utilityTypeValidation.getUtilityTypes),
+    utilityTypeController.getUtilityTypes
+  );
 
 router
   .route('/:id')
-  .get(auth(), validate(utilityTypeValidation.getUtilityType), utilityTypeController.getUtilityTypeById)
-  .patch(auth(), validate(utilityTypeValidation.updateUtilityType), utilityTypeController.updateUtilityTypeById)
-  .delete(auth(), validate(utilityTypeValidation.deleteUtilityType), utilityTypeController.deleteUtilityTypeById);
+  .get(auth('utility_type:view'), validate(utilityTypeValidation.getUtilityType), utilityTypeController.getUtilityTypeById)
+  .patch(
+    auth('utility_type:update'),
+    validate(utilityTypeValidation.updateUtilityType),
+    utilityTypeController.updateUtilityTypeById
+  )
+  .delete(
+    auth('utility_type:delete'),
+    validate(utilityTypeValidation.deleteUtilityType),
+    utilityTypeController.deleteUtilityTypeById
+  );
 
 router
   .route('/:id/hard')
-  .delete(auth(), validate(utilityTypeValidation.deleteUtilityType), utilityTypeController.hardDeleteUtilityTypeById);
+  .delete(
+    auth('utility_type:hard_delete'),
+    validate(utilityTypeValidation.deleteUtilityType),
+    utilityTypeController.hardDeleteUtilityTypeById
+  );
 router
   .route('/:id/restore')
-  .delete(auth(), validate(utilityTypeValidation.deleteUtilityType), utilityTypeController.restoreUtilityTypeById);
+  .delete(
+    auth('utility_type:restore'),
+    validate(utilityTypeValidation.deleteUtilityType),
+    utilityTypeController.restoreUtilityTypeById
+  );
 
 module.exports = router;

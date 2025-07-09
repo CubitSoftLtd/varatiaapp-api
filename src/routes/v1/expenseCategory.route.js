@@ -317,19 +317,31 @@ const router = express.Router();
 
 router
   .route('/')
-  .post(auth(), validate(expenseCategoryValidation.createExpenseCategory), expenseCategoryController.createExpenseCategory)
-  .get(auth(), validate(expenseCategoryValidation.getExpenseCategories), expenseCategoryController.getExpenseCategories);
+  .post(
+    auth('expense_category:create'),
+    validate(expenseCategoryValidation.createExpenseCategory),
+    expenseCategoryController.createExpenseCategory
+  )
+  .get(
+    auth('expense_category:view_all'),
+    validate(expenseCategoryValidation.getExpenseCategories),
+    expenseCategoryController.getExpenseCategories
+  );
 
 router
   .route('/:id')
-  .get(auth(), validate(expenseCategoryValidation.getExpenseCategory), expenseCategoryController.getExpenseCategoryById)
+  .get(
+    auth('expense_category:view'),
+    validate(expenseCategoryValidation.getExpenseCategory),
+    expenseCategoryController.getExpenseCategoryById
+  )
   .patch(
-    auth(),
+    auth('expense_category:update'),
     validate(expenseCategoryValidation.updateExpenseCategory),
     expenseCategoryController.updateExpenseCategoryById
   )
   .delete(
-    auth(),
+    auth('expense_category:delete'),
     validate(expenseCategoryValidation.deleteExpenseCategory),
     expenseCategoryController.deleteExpenseCategoryById
   );
@@ -337,14 +349,14 @@ router
 router
   .route('/:id/hard')
   .delete(
-    auth(),
+    auth('expense_category:hard_delete'),
     validate(expenseCategoryValidation.deleteExpenseCategory),
     expenseCategoryController.hardDeleteExpenseCategoryById
   );
 router
   .route('/:id/restore')
   .delete(
-    auth(),
+    auth('expense_category:restore'),
     validate(expenseCategoryValidation.restoreExpenseCategory),
     expenseCategoryController.restoreExpenseCategoryById
   );
