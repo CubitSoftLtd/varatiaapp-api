@@ -120,6 +120,7 @@ const allRoles = {
     // Utility Type management
     'utility_type:view',
     'utility_type:view_all',
+    'utility_type:create',
     'utility_type:update',
     'utility_type:delete',
     'utility_type:hard_delete',
