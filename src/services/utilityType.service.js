@@ -35,7 +35,7 @@ const createUtilityType = async (utilityTypeBody) => {
   }
 
   // Check for existing utility type name
-  const existingUtilityType = await UtilityType.findOne({ where: { name } });
+  const existingUtilityType = await UtilityType.findOne({ where: { name, accountId } });
   if (existingUtilityType) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Utility type name already exists');
   }

@@ -12,7 +12,6 @@ module.exports = (sequelize, DataTypes) => {
       name: {
         type: DataTypes.STRING(100), // Specify reasonable length (e.g., "Electricity", "Water", "Gas")
         allowNull: false,
-        unique: true, // Utility type names should be unique
         comment: 'Name of the utility type (e.g., Electricity, Water, Gas)',
       },
       unitRate: {
@@ -52,7 +51,8 @@ module.exports = (sequelize, DataTypes) => {
       modelName: 'utilityType',
       indexes: [
         {
-          fields: ['name'], // Already unique, but explicitly indexing can help
+          unique: true,
+          fields: ['name', 'accountId'],
         },
         { fields: ['accountId'] },
       ],
