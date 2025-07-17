@@ -35,7 +35,6 @@ const router = express.Router();
  *               - lastName
  *               - email
  *               - phoneNumber
- *               - leaseStartDate
  *               - depositAmount
  *             properties:
  *               firstName:
@@ -59,20 +58,7 @@ const router = express.Router();
  *                 type: string
  *                 description: Phone number for the emergency contact
  *                 nullable: true
- *               unitId:
- *                 type: string
- *                 format: uuid
- *                 description: ID of the unit the tenant is assigned to
- *                 nullable: true
- *               leaseStartDate:
- *                 type: string
- *                 format: date
- *                 description: Date the tenant's lease agreement started
- *               leaseEndDate:
- *                 type: string
- *                 format: date
- *                 description: Date the tenant's lease agreement ends
- *                 nullable: true
+ *
  *               depositAmount:
  *                 type: number
  *                 description: Security deposit amount paid by the tenant
@@ -87,16 +73,7 @@ const router = express.Router();
  *                   National identification number matching /^[A-Za-z0-9\\-/]{5,50}$/ (e.g., Bangladesh NID).
  *                 pattern: '^[A-Za-z0-9\\-/]{5,50}$'
  *                 nullable: true
- *               moveInDate:
- *                 type: string
- *                 format: date
- *                 description: Actual date the tenant moved in
- *                 nullable: true
- *               moveOutDate:
- *                 type: string
- *                 format: date
- *                 description: Actual date the tenant moved out
- *                 nullable: true
+ *
  *               notes:
  *                 type: string
  *                 description: Additional notes about the tenant
@@ -108,14 +85,9 @@ const router = express.Router();
  *               phoneNumber: "+8801712345678"
  *               emergencyContactName: "Jane Doe"
  *               emergencyContactPhone: "+8801912345678"
- *               unitId: "123e4567-e89b-12d3-a456-426614174000"
- *               leaseStartDate: "2025-01-01"
- *               leaseEndDate: "2025-12-31"
  *               depositAmount: 1500.00
  *               status: "current"
  *               nationalId: "19901234567890123"
- *               moveInDate: "2025-01-01"
- *               moveOutDate: null
  *               notes: "Reliable tenant"
  *     responses:
  *       "201":
@@ -160,12 +132,6 @@ const router = express.Router();
  *         schema:
  *           type: string
  *         description: Tenant's phone number
- *       - in: query
- *         name: unitId
- *         schema:
- *           type: string
- *           format: uuid
- *         description: Unit ID
  *       - in: query
  *         name: status
  *         schema:
@@ -314,20 +280,6 @@ const router = express.Router();
  *                 type: string
  *                 description: Phone number for the emergency contact
  *                 nullable: true
- *               unitId:
- *                 type: string
- *                 format: uuid
- *                 description: ID of the unit the tenant is assigned to
- *                 nullable: true
- *               leaseStartDate:
- *                 type: string
- *                 format: date
- *                 description: Date the tenant's lease agreement started
- *               leaseEndDate:
- *                 type: string
- *                 format: date
- *                 description: Date the tenant's lease agreement ends
- *                 nullable: true
  *               depositAmount:
  *                 type: number
  *                 description: Security deposit amount paid by the tenant
@@ -341,16 +293,6 @@ const router = express.Router();
  *                   National identification number matching /^[A-Za-z0-9\\-/]{5,50}$/ (e.g., Bangladesh NID).
  *                 pattern: '^[A-Za-z0-9\\-/]{5,50}$'
  *                 nullable: true
- *               moveInDate:
- *                 type: string
- *                 format: date
- *                 description: Actual date the tenant moved in
- *                 nullable: true
- *               moveOutDate:
- *                 type: string
- *                 format: date
- *                 description: Actual date the tenant moved out
- *                 nullable: true
  *               notes:
  *                 type: string
  *                 description: Additional notes about the tenant
@@ -362,14 +304,9 @@ const router = express.Router();
  *               phoneNumber: "+8801712345678"
  *               emergencyContactName: "Jane Doe"
  *               emergencyContactPhone: "+8801912345678"
- *               unitId: "123e4567-e89b-12d3-a456-426614174000"
- *               leaseStartDate: "2025-01-01"
- *               leaseEndDate: "2025-12-31"
  *               depositAmount: 1500.00
  *               status: "notice"
  *               nationalId: "19901234567890123"
- *               moveInDate: "2025-01-01"
- *               moveOutDate: null
  *               notes: "Updated notes"
  *     responses:
  *       "200":

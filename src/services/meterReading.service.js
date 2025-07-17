@@ -129,7 +129,7 @@ const createMeterReading = async (meterReadingBody) => {
  */
 const getAllMeterReadings = async (filter, options, deleted = 'false') => {
   const whereClause = { ...filter };
-
+  console.log({ whereClause });
   // Apply the isDeleted filter based on the 'deleted' parameter
   if (deleted === 'true') {
     whereClause.isDeleted = true;

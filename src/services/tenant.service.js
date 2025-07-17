@@ -1,6 +1,6 @@
 const httpStatus = require('http-status');
 const { Op } = require('sequelize');
-const { Tenant, Unit, Property } = require('../models');
+const { Unit, Property, Tenant } = require('../models');
 const ApiError = require('../utils/ApiError');
 
 /**
@@ -42,14 +42,14 @@ const createTenant = async (tenantBody) => {
         phoneNumber: tenantBody.phoneNumber,
         emergencyContactName: tenantBody.emergencyContactName,
         emergencyContactPhone: tenantBody.emergencyContactPhone,
-        unitId: tenantBody.unitId,
-        leaseStartDate: tenantBody.leaseStartDate,
-        leaseEndDate: tenantBody.leaseEndDate,
+        // unitId: tenantBody.unitId,
+        // leaseStartDate: tenantBody.leaseStartDate,
+        // leaseEndDate: tenantBody.leaseEndDate,
         depositAmount: tenantBody.depositAmount,
         status: tenantBody.status || 'current',
         nationalId: tenantBody.nationalId,
-        moveInDate: tenantBody.moveInDate,
-        moveOutDate: tenantBody.moveOutDate,
+        // moveInDate: tenantBody.moveInDate,
+        // moveOutDate: tenantBody.moveOutDate,
         notes: tenantBody.notes,
         accountId: tenantBody.accountId,
       },

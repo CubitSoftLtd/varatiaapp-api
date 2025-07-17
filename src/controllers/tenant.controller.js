@@ -1,8 +1,8 @@
 const httpStatus = require('http-status');
 const pick = require('../utils/pick');
 const catchAsync = require('../utils/catchAsync');
-const { tenantService } = require('../services');
 const { Tenant, Unit, Bill, Payment } = require('../models');
+const { tenantService } = require('../services');
 
 // Helper function to parse include query parameter
 const parseInclude = (include) => {

@@ -45,20 +45,20 @@ const createTenant = {
       'string.base': 'Emergency contact phone must be a string',
       'string.pattern.base': 'Emergency contact phone must be valid (7-25 characters, digits, spaces, +, -, () allowed)',
     }),
-    unitId: Joi.string()
-      .uuid({ version: ['uuidv4'] })
-      .allow(null)
-      .messages({
-        'string.base': 'Unit ID must be a string',
-        'string.uuid': 'Unit ID must be a valid UUID',
-      }),
-    leaseStartDate: Joi.date().required().messages({
-      'date.base': 'Lease start date must be a valid date',
-      'any.required': 'Lease start date is required',
-    }),
-    leaseEndDate: Joi.date().allow(null).messages({
-      'date.base': 'Lease end date must be a valid date',
-    }),
+    // unitId: Joi.string()
+    //   .uuid({ version: ['uuidv4'] })
+    //   .allow(null)
+    //   .messages({
+    //     'string.base': 'Unit ID must be a string',
+    //     'string.uuid': 'Unit ID must be a valid UUID',
+    //   }),
+    // leaseStartDate: Joi.date().required().messages({
+    //   'date.base': 'Lease start date must be a valid date',
+    //   'any.required': 'Lease start date is required',
+    // }),
+    // leaseEndDate: Joi.date().allow(null).messages({
+    //   'date.base': 'Lease end date must be a valid date',
+    // }),
     depositAmount: Joi.number().required().min(0).precision(2).messages({
       'number.base': 'Deposit amount must be a number',
       'number.min': 'Deposit amount cannot be negative',
@@ -76,12 +76,12 @@ const createTenant = {
       'string.base': 'National ID must be a string',
       'string.pattern.base': 'National ID must be valid (5-50 characters, alphanumeric, hyphen, slash allowed)',
     }),
-    moveInDate: Joi.date().allow(null).messages({
-      'date.base': 'Move-in date must be a valid date',
-    }),
-    moveOutDate: Joi.date().allow(null).messages({
-      'date.base': 'Move-out date must be a valid date',
-    }),
+    // moveInDate: Joi.date().allow(null).messages({
+    //   'date.base': 'Move-in date must be a valid date',
+    // }),
+    // moveOutDate: Joi.date().allow(null).messages({
+    //   'date.base': 'Move-out date must be a valid date',
+    // }),
     notes: Joi.string().max(65535).allow(null).messages({
       'string.base': 'Notes must be a string',
       'string.max': 'Notes cannot exceed 65535 characters',
@@ -206,19 +206,19 @@ const updateTenant = {
         'string.base': 'Emergency contact phone must be a string',
         'string.pattern.base': 'Emergency contact phone must be valid (7-25 characters, digits, spaces, +, -, () allowed)',
       }),
-      unitId: Joi.string()
-        .uuid({ version: ['uuidv4'] })
-        .allow(null)
-        .messages({
-          'string.base': 'Unit ID must be a string',
-          'string.uuid': 'Unit ID must be a valid UUID',
-        }),
-      leaseStartDate: Joi.date().messages({
-        'date.base': 'Lease start date must be a valid date',
-      }),
-      leaseEndDate: Joi.date().allow(null).messages({
-        'date.base': 'Lease end date must be a valid date',
-      }),
+      // unitId: Joi.string()
+      //   .uuid({ version: ['uuidv4'] })
+      //   .allow(null)
+      //   .messages({
+      //     'string.base': 'Unit ID must be a string',
+      //     'string.uuid': 'Unit ID must be a valid UUID',
+      //   }),
+      // leaseStartDate: Joi.date().messages({
+      //   'date.base': 'Lease start date must be a valid date',
+      // }),
+      // leaseEndDate: Joi.date().allow(null).messages({
+      //   'date.base': 'Lease end date must be a valid date',
+      // }),
       depositAmount: Joi.number().min(0).precision(2).messages({
         'number.base': 'Deposit amount must be a number',
         'number.min': 'Deposit amount cannot be negative',
@@ -234,12 +234,12 @@ const updateTenant = {
         'string.base': 'National ID must be a string',
         'string.pattern.base': 'National ID must be valid (5-50 characters, alphanumeric, hyphen, slash allowed)',
       }),
-      moveInDate: Joi.date().allow(null).messages({
-        'date.base': 'Move-in date must be a valid date',
-      }),
-      moveOutDate: Joi.date().allow(null).messages({
-        'date.base': 'Move-out date must be a valid date',
-      }),
+      // moveInDate: Joi.date().allow(null).messages({
+      //   'date.base': 'Move-in date must be a valid date',
+      // }),
+      // moveOutDate: Joi.date().allow(null).messages({
+      //   'date.base': 'Move-out date must be a valid date',
+      // }),
       notes: Joi.string().max(65535).allow(null).messages({
         'string.base': 'Notes must be a string',
         'string.max': 'Notes cannot exceed 65535 characters',

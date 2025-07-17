@@ -63,28 +63,28 @@ module.exports = (sequelize, DataTypes) => {
         },
         comment: 'Phone number for the emergency contact',
       },
-      unitId: {
-        type: DataTypes.UUID,
-        allowNull: true, // Tenant might not be currently assigned to a unit (e.g., prospective tenant)
-        references: {
-          model: 'units', // References the 'units' table
-          key: 'id',
-        },
-        onDelete: 'SET NULL', // If a unit is deleted, tenant's unitId becomes null (tenant can still exist)
-        onUpdate: 'CASCADE',
-        comment: 'ID of the unit the tenant is currently occupying or assigned to',
-      },
-      leaseStartDate: {
-        type: DataTypes.DATEONLY, // Use DATEONLY if you only need the date
-        allowNull: false,
-        comment: "Date the tenant's lease agreement started",
-      },
-      leaseEndDate: {
-        type: DataTypes.DATEONLY, // Use DATEONLY
-        // type: DataTypes.DATE, // Change back to DATE if time component is needed
-        allowNull: true, // Lease might be month-to-month or open-ended
-        comment: "Date the tenant's lease agreement is scheduled to end (null for open-ended leases)",
-      },
+      // unitId: {
+      //   type: DataTypes.UUID,
+      //   allowNull: true, // Tenant might not be currently assigned to a unit (e.g., prospective tenant)
+      //   references: {
+      //     model: 'units', // References the 'units' table
+      //     key: 'id',
+      //   },
+      //   onDelete: 'SET NULL', // If a unit is deleted, tenant's unitId becomes null (tenant can still exist)
+      //   onUpdate: 'CASCADE',
+      //   comment: 'ID of the unit the tenant is currently occupying or assigned to',
+      // },
+      // leaseStartDate: {
+      //   type: DataTypes.DATEONLY, // Use DATEONLY if you only need the date
+      //   allowNull: false,
+      //   comment: "Date the tenant's lease agreement started",
+      // },
+      // leaseEndDate: {
+      //   type: DataTypes.DATEONLY, // Use DATEONLY
+      //   // type: DataTypes.DATE, // Change back to DATE if time component is needed
+      //   allowNull: true, // Lease might be month-to-month or open-ended
+      //   comment: "Date the tenant's lease agreement is scheduled to end (null for open-ended leases)",
+      // },
       depositAmount: {
         type: DataTypes.DECIMAL(18, 2), // Increased precision for currency
         allowNull: false,
@@ -121,16 +121,16 @@ module.exports = (sequelize, DataTypes) => {
         },
         comment: 'National identification number (e.g., NID, Passport number)',
       },
-      moveInDate: {
-        type: DataTypes.DATEONLY,
-        allowNull: true,
-        comment: 'Actual date the tenant moved into the unit',
-      },
-      moveOutDate: {
-        type: DataTypes.DATEONLY,
-        allowNull: true,
-        comment: 'Actual date the tenant moved out of the unit',
-      },
+      // moveInDate: {
+      //   type: DataTypes.DATEONLY,
+      //   allowNull: true,
+      //   comment: 'Actual date the tenant moved into the unit',
+      // },
+      // moveOutDate: {
+      //   type: DataTypes.DATEONLY,
+      //   allowNull: true,
+      //   comment: 'Actual date the tenant moved out of the unit',
+      // },
       notes: {
         type: DataTypes.TEXT,
         allowNull: true,

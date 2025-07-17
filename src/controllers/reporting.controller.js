@@ -15,8 +15,15 @@ const getTenantActivityReport = catchAsync(async (req, res) => {
   const report = await reportingService.getTenantActivityReport(filter, options);
   res.send(report);
 });
+const getMonthlyRevenueExpenseReport = catchAsync(async (req, res) => {
+  const filter = pick(req.query, ['year']);
+  const year = filter.year || new Date().getFullYear();
+  const report = await reportingService.getMonthlyRevenueExpenseReport(year);
+  res.send(report);
+});
 
 module.exports = {
   getFinancialReport,
   getTenantActivityReport,
+  getMonthlyRevenueExpenseReport,
 };

@@ -12,3 +12,4 @@ module.exports.subMeterValidation = require('./subMeter.validation');
 module.exports.meterReadingValidation = require('./meterReading.validation');
 module.exports.expenseCategoryValidation = require('./expenseCategory.validation');
 module.exports.expenseValidation = require('./expense.validation');
+module.exports.meterChargeValidation = require('./meterCharge.validation');

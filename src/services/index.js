@@ -17,3 +17,5 @@ module.exports.expenseService = require('./expense.service');
 module.exports.reportingService = require('./reporting.service');
 module.exports.notificationService = require('./notification.service');
 module.exports.roleService = require('./role.service');
+module.exports.leaseService = require('./lease.service');
+module.exports.meterChargeService = require('./meterCharge.service');

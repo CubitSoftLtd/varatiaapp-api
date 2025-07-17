@@ -194,6 +194,54 @@ const router = express.Router();
  *         $ref: '#/components/responses/Unauthorized'
  *       "403":
  *         $ref: '#/components/responses/Forbidden'
+ *
+ * /reports/monthly-financial:
+ *   get:
+ *     summary: Get monthly financial report
+ *     description: Retrieve a month-wise financial report with total revenue and expenses.
+ *     tags: [Reports]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: year
+ *         schema:
+ *           type: integer
+ *           example: 2025
+ *         description: Year for the report (defaults to current year)
+ *     responses:
+ *       "200":
+ *         description: OK
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 year:
+ *                   type: integer
+ *                   example: 2025
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       month:
+ *                         type: string
+ *                         example: Jan
+ *                       revenue:
+ *                         type: number
+ *                         example: 4000
+ *                       expense:
+ *                         type: number
+ *                         example: 2400
+ *                 generatedAt:
+ *                   type: string
+ *                   format: date-time
+ *                   example: 2025-07-14T12:00:00.000Z
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
  */
 
 router.route('/financial').get(auth(), validate(reportingValidation.getFinancialRe), reportingController.getFinancialReport);
@@ -201,5 +249,7 @@ router.route('/financial').get(auth(), validate(reportingValidation.getFinancial
 router
   .route('/tenant-activity')
   .get(auth(), validate(reportingValidation.getTenantActivityReport), reportingController.getTenantActivityReport);
-
+router
+  .route('/monthly-financial')
+  .get(auth(), validate(reportingValidation.getMonthlyFinancialReport), reportingController.getMonthlyRevenueExpenseReport);
 module.exports = router;

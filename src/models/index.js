@@ -13,8 +13,10 @@ const Meter = require('./meter.model');
 const Submeter = require('./subMeter.model');
 const Payment = require('./payment.model');
 const MeterReading = require('./meterReading.model');
+const Lease = require('./lease.model');
 const UtilityType = require('./utilityType.model');
 const Expense = require('./expense.model');
+const MeterCharge = require('./meterCharge.model');
 const ExpenseCategory = require('./expenseCategory.model');
 const TenancyHistory = require('./tenancyHistory.model');
 const Document = require('./document.model');
@@ -48,6 +50,8 @@ const models = {
   ExpenseCategory: ExpenseCategory(sequelize, DataTypes),
   Expense: Expense(sequelize, DataTypes),
   Bill: Bill(sequelize, DataTypes),
+  Lease: Lease(sequelize, DataTypes),
+  MeterCharge: MeterCharge(sequelize, DataTypes),
   Payment: Payment(sequelize, DataTypes),
   Document: Document(sequelize, DataTypes),
 };

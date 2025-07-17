@@ -1,0 +1,273 @@
+const httpStatus = require('http-status');
+const { Tenant, Unit, Lease } = require('../models');
+const ApiError = require('../utils/ApiError');
+
+/**
+ * Create a lease with validation and transaction
+ * @param {Object} leaseBody
+ * @returns {Promise<Lease>}
+ */
+
+// const createLease = async (leaseBody) => {
+//   // Validate unitId if provided
+//   console.log('leaseBody', leaseBody);
+//   if (leaseBody.unitId) {
+//     const unit = await Unit.findByPk(leaseBody.unitId);
+//     if (!unit) {
+//       throw new ApiError(httpStatus.NOT_FOUND, 'Unit not found');
+//     }
+//   }
+//   if (leaseBody.tenantId) {
+//     const tenant = await Tenant.findByPk(leaseBody.tenantId);
+//     if (!tenant) {
+//       throw new ApiError(httpStatus.NOT_FOUND, 'Tenant not found');
+//     }
+//   }
+//   const existingActiveLease = await Lease.findOne({
+//     where: {
+//       unitId: leaseBody.unitId,
+//       status: 'active',
+//     },
+//   });
+
+//   if (existingActiveLease) {
+//     throw new ApiError(httpStatus.BAD_REQUEST, 'This unit already has an active lease.');
+//   }
+//   const lease = await Lease.sequelize.transaction(async (t) => {
+//     return Lease.create(
+//       {
+//         unitId: leaseBody.unitId,
+//         tenantId: leaseBody.tenantId,
+//         leaseStartDate: leaseBody.leaseStartDate,
+//         leaseEndDate: leaseBody.leaseEndDate,
+//         moveInDate: leaseBody.moveInDate,
+//         moveOutDate: leaseBody.moveOutDate,
+//         status: leaseBody.status || 'active',
+//         startedMeterReading: leaseBody.startedMeterReading,
+//         notes: leaseBody.notes,
+//         accountId: leaseBody.accountId,
+//       },
+//       { transaction: t }
+//     );
+
+//   });
+
+//   return lease;
+// };
+const createLease = async (leaseBody) => {
+  console.log('leaseBody', leaseBody);
+
+  if (leaseBody.unitId) {
+    const unit = await Unit.findByPk(leaseBody.unitId);
+    if (!unit) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'Unit not found');
+    }
+  }
+
+  if (leaseBody.tenantId) {
+    const tenant = await Tenant.findByPk(leaseBody.tenantId);
+    if (!tenant) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'Tenant not found');
+    }
+  }
+
+  const existingActiveLease = await Lease.findOne({
+    where: {
+      unitId: leaseBody.unitId,
+      status: 'active',
+    },
+  });
+
+  if (existingActiveLease) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'This unit already has an active lease.');
+  }
+
+  const lease = await Lease.sequelize.transaction(async (t) => {
+    // Step 1: Create Lease
+    const createdLease = await Lease.create(
+      {
+        unitId: leaseBody.unitId,
+        tenantId: leaseBody.tenantId,
+        leaseStartDate: leaseBody.leaseStartDate,
+        leaseEndDate: leaseBody.leaseEndDate,
+        moveInDate: leaseBody.moveInDate,
+        moveOutDate: leaseBody.moveOutDate,
+        status: leaseBody.status || 'active',
+        startedMeterReading: leaseBody.startedMeterReading,
+        notes: leaseBody.notes,
+        accountId: leaseBody.accountId,
+      },
+      { transaction: t }
+    );
+
+    // ✅ Step 2: Update Unit Status
+    await Unit.update(
+      { status: 'occupied' },
+      {
+        where: { id: leaseBody.unitId },
+        transaction: t,
+      }
+    );
+
+    return createdLease;
+  });
+
+  return lease;
+};
+/**
+ * Query for lease with pagination, sorting, and optional inclusion of specific columns from associated models
+ * @param {Object} filter - Sequelize filter
+ * @param {Object} options - Query options
+ * @param {string} [options.sortBy] - Sort option in the format: sortField:(desc|asc)
+ * @param {number} [options.limit] - Maximum number of results per page (default = 10)
+ * @param {number} [options.page] - Current page (default = 1)
+ * @param {Array} [options.include] - Array of objects specifying models and attributes to include
+ * @returns {Promise<{ results: Lease[], page: number, limit: number, totalPages: number, totalResults: number }>}
+ */
+
+const getAllLeases = async (filter, options) => {
+  const whereClause = { ...filter };
+  console.log('filterto', filter);
+  const limit = options.limit && parseInt(options.limit, 10) > 0 ? parseInt(options.limit, 10) : 10;
+  const page = options.page && parseInt(options.page, 10) > 0 ? parseInt(options.page, 10) : 1;
+  const offset = (page - 1) * limit;
+
+  const sort = [];
+  if (options.sortBy) {
+    const [field, order] = options.sortBy.split(':');
+    sort.push([field, order.toUpperCase() === 'DESC' ? 'DESC' : 'ASC']);
+  }
+
+  // Use the provided include array or default to an empty array (no associations)
+  const include = options.include || [];
+
+  const { count, rows } = await Lease.findAndCountAll({
+    where: whereClause,
+    limit,
+    offset,
+    order: sort.length ? sort : [['createdAt', 'DESC']],
+    include,
+  });
+
+  return {
+    results: rows,
+    page,
+    limit,
+    totalPages: Math.ceil(count / limit),
+    totalResults: count,
+  };
+};
+
+/**
+ * Get lease by id with optional inclusion of specific columns from associated models
+ * @param {string} id
+ * @param {Array} [include=[]] - Array of objects specifying models and attributes to include
+ * @returns {Promise<Lease>}
+ */
+const getLeaseById = async (id, include = []) => {
+  const lease = await Lease.findByPk(id, { include });
+  if (!lease) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Lease not found');
+  }
+  return lease;
+};
+
+/**
+ * Update tenant by id with validation
+ * @param {string} leaseId
+ * @param {Object} updateBody
+ * @returns {Promise<Lease>}
+ */
+const updateLease = async (leaseId, updateBody) => {
+  const lease = await getLeaseById(leaseId);
+
+  // Validate unitId if provided
+  if (updateBody.unitId) {
+    const unit = await Unit.findByPk(updateBody.unitId);
+    if (!unit) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'Unit not found');
+    }
+  }
+  if (updateBody.tenantId) {
+    const tenant = await Tenant.findByPk(updateBody.tenantId);
+    if (!tenant) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'Tenant not found');
+    }
+  }
+
+  await lease.update(updateBody);
+  return lease;
+};
+
+/**
+ * Soft delete tenant by id (set status to inactive)
+ * @param {string} leaseId
+ * @returns {Promise<void>}
+ */
+const deleteLease = async (leaseId) => {
+  const lease = await getLeaseById(leaseId);
+  if (lease.isDeleted) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Lease is already inactive');
+  }
+  await lease.update({ isDeleted: true });
+};
+const restoreLease = async (leaseId) => {
+  const lease = await getLeaseById(leaseId);
+  if (!lease.isDeleted) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Lease is already inactive');
+  }
+  await lease.update({ isDeleted: false });
+};
+
+/**
+ * Permanently delete tenant by id (hard delete)
+ * @param {string} leaseId
+ * @returns {Promise<void>}
+ */
+// const hardDeleteLease = async (leaseId) => {
+//   const lease = await getLeaseById(leaseId);
+//   await lease.destroy();
+// };
+const hardDeleteLease = async (leaseId) => {
+  const lease = await getLeaseById(leaseId);
+  if (!lease) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Lease not found');
+  }
+
+  await Lease.sequelize.transaction(async (t) => {
+    const { unitId } = lease;
+
+    // Step 1: Delete the lease
+    await lease.destroy({ transaction: t });
+
+    // Step 2: Check if the unit has any other active leases
+    const otherActiveLease = await Lease.findOne({
+      where: {
+        unitId,
+        status: 'active',
+      },
+      transaction: t,
+    });
+
+    // Step 3: If no other active lease, update the unit status to "vacant"
+    if (!otherActiveLease) {
+      await Unit.update(
+        { status: 'vacant' },
+        {
+          where: { id: unitId },
+          transaction: t,
+        }
+      );
+    }
+  });
+};
+
+module.exports = {
+  createLease,
+  getAllLeases,
+  getLeaseById,
+  updateLease,
+  deleteLease,
+  restoreLease,
+  hardDeleteLease,
+};

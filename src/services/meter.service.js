@@ -1,6 +1,6 @@
 const httpStatus = require('http-status');
 const { Sequelize } = require('sequelize');
-const { Meter, Property, UtilityType } = require('../models');
+const { Meter, Property, UtilityType, Submeter } = require('../models');
 const ApiError = require('../utils/ApiError');
 
 /**
@@ -169,13 +169,35 @@ const updateMeter = async (meterId, updateBody) => {
  * @param {string} meterId
  * @returns {Promise<void>}
  */
+// const deleteMeter = async (meterId) => {
+//   const meter = await getMeterById(meterId);
+//   if (meter.isDeleted) {
+//     throw new ApiError(httpStatus.BAD_REQUEST, 'Meter is already inactive');
+//   }
+//   await meter.update({ status: 'inactive', isDeleted: true });
+// };
 const deleteMeter = async (meterId) => {
   const meter = await getMeterById(meterId);
+
   if (meter.isDeleted) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Meter is already inactive');
   }
+
+  // Check for existing (not deleted) submeters
+  const submeterCount = await Submeter.count({
+    where: {
+      meterId,
+      isDeleted: false, // optional: only check for non-deleted submeters
+    },
+  });
+
+  if (submeterCount > 0) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Cannot Archived meter with existing submeters');
+  }
+
   await meter.update({ status: 'inactive', isDeleted: true });
 };
+
 const restoreMeter = async (meterId) => {
   const meter = await getMeterById(meterId);
   if (!meter.isDeleted) {
@@ -189,11 +211,24 @@ const restoreMeter = async (meterId) => {
  * @param {string} meterId
  * @returns {Promise<void>}
  */
+// const hardDeleteMeter = async (meterId) => {
+//   const meter = await getMeterById(meterId);
+//   await meter.destroy();
+// };
 const hardDeleteMeter = async (meterId) => {
   const meter = await getMeterById(meterId);
+
+  // Check for any submeters, even soft-deleted ones
+  const submeterCount = await Submeter.count({
+    where: { meterId },
+  });
+
+  if (submeterCount > 0) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Cannot hard delete meter with existing submeters');
+  }
+
   await meter.destroy();
 };
-
 module.exports = {
   createMeter,
   getAllMeters,
