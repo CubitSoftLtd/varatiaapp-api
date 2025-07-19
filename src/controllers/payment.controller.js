@@ -1,3 +1,5 @@
+/* eslint-disable no-console */
+/* eslint-disable prettier/prettier */
 const httpStatus = require('http-status');
 const pick = require('../utils/pick');
 const catchAsync = require('../utils/catchAsync');
@@ -83,6 +85,7 @@ const getPaymentById = catchAsync(async (req, res) => {
 });
 
 const getPaymentsByBillId = catchAsync(async (req, res) => {
+  console.log("req", req.params); // 👈 এটা যোগ করো
   const payments = await paymentService.getPaymentsByBillId(req.params.billId, parseInclude(req.query.include));
   res.json(payments);
 });

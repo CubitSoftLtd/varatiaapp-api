@@ -242,6 +242,117 @@ const router = express.Router();
  *         $ref: '#/components/responses/Unauthorized'
  *       "403":
  *         $ref: '#/components/responses/Forbidden'
+ * /reports/tenant-history:
+ *   get:
+ *     summary: Get tenant history report
+ *     description: Retrieve a month-wise financial report with total revenue and expenses.
+ *     tags: [Reports]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: tenantId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: a1b2c3d4
+ *         description: ID of the tenant
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *           example: 2025-07-01
+ *         description: Start date of the report period (optional)
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *           example: 2025-07-31
+ *         description: End date of the report period (optional)
+ *     responses:
+ *       "200":
+ *         description: OK
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 leases:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         format: uuid
+ *                       status:
+ *                         type: string
+ *                       leaseStartDate:
+ *                         type: string
+ *                         format: date
+ *                       leaseEndDate:
+ *                         type: string
+ *                         format: date
+ *                       moveInDate:
+ *                         type: string
+ *                         format: date
+ *                       moveOutDate:
+ *                         type: string
+ *                         format: date
+ *                 payments:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         format: uuid
+ *                       billId:
+ *                         type: string
+ *                         format: uuid
+ *                       paymentMethod:
+ *                         type: integer
+ *                       amountPaid:
+ *                         type: number
+ *                       paymentDate:
+ *                         type: string
+ *                         format: date
+ *                 bills:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         format: uuid
+ *                       invoiceNo:
+ *                         type: string
+ *                       billingPeriodStart:
+ *                         type: string
+ *                         format: date
+ *                       billingPeriodEnd:
+ *                         type: string
+ *                         format: date
+ *                       rentAmount:
+ *                         type: number
+ *                       totalUtilityAmount:
+ *                         type: number
+ *                       otherChargesAmount:
+ *                         type: number
+ *                       totalAmount:
+ *                         type: number
+ *                       amountPaid:
+ *                         type: number
+ *                 generatedAt:
+ *                   type: string
+ *                   format: date-time
+ *                   example: 2025-05-28T10:57:00.000Z
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
  */
 
 router.route('/financial').get(auth(), validate(reportingValidation.getFinancialRe), reportingController.getFinancialReport);
@@ -252,4 +363,7 @@ router
 router
   .route('/monthly-financial')
   .get(auth(), validate(reportingValidation.getMonthlyFinancialReport), reportingController.getMonthlyRevenueExpenseReport);
+router
+  .route('/tenant-history')
+  .get(auth(), validate(reportingValidation.getTenantHistoryValidate), reportingController.getTenantHistoryReportController);
 module.exports = router;

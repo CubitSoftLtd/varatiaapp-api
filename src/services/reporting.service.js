@@ -1,5 +1,6 @@
 const { Op } = require('sequelize');
-const { Bill, Payment, Expense, Lease, MaintenanceRequest } = require('../models');
+const moment = require('moment');
+const { Bill, Payment, Expense, Lease, MaintenanceRequest, MeterCharge, Unit, Tenant } = require('../models');
 
 const getFinancialReport = async (filter) => {
   const { startDate, endDate, propertyId } = filter;
@@ -9,7 +10,9 @@ const getFinancialReport = async (filter) => {
   if (propertyId) where.propertyId = propertyId;
 
   const totalRevenue = (await Payment.sum('amountPaid', { where })) || 0;
-  const totalExpenses = (await Expense.sum('amount', { where })) || 0;
+  const otherExpenses = (await Expense.sum('amount', { where })) || 0;
+  const meterCharges = (await MeterCharge.sum('amount', { where })) || 0;
+  const totalExpenses = otherExpenses + meterCharges;
   const outstandingPayments =
     (await Bill.sum('totalAmount', {
       where: { paymentStatus: 'pending', ...where },
@@ -56,6 +59,59 @@ const getTenantActivityReport = async (filter) => {
     generatedAt: new Date(),
   };
 };
+// const getMonthlyRevenueExpenseReport = async (year) => {
+//   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+//   const result = Array.from({ length: 12 }, (_, i) => ({
+//     month: monthNames[i],
+//     revenue: 0,
+//     expense: 0,
+//   }));
+
+//   // Fetch all payments within year
+//   const payments = await Payment.findAll({
+//     where: {
+//       isDeleted: false,
+//       createdAt: {
+//         [Op.gte]: new Date(`${year}-01-01`),
+//         [Op.lt]: new Date(`${parseInt(year) + 1}-01-01`),
+//       },
+//     },
+//     attributes: ['amountPaid', 'createdAt'],
+//     raw: true,
+//   });
+
+//   // Fetch all expenses within year
+//   const expenses = await Expense.findAll({
+//     where: {
+//       isDeleted: false,
+//       createdAt: {
+//         [Op.gte]: new Date(`${year}-01-01`),
+//         [Op.lt]: new Date(`${parseInt(year) + 1}-01-01`),
+//       },
+//     },
+//     attributes: ['amount', 'createdAt'],
+//     raw: true,
+//   });
+
+//   // Map payments to months
+//   for (const p of payments) {
+//     const monthIndex = new Date(p.createdAt).getMonth();
+//     result[monthIndex].revenue += parseFloat(p.amountPaid);
+//   }
+
+//   // Map expenses to months
+//   for (const e of expenses) {
+//     const monthIndex = new Date(e.createdAt).getMonth();
+//     result[monthIndex].expense += parseFloat(e.amount);
+//   }
+
+//   return {
+//     year: parseInt(year),
+//     data: result,
+//     generatedAt: new Date(),
+//   };
+// };
 const getMonthlyRevenueExpenseReport = async (year) => {
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -65,13 +121,16 @@ const getMonthlyRevenueExpenseReport = async (year) => {
     expense: 0,
   }));
 
+  const startOfYear = new Date(`${year}-01-01`);
+  const startOfNextYear = new Date(`${parseInt(year) + 1}-01-01`);
+
   // Fetch all payments within year
   const payments = await Payment.findAll({
     where: {
       isDeleted: false,
       createdAt: {
-        [Op.gte]: new Date(`${year}-01-01`),
-        [Op.lt]: new Date(`${parseInt(year) + 1}-01-01`),
+        [Op.gte]: startOfYear,
+        [Op.lt]: startOfNextYear,
       },
     },
     attributes: ['amountPaid', 'createdAt'],
@@ -83,8 +142,21 @@ const getMonthlyRevenueExpenseReport = async (year) => {
     where: {
       isDeleted: false,
       createdAt: {
-        [Op.gte]: new Date(`${year}-01-01`),
-        [Op.lt]: new Date(`${parseInt(year) + 1}-01-01`),
+        [Op.gte]: startOfYear,
+        [Op.lt]: startOfNextYear,
+      },
+    },
+    attributes: ['amount', 'createdAt'],
+    raw: true,
+  });
+
+  // ✅ Fetch all meter charges within year
+  const meterCharges = await MeterCharge.findAll({
+    where: {
+      isDeleted: false,
+      createdAt: {
+        [Op.gte]: startOfYear,
+        [Op.lt]: startOfNextYear,
       },
     },
     attributes: ['amount', 'createdAt'],
@@ -103,14 +175,103 @@ const getMonthlyRevenueExpenseReport = async (year) => {
     result[monthIndex].expense += parseFloat(e.amount);
   }
 
+  // ✅ Map meter charges to months
+  for (const m of meterCharges) {
+    const monthIndex = new Date(m.createdAt).getMonth();
+    result[monthIndex].expense += parseFloat(m.amount);
+  }
+
   return {
     year: parseInt(year),
     data: result,
     generatedAt: new Date(),
   };
 };
+
+const getTenantHistoryReport = async (filter) => {
+  const { tenantId, startDate, endDate } = filter;
+
+  if (!tenantId) {
+    throw new Error('tenantId is required');
+  }
+
+  const where = { tenantId };
+
+  if (startDate && endDate) {
+    where.createdAt = {
+      [Op.gte]: new Date(startDate),
+      [Op.lte]: new Date(endDate),
+    };
+  }
+
+  const [leases, payments, bills] = await Promise.all([
+    Lease.findAll({
+      where,
+      include: [
+        {
+          model: Unit,
+          as: 'unit',
+          attributes: ['id', 'name'], // unit name
+        },
+      ],
+    }),
+    Payment.findAll({
+      where,
+      include: [
+        {
+          model: Bill,
+          as: 'bill',
+          attributes: ['id', 'invoiceNo'],
+        },
+      ],
+    }),
+    Bill.findAll({ where }),
+  ]);
+  const tenant = await Tenant.findByPk(tenantId, {
+    attributes: ['id', 'name'],
+  });
+  return {
+    tenantId: tenant.id,
+    tenantName: tenant.name,
+    period: startDate && endDate ? `${startDate} to ${endDate}` : 'All Time',
+    leases: leases.map((l) => ({
+      id: l.id,
+      unitId: l.unitId,
+      unitName: l.unit?.name,
+      status: l.status,
+      leaseStartDate: l.leaseStartDate,
+      leaseEndDate: l.leaseEndDate,
+      moveInDate: l.moveInDate,
+      moveOutDate: l.moveOutDate,
+    })),
+    payments: payments.map((p) => ({
+      id: p.id,
+      billId: p.billId,
+      billInvoiceNo: p.bill?.invoiceNo,
+      billTotalAmount: p.bill?.totalAmount,
+      paymentMethod: p.paymentMethod,
+      paymentDate: p.paymentDate,
+      amountPaid: p.amountPaid,
+    })),
+    bills: bills.map((b) => ({
+      id: b.id,
+      invoiceNo: b.invoiceNo,
+      billingPeriodStart: b.billingPeriodStart,
+      billingPeriodEnd: b.billingPeriodEnd,
+      rentAmount: b.rentAmount,
+      totalUtilityAmount: b.totalUtilityAmount,
+      otherChargesAmount: b.otherChargesAmount,
+      totalAmount: b.totalAmount,
+      amountPaid: b.amountPaid,
+      tenantName: b.tenant?.fullName,
+    })),
+    generatedAt: new Date(),
+  };
+};
+
 module.exports = {
   getFinancialReport,
   getTenantActivityReport,
   getMonthlyRevenueExpenseReport,
+  getTenantHistoryReport,
 };

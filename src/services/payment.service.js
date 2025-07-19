@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 const httpStatus = require('http-status');
 const { Op } = require('sequelize');
 const { Payment, Bill, Tenant, Account } = require('../models');

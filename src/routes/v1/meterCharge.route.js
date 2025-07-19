@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 const express = require('express');
 const { meterChargeController } = require('../../controllers');
 const auth = require('../../middlewares/auth');
@@ -328,21 +329,21 @@ const router = express.Router();
 // Route bindings
 router
   .route('/')
-  .post(auth(), validate(meterChargeValidation.createMeterCharge), meterChargeController.createMeterCharge)
-  .get(auth(), validate(meterChargeValidation.getMeterCharges), meterChargeController.getMeterCharges);
+  .post(auth('meter_charge:management'), validate(meterChargeValidation.createMeterCharge), meterChargeController.createMeterCharge)
+  .get(auth('meter_charge:management'), validate(meterChargeValidation.getMeterCharges), meterChargeController.getMeterCharges);
 
 router
   .route('/:id')
-  .get(auth(), validate(meterChargeValidation.getMeterCharge), meterChargeController.getMeterChargeById)
-  .patch(auth(), validate(meterChargeValidation.updateMeterCharge), meterChargeController.updateMeterChargeById)
-  .delete(auth(), validate(meterChargeValidation.deleteHardMeterChage), meterChargeController.deleteMeterChargeById);
+  .get(auth('meter_charge:management'), validate(meterChargeValidation.getMeterCharge), meterChargeController.getMeterChargeById)
+  .patch(auth('meter_charge:management'), validate(meterChargeValidation.updateMeterCharge), meterChargeController.updateMeterChargeById)
+  .delete(auth('meter_charge:management'), validate(meterChargeValidation.deleteHardMeterChage), meterChargeController.deleteMeterChargeById);
 
 router
   .route('/:id/hard')
-  .delete(auth(), validate(meterChargeValidation.deleteHardMeterChage), meterChargeController.hardDeleteMeterChargeById);
+  .delete(auth('meter_charge:management'), validate(meterChargeValidation.deleteHardMeterChage), meterChargeController.hardDeleteMeterChargeById);
 
 router
   .route('/:id/restore')
-  .delete(auth(), validate(meterChargeValidation.deleteHardMeterChage), meterChargeController.restoreMeterChargeById);
+  .delete(auth('meter_charge:management'), validate(meterChargeValidation.deleteHardMeterChage), meterChargeController.restoreMeterChargeById);
 
 module.exports = router;

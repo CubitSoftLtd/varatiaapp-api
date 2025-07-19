@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 const express = require('express');
 const validate = require('../../middlewares/validate');
 const auth = require('../../middlewares/auth');
@@ -322,20 +323,46 @@ const router = express.Router();
  *         $ref: '#/components/responses/NotFound'
  */
 
+/**
+ * @swagger
+ * /leases/{id}/terminate:
+ *   patch:
+ *     summary: change status to terminate a lease by ID
+ *     tags: [Leases]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       "204":
+ *         description: No content
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
+ *       "404":
+ *         $ref: '#/components/responses/NotFound'
+ */
+
 // Route bindings
 router
   .route('/')
-  .post(auth(), validate(leaseValidation.createLease), leaseController.createLease)
-  .get(auth(), validate(leaseValidation.getLeases), leaseController.getLeases);
+  .post(auth('lease:management'), validate(leaseValidation.createLease), leaseController.createLease)
+  .get(auth('lease:management'), validate(leaseValidation.getLeases), leaseController.getLeases);
 
 router
   .route('/:id')
-  .get(auth(), validate(leaseValidation.getLease), leaseController.getLeaseById)
-  .patch(auth(), validate(leaseValidation.updateLease), leaseController.updateLeaseById)
-  .delete(auth(), validate(leaseValidation.deleteLease), leaseController.deleteLeaseById);
+  .get(auth('lease:management'), validate(leaseValidation.getLease), leaseController.getLeaseById)
+  .patch(auth('lease:management'), validate(leaseValidation.updateLease), leaseController.updateLeaseById)
+  .delete(auth('lease:management'), validate(leaseValidation.deleteLease), leaseController.deleteLeaseById);
 
-router.route('/:id/hard').delete(auth(), validate(leaseValidation.deleteHardLease), leaseController.hardDeleteLeaseById);
-
-router.route('/:id/restore').delete(auth(), validate(leaseValidation.deleteLease), leaseController.restoreLeaseById);
+router.route('/:id/hard').delete(auth('lease:management'), validate(leaseValidation.deleteHardLease), leaseController.hardDeleteLeaseById);
+router.route('/:id/restore').delete(auth('lease:management'), validate(leaseValidation.deleteLease), leaseController.restoreLeaseById);
+router.route('/:id/terminate').patch(auth('lease:management'), validate(leaseValidation.deleteLease), leaseController.terminateLeaseController);
 
 module.exports = router;

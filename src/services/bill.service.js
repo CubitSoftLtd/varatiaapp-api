@@ -409,6 +409,7 @@ const getBillsByPropertyAndDateRange = async (propertyId, filter, options) => {
       fullInvoiceNumber: `INV-${billYear}-${formattedInvoiceNo}`,
       rentAmountFormatted: bill.rentAmount,
       totalUtilityAmountFormatted: bill.totalUtilityAmount,
+      otherChargesAmount: bill.otherChargesAmount,
       totalAmountFormatted: bill.totalAmount,
       tenantName: bill.tenant?.name || 'N/A',
       unitName: bill.unit?.name || 'N/A',

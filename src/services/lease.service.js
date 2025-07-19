@@ -8,55 +8,7 @@ const ApiError = require('../utils/ApiError');
  * @returns {Promise<Lease>}
  */
 
-// const createLease = async (leaseBody) => {
-//   // Validate unitId if provided
-//   console.log('leaseBody', leaseBody);
-//   if (leaseBody.unitId) {
-//     const unit = await Unit.findByPk(leaseBody.unitId);
-//     if (!unit) {
-//       throw new ApiError(httpStatus.NOT_FOUND, 'Unit not found');
-//     }
-//   }
-//   if (leaseBody.tenantId) {
-//     const tenant = await Tenant.findByPk(leaseBody.tenantId);
-//     if (!tenant) {
-//       throw new ApiError(httpStatus.NOT_FOUND, 'Tenant not found');
-//     }
-//   }
-//   const existingActiveLease = await Lease.findOne({
-//     where: {
-//       unitId: leaseBody.unitId,
-//       status: 'active',
-//     },
-//   });
-
-//   if (existingActiveLease) {
-//     throw new ApiError(httpStatus.BAD_REQUEST, 'This unit already has an active lease.');
-//   }
-//   const lease = await Lease.sequelize.transaction(async (t) => {
-//     return Lease.create(
-//       {
-//         unitId: leaseBody.unitId,
-//         tenantId: leaseBody.tenantId,
-//         leaseStartDate: leaseBody.leaseStartDate,
-//         leaseEndDate: leaseBody.leaseEndDate,
-//         moveInDate: leaseBody.moveInDate,
-//         moveOutDate: leaseBody.moveOutDate,
-//         status: leaseBody.status || 'active',
-//         startedMeterReading: leaseBody.startedMeterReading,
-//         notes: leaseBody.notes,
-//         accountId: leaseBody.accountId,
-//       },
-//       { transaction: t }
-//     );
-
-//   });
-
-//   return lease;
-// };
 const createLease = async (leaseBody) => {
-  console.log('leaseBody', leaseBody);
-
   if (leaseBody.unitId) {
     const unit = await Unit.findByPk(leaseBody.unitId);
     if (!unit) {
@@ -92,7 +44,7 @@ const createLease = async (leaseBody) => {
         leaseEndDate: leaseBody.leaseEndDate,
         moveInDate: leaseBody.moveInDate,
         moveOutDate: leaseBody.moveOutDate,
-        status: leaseBody.status || 'active',
+        status: 'active',
         startedMeterReading: leaseBody.startedMeterReading,
         notes: leaseBody.notes,
         accountId: leaseBody.accountId,
@@ -127,7 +79,6 @@ const createLease = async (leaseBody) => {
 
 const getAllLeases = async (filter, options) => {
   const whereClause = { ...filter };
-  console.log('filterto', filter);
   const limit = options.limit && parseInt(options.limit, 10) > 0 ? parseInt(options.limit, 10) : 10;
   const page = options.page && parseInt(options.page, 10) > 0 ? parseInt(options.page, 10) : 1;
   const offset = (page - 1) * limit;
@@ -262,6 +213,34 @@ const hardDeleteLease = async (leaseId) => {
   });
 };
 
+/**
+ * Terminate an active lease and set unit status to vacant
+ * @param {string} leaseId
+ * @returns {Promise<Lease>}
+ */
+const terminateLease = async (leaseId) => {
+  const lease = await getLeaseById(leaseId);
+  if (!lease) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Lease not found');
+  }
+  if (lease.status !== 'active') {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Only active leases can be terminated');
+  }
+  await Lease.sequelize.transaction(async (t) => {
+    // Step 1: Update lease status to terminated
+    await lease.update({ status: 'terminated' }, { transaction: t });
+    // Step 2: Update unit status to vacant
+    await Unit.update(
+      { status: 'vacant' },
+      {
+        where: { id: lease.unitId },
+        transaction: t,
+      }
+    );
+  });
+  return lease;
+};
+
 module.exports = {
   createLease,
   getAllLeases,
@@ -270,4 +249,5 @@ module.exports = {
   deleteLease,
   restoreLease,
   hardDeleteLease,
+  terminateLease,
 };

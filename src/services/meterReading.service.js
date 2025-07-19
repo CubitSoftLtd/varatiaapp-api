@@ -1,3 +1,5 @@
+/* eslint-disable prettier/prettier */
+/* eslint-disable no-console */
 const httpStatus = require('http-status');
 const { Op } = require('sequelize');
 const { MeterReading, Meter, Submeter, User } = require('../models');
@@ -316,52 +318,58 @@ const hardDeleteMeterReading = async (meterReadingId) => {
  * @param {Date} endDate - End date
  * @returns {Promise<number>} Calculated consumption
  */
-const calculateConsumption = async (meterId, submeterId, startDate, endDate) => {
-  if (!meterId && !submeterId) throw new ApiError(httpStatus.BAD_REQUEST, 'At least meterId must be provided.');
-  if (submeterId && !meterId) throw new ApiError(httpStatus.BAD_REQUEST, 'meterId is required when submeterId is provided.');
-  if (!startDate || !endDate) throw new ApiError(httpStatus.BAD_REQUEST, 'Start date and end date are required.');
-  if (new Date(startDate) >= new Date(endDate))
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Start date must be before end date.');
+const calculateConsumption = async (meterId, submeterId, billingPeriodStart, billingPeriodEnd) => {
+  if (!meterId && !submeterId) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'At least meterId must be provided.');
+  }
 
+  if (!billingPeriodStart || !billingPeriodEnd) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Start date and end date are required.');
+  }
+
+  if (new Date(billingPeriodStart) >= new Date(billingPeriodEnd)) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Start date must be before end date.');
+  }
+
+  // ✅ Validate meter and submeter existence
   await validateRelatedEntities(meterId, submeterId);
 
+  // ✅ Get startReading: just before billingPeriodStart
   const startReading = await MeterReading.findOne({
     where: {
-      readingDate: { [Op.gte]: startDate },
       isDeleted: false,
+      readingDate: { [Op.lt]: billingPeriodStart },
       [Op.or]: [
         { meterId, submeterId: null },
-        { meterId, submeterId },
+        { meterId, submeterId }, // submeterId could be null or actual id
       ],
     },
-    order: [
-      ['readingDate', 'ASC'],
-      ['createdAt', 'ASC'],
-    ],
+    order: [['readingDate', 'DESC'], ['createdAt', 'DESC']],
   });
 
+  // ✅ Get endReading: last available reading within billingPeriodEnd
   const endReading = await MeterReading.findOne({
     where: {
-      readingDate: { [Op.lte]: endDate },
       isDeleted: false,
+      readingDate: { [Op.lte]: billingPeriodEnd },
       [Op.or]: [
         { meterId, submeterId: null },
         { meterId, submeterId },
       ],
     },
-    order: [
-      ['readingDate', 'DESC'],
-      ['createdAt', 'DESC'],
-    ],
+    order: [['readingDate', 'DESC'], ['createdAt', 'DESC']],
   });
 
   if (!startReading || !endReading) return 0;
 
-  const calculatedConsumption = parseFloat(endReading.readingValue) - parseFloat(startReading.readingValue);
-  if (calculatedConsumption < 0) throw new ApiError(httpStatus.BAD_REQUEST, 'Calculated consumption cannot be negative.');
+  const consumption = parseFloat(endReading.readingValue) - parseFloat(startReading.readingValue);
+  if (consumption < 0) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Calculated consumption cannot be negative.');
+  }
 
-  return calculatedConsumption;
+  return consumption;
 };
+
 
 module.exports = {
   createMeterReading,

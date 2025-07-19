@@ -375,7 +375,7 @@ const router = express.Router({ mergeParams: true }); // mergeParams to inherit 
  *       "404":
  *         $ref: '#/components/responses/NotFound'
  *
- * /bills/{billId}/payments:
+ * /payments/{billId}/billPay:
  *   get:
  *     summary: Get all payments for a bill
  *     description: |
@@ -418,7 +418,7 @@ router
   .route('/')
   .post(auth('payment:create'), validate(paymentValidation.createPayment), paymentController.createPayment)
   .get(auth('payment:view_all', 'payment:view_own'), validate(paymentValidation.getPayments), paymentController.getPayments)
-  .get(auth('payment:view'), validate(paymentValidation.getPaymentsByBillId), paymentController.getPaymentsByBillId);
+  // .get(auth('payment:view'), validate(paymentValidation.getPaymentsByBillId), paymentController.getPaymentsByBillId);
 
 router
   .route('/:id')
@@ -432,5 +432,9 @@ router
 router
   .route('/:id/restore')
   .delete(auth('payment:restore'), validate(paymentValidation.deletePayment), paymentController.restorePaymentById);
-
+  
+router
+.route('/:billId/billPay')
+.get(auth('payment:view'),validate(paymentValidation.getPaymentsByBillId),paymentController.getPaymentsByBillId
+);
 module.exports = router;

@@ -1,6 +1,6 @@
 const httpStatus = require('http-status');
-const { Tenant, Unit, Lease } = require('../models');
-const { leaseService } = require('../services');
+const { Tenant, Unit, Lease, Submeter } = require('../models');
+const { leaseService, meterReadingService } = require('../services');
 const catchAsync = require('../utils/catchAsync');
 const pick = require('../utils/pick');
 
@@ -40,8 +40,23 @@ const parseInclude = (include) => {
 };
 
 const createLease = catchAsync(async (req, res) => {
-  // console.log('Request Body:', req.body);
   const lease = await leaseService?.createLease({ ...req.body, accountId: req.user.accountId });
+
+  if (lease && lease.unitId && lease.startedMeterReading && lease.leaseStartDate) {
+    const submeter = await Submeter.findOne({
+      where: { unitId: lease.unitId },
+      attributes: ['id', 'meterId'], // শুধু দরকারি ফিল্ড আনুন
+    });
+
+    await meterReadingService.createMeterReading({
+      meterId: submeter.meterId,
+      submeterId: submeter.id,
+      readingValue: lease.startedMeterReading,
+      readingDate: lease.leaseStartDate,
+      accountId: req.user.accountId,
+      createdBy: req.user.id,
+    });
+  }
   res.status(httpStatus.CREATED).send(lease);
 });
 
@@ -79,7 +94,10 @@ const hardDeleteLeaseById = catchAsync(async (req, res) => {
   await leaseService.hardDeleteLease(req.params.id);
   res.status(httpStatus.NO_CONTENT).send();
 });
-
+const terminateLeaseController = catchAsync(async (req, res) => {
+  const updatedLease = await leaseService.terminateLease(req.params.id);
+  res.send(updatedLease);
+});
 module.exports = {
   createLease,
   getLeases,
@@ -88,4 +106,5 @@ module.exports = {
   deleteLeaseById,
   restoreLeaseById,
   hardDeleteLeaseById,
+  terminateLeaseController,
 };
