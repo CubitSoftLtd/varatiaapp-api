@@ -18,8 +18,15 @@ const getMonthlyFinancialReport = {
     year: Joi.number().integer().min(2000).max(2100).optional(),
   }),
 };
+
+const getBillPaymentPieByYear = {
+  query: Joi.object().keys({
+    year: Joi.number().integer().min(2000).max(2099).optional(),
+  }),
+};
 module.exports = {
   getFinancialSummary,
   getMaintenanceStats,
   getMonthlyFinancialReport,
+  getBillPaymentPieByYear,
 };

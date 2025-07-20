@@ -39,13 +39,11 @@ const parseInclude = (include) => {
 };
 
 const createMeterCharge = catchAsync(async (req, res) => {
-  console.log('Request Body:', req.body);
   const meterCharge = await meterChargeService.createMeterCharge({ ...req.body, accountId: req.user.accountId });
   res.status(httpStatus.CREATED).send(meterCharge);
 });
 
 const getMeterCharges = catchAsync(async (req, res) => {
-  console.log('req', req);
   const filter = pick(req.query, ['propertyId', 'meterId']);
   const options = pick(req.query, ['sortBy', 'limit', 'page']);
   options.include = parseInclude(req.query.include);

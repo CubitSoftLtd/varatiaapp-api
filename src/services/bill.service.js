@@ -43,7 +43,23 @@ const createBill = async (billBody) => {
   if (new Date(billingPeriodStart) > new Date(billingPeriodEnd)) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid billing period: start must be <= end');
   }
+  //////
+  const start = new Date(billingPeriodStart);
+  const end = new Date(billingPeriodEnd);
 
+  if (start.getFullYear() !== end.getFullYear() || start.getMonth() !== end.getMonth()) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Billing period must be within the same month and year');
+  }
+
+  // **Ensure billingPeriodEnd does not exceed last day of the month**
+  const lastDayOfMonth = new Date(end.getFullYear(), end.getMonth() + 1, 0).getDate();
+  if (end.getDate() > lastDayOfMonth) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      `Billing period end date cannot exceed ${lastDayOfMonth} for the selected month`
+    );
+  }
+  ////
   // **Calculate totalUtilityAmount if not provided**
   let calculatedTotalUtilityAmount = totalUtilityAmount || 0;
   if (totalUtilityAmount === undefined) {
@@ -243,7 +259,23 @@ const updateBill = async (id, updateBody) => {
   if (new Date(billingPeriodStart) > new Date(billingPeriodEnd)) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid billing period: start must be <= end');
   }
+  //////
+  const start = new Date(billingPeriodStart);
+  const end = new Date(billingPeriodEnd);
 
+  if (start.getFullYear() !== end.getFullYear() || start.getMonth() !== end.getMonth()) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Billing period must be within the same month and year');
+  }
+
+  // **Ensure billingPeriodEnd does not exceed last day of the month**
+  const lastDayOfMonth = new Date(end.getFullYear(), end.getMonth() + 1, 0).getDate();
+  if (end.getDate() > lastDayOfMonth) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      `Billing period end date cannot exceed ${lastDayOfMonth} for the selected month`
+    );
+  }
+  ////
   // **Recalculate totalUtilityAmount if billing period changes or totalUtilityAmount provided**
   let calculatedTotalUtilityAmount = totalUtilityAmount !== undefined ? totalUtilityAmount : bill.totalUtilityAmount;
   if (

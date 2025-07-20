@@ -354,7 +354,44 @@ const router = express.Router();
  *       "403":
  *         $ref: '#/components/responses/Forbidden'
  */
-
+/**
+ * @swagger
+ * /reports/bill-pie:
+ *   get:
+ *     summary: Get year-wise bill payment pie report
+ *     description: Returns the percentage of paid vs outstanding bills for a given year.
+ *     tags: [Reports]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: year
+ *         schema:
+ *           type: integer
+ *           example: 2025
+ *         description: The year for which to generate the report
+ *     responses:
+ *       "200":
+ *         description: Pie data retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   name:
+ *                     type: string
+ *                     enum: [Paid, Outstanding]
+ *                   value:
+ *                     type: number
+ *                     format: float
+ *                     example: 70.25
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
+ */
 router.route('/financial').get(auth(), validate(reportingValidation.getFinancialRe), reportingController.getFinancialReport);
 
 router
@@ -366,4 +403,8 @@ router
 router
   .route('/tenant-history')
   .get(auth(), validate(reportingValidation.getTenantHistoryValidate), reportingController.getTenantHistoryReportController);
+router
+  .route('/bill-pie')
+  .get(auth(), validate(reportingValidation.getBillPaymentPieByYear), reportingController.getBillPaymentPieByYear);
+
 module.exports = router;

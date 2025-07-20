@@ -149,9 +149,9 @@ const getAllMeterReadings = async (filter, options, deleted = 'false') => {
   const order = sortBy
     ? [[...sortBy.split(':'), 'ASC']]
     : [
-        ['readingDate', 'DESC'],
-        ['createdAt', 'DESC'],
-      ];
+      ['readingDate', 'DESC'],
+      ['createdAt', 'DESC'],
+    ];
   const { count, rows } = await MeterReading.findAndCountAll({
     where: whereClause,
     limit,
@@ -318,11 +318,59 @@ const hardDeleteMeterReading = async (meterReadingId) => {
  * @param {Date} endDate - End date
  * @returns {Promise<number>} Calculated consumption
  */
+// const calculateConsumption = async (meterId, submeterId, billingPeriodStart, billingPeriodEnd) => {
+//   if (!meterId && !submeterId) {
+//     throw new ApiError(httpStatus.BAD_REQUEST, 'At least meterId must be provided.');
+//   }
+//   if (!billingPeriodStart || !billingPeriodEnd) {
+//     throw new ApiError(httpStatus.BAD_REQUEST, 'Start date and end date are required.');
+//   }
+
+//   if (new Date(billingPeriodStart) >= new Date(billingPeriodEnd)) {
+//     throw new ApiError(httpStatus.BAD_REQUEST, 'Start date must be before end date.');
+//   }
+
+//   // ✅ Validate meter and submeter existence
+//   await validateRelatedEntities(meterId, submeterId);
+//   // ✅ Get startReading: just before billingPeriodStart
+//   const startReading = await MeterReading.findOne({
+//     where: {
+//       isDeleted: false,
+//       readingDate: { [Op.lt]: billingPeriodStart },
+//       [Op.or]: [
+//         { meterId, submeterId: null },
+//         { meterId, submeterId }, // submeterId could be null or actual id
+//       ],
+//     },
+//     order: [['readingDate', 'DESC'], ['createdAt', 'DESC']],
+//   });
+
+//   // ✅ Get endReading: last available reading within billingPeriodEnd
+//   const endReading = await MeterReading.findOne({
+//     where: {
+//       isDeleted: false,
+//       readingDate: { [Op.lte]: billingPeriodEnd },
+//       [Op.or]: [
+//         { meterId, submeterId: null },
+//         { meterId, submeterId },
+//       ],
+//     },
+//     order: [['readingDate', 'DESC'], ['createdAt', 'DESC']],
+//   });
+
+//   if (!startReading || !endReading) return 0;
+
+//   const consumption = parseFloat(endReading.readingValue) - parseFloat(startReading.readingValue);
+//   if (consumption < 0) {
+//     throw new ApiError(httpStatus.BAD_REQUEST, 'Calculated consumption cannot be negative.');
+//   }
+
+//   return consumption;
+// };
 const calculateConsumption = async (meterId, submeterId, billingPeriodStart, billingPeriodEnd) => {
   if (!meterId && !submeterId) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'At least meterId must be provided.');
   }
-
   if (!billingPeriodStart || !billingPeriodEnd) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Start date and end date are required.');
   }
@@ -331,38 +379,37 @@ const calculateConsumption = async (meterId, submeterId, billingPeriodStart, bil
     throw new ApiError(httpStatus.BAD_REQUEST, 'Start date must be before end date.');
   }
 
-  // ✅ Validate meter and submeter existence
   await validateRelatedEntities(meterId, submeterId);
 
-  // ✅ Get startReading: just before billingPeriodStart
+  const meterCondition = submeterId
+    ? { meterId, submeterId }
+    : { meterId, submeterId: null };
+
   const startReading = await MeterReading.findOne({
     where: {
       isDeleted: false,
-      readingDate: { [Op.lt]: billingPeriodStart },
-      [Op.or]: [
-        { meterId, submeterId: null },
-        { meterId, submeterId }, // submeterId could be null or actual id
-      ],
+      readingDate: { [Op.lte]: billingPeriodStart },
+      ...meterCondition,
     },
     order: [['readingDate', 'DESC'], ['createdAt', 'DESC']],
   });
 
-  // ✅ Get endReading: last available reading within billingPeriodEnd
   const endReading = await MeterReading.findOne({
     where: {
       isDeleted: false,
       readingDate: { [Op.lte]: billingPeriodEnd },
-      [Op.or]: [
-        { meterId, submeterId: null },
-        { meterId, submeterId },
-      ],
+      ...meterCondition,
     },
     order: [['readingDate', 'DESC'], ['createdAt', 'DESC']],
   });
 
+  console.log("Start Reading:", startReading?.readingValue, "at", startReading?.readingDate);
+  console.log("End Reading:", endReading?.readingValue, "at", endReading?.readingDate);
+
   if (!startReading || !endReading) return 0;
 
   const consumption = parseFloat(endReading.readingValue) - parseFloat(startReading.readingValue);
+
   if (consumption < 0) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Calculated consumption cannot be negative.');
   }

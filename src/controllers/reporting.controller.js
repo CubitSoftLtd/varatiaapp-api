@@ -3,8 +3,11 @@ const catchAsync = require('../utils/catchAsync');
 const { reportingService } = require('../services');
 
 const getFinancialReport = catchAsync(async (req, res) => {
-  const filter = pick(req.query, ['startDate', 'endDate', 'propertyId']);
+  const filter = pick(req.query, ['startDate', 'endDate', 'propertyId', 'accountId']);
   const options = pick(req.query, ['sortBy', 'limit', 'page']);
+  if (req.user.role !== 'super_admin') {
+    filter.accountId = req.user.accountId;
+  }
   const report = await reportingService.getFinancialReport(filter, options);
   res.send(report);
 });
@@ -16,9 +19,12 @@ const getTenantActivityReport = catchAsync(async (req, res) => {
   res.send(report);
 });
 const getMonthlyRevenueExpenseReport = catchAsync(async (req, res) => {
-  const filter = pick(req.query, ['year']);
+  const filter = pick(req.query, ['year', 'accountId']);
   const year = filter.year || new Date().getFullYear();
-  const report = await reportingService.getMonthlyRevenueExpenseReport(year);
+  if (req.user.role !== 'super_admin') {
+    filter.accountId = req.user.accountId;
+  }
+  const report = await reportingService.getMonthlyRevenueExpenseReport(filter);
   res.send(report);
 });
 const getTenantHistoryReportController = catchAsync(async (req, res) => {
@@ -27,9 +33,19 @@ const getTenantHistoryReportController = catchAsync(async (req, res) => {
   const report = await reportingService.getTenantHistoryReport(filter, options);
   res.send(report);
 });
+
+const getBillPaymentPieByYear = catchAsync(async (req, res) => {
+  const filter = pick(req.query, ['year']);
+  if (req.user.role !== 'super_admin') {
+    filter.accountId = req.user.accountId;
+  }
+  const data = await reportingService.getBillPaymentPieByYear(filter);
+  res.send(data);
+});
 module.exports = {
   getFinancialReport,
   getTenantActivityReport,
   getMonthlyRevenueExpenseReport,
   getTenantHistoryReportController,
+  getBillPaymentPieByYear,
 };

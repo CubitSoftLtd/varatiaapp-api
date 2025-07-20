@@ -8,7 +8,6 @@ const { Property, MeterCharge, UtilityType } = require('../models');
  */
 const createMeterCharge = async (meterChargeBody) => {
   const { accountId, propertyId, category, amount, description, expenseDate, meterId } = meterChargeBody;
-  console.log('meterChargeBody', meterChargeBody);
 
   // Validate foreign keys
   if (meterChargeBody.propertyId) {

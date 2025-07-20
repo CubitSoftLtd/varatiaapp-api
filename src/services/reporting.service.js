@@ -2,21 +2,65 @@ const { Op } = require('sequelize');
 const moment = require('moment');
 const { Bill, Payment, Expense, Lease, MaintenanceRequest, MeterCharge, Unit, Tenant } = require('../models');
 
+// const getFinancialReport = async (filter) => {
+//   const { startDate, endDate, propertyId } = filter;
+//   const where = {};
+//   if (startDate) where.createdAt = { [Op.gte]: new Date(startDate) };
+//   if (endDate) where.createdAt = { [Op.lte]: new Date(endDate) };
+//   if (propertyId) where.propertyId = propertyId;
+
+//   const totalRevenue = (await Payment.sum('amountPaid', { where })) || 0;
+//   const otherExpenses = (await Expense.sum('amount', { where })) || 0;
+//   const meterCharges = (await MeterCharge.sum('amount', { where })) || 0;
+//   const totalExpenses = otherExpenses + meterCharges;
+//   const outstandingPayments =
+//     (await Bill.sum('totalAmount', {
+//       where: { paymentStatus: 'pending', ...where },
+//     })) || 0;
+
+//   return {
+//     totalRevenue,
+//     totalExpenses,
+//     outstandingPayments,
+//     profit: totalRevenue - totalExpenses,
+//     generatedAt: new Date(),
+//   };
+// };
 const getFinancialReport = async (filter) => {
-  const { startDate, endDate, propertyId } = filter;
+  const { startDate, endDate, propertyId, accountId } = filter;
   const where = {};
+
+  // Date range filter
   if (startDate) where.createdAt = { [Op.gte]: new Date(startDate) };
-  if (endDate) where.createdAt = { [Op.lte]: new Date(endDate) };
+  if (endDate) {
+    if (!where.createdAt) where.createdAt = {};
+    where.createdAt[Op.lte] = new Date(endDate);
+  }
+
+  // Property ID filter
   if (propertyId) where.propertyId = propertyId;
 
+  // Account ID filter
+  if (accountId) where.accountId = accountId;
+
+  // Revenues & expenses
   const totalRevenue = (await Payment.sum('amountPaid', { where })) || 0;
   const otherExpenses = (await Expense.sum('amount', { where })) || 0;
   const meterCharges = (await MeterCharge.sum('amount', { where })) || 0;
   const totalExpenses = otherExpenses + meterCharges;
-  const outstandingPayments =
-    (await Bill.sum('totalAmount', {
-      where: { paymentStatus: 'pending', ...where },
-    })) || 0;
+
+  // ✅ Correct way to calculate outstanding payments:
+  const bills = await Bill.findAll({
+    where,
+    attributes: ['totalAmount', 'amountPaid'],
+  });
+
+  let outstandingPayments = 0;
+  for (const bill of bills) {
+    const total = parseFloat(bill.totalAmount ?? '0');
+    const paid = parseFloat(bill.amountPaid ?? '0');
+    outstandingPayments += total - paid;
+  }
 
   return {
     totalRevenue,
@@ -112,7 +156,7 @@ const getTenantActivityReport = async (filter) => {
 //     generatedAt: new Date(),
 //   };
 // };
-const getMonthlyRevenueExpenseReport = async (year) => {
+const getMonthlyRevenueExpenseReport = async ({ year, accountId }) => {
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
   const result = Array.from({ length: 12 }, (_, i) => ({
@@ -123,42 +167,31 @@ const getMonthlyRevenueExpenseReport = async (year) => {
 
   const startOfYear = new Date(`${year}-01-01`);
   const startOfNextYear = new Date(`${parseInt(year) + 1}-01-01`);
-
+  const whereClause = {
+    isDeleted: false,
+    accountId,
+    createdAt: {
+      [Op.gte]: startOfYear,
+      [Op.lt]: startOfNextYear,
+    },
+  };
   // Fetch all payments within year
   const payments = await Payment.findAll({
-    where: {
-      isDeleted: false,
-      createdAt: {
-        [Op.gte]: startOfYear,
-        [Op.lt]: startOfNextYear,
-      },
-    },
+    where: whereClause,
     attributes: ['amountPaid', 'createdAt'],
     raw: true,
   });
 
   // Fetch all expenses within year
   const expenses = await Expense.findAll({
-    where: {
-      isDeleted: false,
-      createdAt: {
-        [Op.gte]: startOfYear,
-        [Op.lt]: startOfNextYear,
-      },
-    },
+    where: whereClause,
     attributes: ['amount', 'createdAt'],
     raw: true,
   });
 
   // ✅ Fetch all meter charges within year
   const meterCharges = await MeterCharge.findAll({
-    where: {
-      isDeleted: false,
-      createdAt: {
-        [Op.gte]: startOfYear,
-        [Op.lt]: startOfNextYear,
-      },
-    },
+    where: whereClause,
     attributes: ['amount', 'createdAt'],
     raw: true,
   });
@@ -228,8 +261,11 @@ const getTenantHistoryReport = async (filter) => {
     Bill.findAll({ where }),
   ]);
   const tenant = await Tenant.findByPk(tenantId, {
-    attributes: ['id', 'name'],
+    attributes: ['id', 'name', 'depositAmount'],
   });
+  // const lease = await Lease.findByPk(tenantId, {
+  //   attributes: ['id', 'name', 'depositAmount'],
+  // });
   return {
     tenantId: tenant.id,
     tenantName: tenant.name,
@@ -269,9 +305,44 @@ const getTenantHistoryReport = async (filter) => {
   };
 };
 
+const getBillPaymentPieByYear = async ({ year, accountId }) => {
+  const whereClause = {
+    isDeleted: false,
+    accountId,
+  };
+
+  if (year) {
+    whereClause.billingPeriodStart = {
+      [Op.between]: [`${year}-01-01`, `${year}-12-31`],
+    };
+  }
+
+  const bills = await Bill.findAll({
+    where: whereClause,
+    attributes: ['amountPaid', 'totalAmount'],
+  });
+
+  let totalPaid = 0;
+  let totalAmountOfBill = 0;
+
+  for (const bill of bills) {
+    totalAmountOfBill += parseFloat(bill.totalAmount ?? '0'); // amountPaid is string
+    totalPaid += parseFloat(bill.amountPaid ?? '0'); // amountPaid is string
+  }
+  const totalOutStanding = totalAmountOfBill - totalPaid;
+  const paidPercentage = totalAmountOfBill > 0 ? (totalPaid / totalAmountOfBill) * 100 : 0;
+  const outstandingPercentage = totalAmountOfBill > 0 ? (totalOutStanding / totalAmountOfBill) * 100 : 0;
+
+  return [
+    { name: 'Paid', value: parseFloat(paidPercentage.toFixed(2)) },
+    { name: 'Outstanding', value: parseFloat(outstandingPercentage.toFixed(2)) },
+  ];
+};
+
 module.exports = {
   getFinancialReport,
   getTenantActivityReport,
   getMonthlyRevenueExpenseReport,
   getTenantHistoryReport,
+  getBillPaymentPieByYear,
 };
