@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 const { Op } = require('sequelize');
 const moment = require('moment');
 const { Bill, Payment, Expense, Lease, MaintenanceRequest, MeterCharge, Unit, Tenant } = require('../models');
@@ -240,13 +241,23 @@ const getTenantHistoryReport = async (filter) => {
   const [leases, payments, bills] = await Promise.all([
     Lease.findAll({
       where,
+      attributes: [
+        'id',
+        'unitId',
+        'status',
+        'leaseStartDate',
+        'leaseEndDate',
+        'moveInDate',
+        'moveOutDate',
+      ],
       include: [
         {
           model: Unit,
           as: 'unit',
-          attributes: ['id', 'name'], // unit name
+          attributes: ['id', 'name'],
         },
       ],
+      order: [['createdAt', 'DESC']],
     }),
     Payment.findAll({
       where,
@@ -254,22 +265,46 @@ const getTenantHistoryReport = async (filter) => {
         {
           model: Bill,
           as: 'bill',
-          attributes: ['id', 'invoiceNo'],
+          attributes: ['id', 'invoiceNo', 'totalAmount'],
         },
       ],
     }),
     Bill.findAll({ where }),
   ]);
+
   const tenant = await Tenant.findByPk(tenantId, {
     attributes: ['id', 'name', 'depositAmount'],
   });
-  // const lease = await Lease.findByPk(tenantId, {
-  //   attributes: ['id', 'name', 'depositAmount'],
-  // });
+ const totalBillAmount = bills.reduce((sum, b) => sum + parseFloat(b.totalAmount || 0), 0);
+const totalUtilityAmount = bills.reduce((sum, b) => sum + parseFloat(b.totalUtilityAmount || 0), 0);
+const totalRentAmount = bills.reduce((sum, b) => sum + parseFloat(b.rentAmount || 0), 0);
+const totalOtherCharges = bills.reduce((sum, b) => sum + parseFloat(b.otherChargesAmount || 0), 0);
+const totalBalanceDue = bills.reduce((sum, b) => sum + parseFloat(b.balanceDue || 0), 0);
+const totalPaidAmount = payments.reduce((sum, p) => sum + parseFloat(p.amountPaid || 0), 0);
+  // ধরো লাস্ট lease টা দেখাতে চাও report summary তে
+  const latestLease = leases[0] || null;
+
   return {
     tenantId: tenant.id,
     tenantName: tenant.name,
+    depositAmount: tenant.depositAmount,
     period: startDate && endDate ? `${startDate} to ${endDate}` : 'All Time',
+    // single lease info for summary
+    leaseId: latestLease?.id ?? null,
+    leaseStatus: latestLease?.status ?? null,
+    leaseStartDate: latestLease?.leaseStartDate ?? null,
+    leaseEndDate: latestLease?.leaseEndDate ?? null,
+    moveInDate: latestLease?.moveInDate ?? null,
+    moveOutDate: latestLease?.moveOutDate ?? null,
+    unitId: latestLease?.unitId ?? null,
+    unitName: latestLease?.unit?.name ?? null,
+    totalBillAmount,
+    totalUtilityAmount,
+    totalRentAmount,
+    totalOtherCharges,
+    totalPaidAmount,
+    totalBalanceDue,
+    // full lease list
     leases: leases.map((l) => ({
       id: l.id,
       unitId: l.unitId,
@@ -280,18 +315,22 @@ const getTenantHistoryReport = async (filter) => {
       moveInDate: l.moveInDate,
       moveOutDate: l.moveOutDate,
     })),
+
     payments: payments.map((p) => ({
       id: p.id,
       billId: p.billId,
       billInvoiceNo: p.bill?.invoiceNo,
       billTotalAmount: p.bill?.totalAmount,
       paymentMethod: p.paymentMethod,
+      transactionId: p.transactionId,
       paymentDate: p.paymentDate,
       amountPaid: p.amountPaid,
     })),
+
     bills: bills.map((b) => ({
       id: b.id,
       invoiceNo: b.invoiceNo,
+      fullInvoiceNumber:`INV-${new Date(b.issueDate).getFullYear()}-${String(b.invoiceNo).padStart(4, '0')}`,
       billingPeriodStart: b.billingPeriodStart,
       billingPeriodEnd: b.billingPeriodEnd,
       rentAmount: b.rentAmount,
@@ -299,11 +338,14 @@ const getTenantHistoryReport = async (filter) => {
       otherChargesAmount: b.otherChargesAmount,
       totalAmount: b.totalAmount,
       amountPaid: b.amountPaid,
+      balanceDue: b.balanceDue,
       tenantName: b.tenant?.fullName,
     })),
+
     generatedAt: new Date(),
   };
 };
+
 
 const getBillPaymentPieByYear = async ({ year, accountId }) => {
   const whereClause = {
