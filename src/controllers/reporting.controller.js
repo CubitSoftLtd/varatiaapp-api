@@ -28,9 +28,8 @@ const getMonthlyRevenueExpenseReport = catchAsync(async (req, res) => {
   res.send(report);
 });
 const getTenantHistoryReportController = catchAsync(async (req, res) => {
-  const filter = pick(req.query, ['startDate', 'endDate', 'tenantId']);
-  const options = pick(req.query, ['sortBy', 'limit', 'page']);
-  const report = await reportingService.getTenantHistoryReport(filter, options);
+  const filter = pick(req.query, ['tenantId', 'leaseId']); // ✅ শুধুমাত্র tenantId ও leaseId
+  const report = await reportingService.getTenantHistoryReport(filter);
   res.send(report);
 });
 

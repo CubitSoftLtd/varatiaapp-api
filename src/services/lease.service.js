@@ -1,5 +1,6 @@
 const httpStatus = require('http-status');
-const { Tenant, Unit, Lease } = require('../models');
+const { Op } = require('sequelize');
+const { Tenant, Unit, Lease, Property } = require('../models');
 const ApiError = require('../utils/ApiError');
 
 /**
@@ -22,6 +23,12 @@ const createLease = async (leaseBody) => {
       throw new ApiError(httpStatus.NOT_FOUND, 'Tenant not found');
     }
   }
+  if (leaseBody.propertyId) {
+    const tenant = await Property.findByPk(leaseBody.propertyId);
+    if (!tenant) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'Property not found');
+    }
+  }
 
   const existingActiveLease = await Lease.findOne({
     where: {
@@ -33,12 +40,25 @@ const createLease = async (leaseBody) => {
   if (existingActiveLease) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'This unit already has an active lease.');
   }
-
+  const leaseStart = new Date(leaseBody?.leaseStartDate);
+  const currentYear = leaseStart.getFullYear();
+  const startOfYear = new Date(currentYear, 0, 1);
+  const endOfYear = new Date(currentYear, 11, 31, 23, 59, 59, 999);
   const lease = await Lease.sequelize.transaction(async (t) => {
     // Step 1: Create Lease
+    const { accountId } = leaseBody;
+    const lastLease = await Lease.findOne({
+      where: { accountId, leaseStartDate: { [Op.between]: [startOfYear, endOfYear] } },
+      order: [['leaseNo', 'DESC']],
+      transaction: t,
+    });
+    const nextLeaseNumber = lastLease ? lastLease.leaseNo + 1 : 1;
+
     const createdLease = await Lease.create(
       {
         unitId: leaseBody.unitId,
+        propertyId: leaseBody.propertyId,
+        leaseNo: nextLeaseNumber,
         tenantId: leaseBody.tenantId,
         leaseStartDate: leaseBody.leaseStartDate,
         leaseEndDate: leaseBody.leaseEndDate,
@@ -60,7 +80,8 @@ const createLease = async (leaseBody) => {
         transaction: t,
       }
     );
-
+    const formattedLeaseNo = String(createdLease.leaseNo).padStart(4, '0');
+    createdLease.dataValues.fullLeaseNo = `LSE-${currentYear}-${formattedLeaseNo}`;
     return createdLease;
   });
 
@@ -99,7 +120,12 @@ const getAllLeases = async (filter, options) => {
     order: sort.length ? sort : [['createdAt', 'DESC']],
     include,
   });
-
+  rows.forEach((lease) => {
+    const leaseYear = new Date(lease.leaseStartDate).getFullYear();
+    const formattedLeaseNo = String(lease.leaseNo).padStart(4, '0');
+    /* eslint-disable-next-line no-param-reassign */
+    lease.dataValues.fullLeaseNo = `LSE-${leaseYear}-${formattedLeaseNo}`;
+  });
   return {
     results: rows,
     page,
@@ -120,6 +146,9 @@ const getLeaseById = async (id, include = []) => {
   if (!lease) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Lease not found');
   }
+  const leaseYear = new Date(lease.leaseStartDate).getFullYear();
+  const formattedLeaseNo = String(lease.leaseNo).padStart(4, '0');
+  lease.dataValues.fullLeaseNo = `LSE-${leaseYear}-${formattedLeaseNo}`;
   return lease;
 };
 
@@ -147,6 +176,9 @@ const updateLease = async (leaseId, updateBody) => {
   }
 
   await lease.update(updateBody);
+  const leaseYear = new Date(lease.leaseStartDate).getFullYear();
+  const formattedLeaseNo = String(lease.leaseNo).padStart(4, '0');
+  lease.dataValues.fullLeaseNo = `LSE-${leaseYear}-${formattedLeaseNo}`;
   return lease;
 };
 

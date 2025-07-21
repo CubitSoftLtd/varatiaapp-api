@@ -10,6 +10,17 @@ module.exports = (sequelize, DataTypes) => {
         comment: 'Unique identifier for the lease',
       },
 
+      propertyId: {
+        type: DataTypes.UUID,
+        allowNull: true, // Tenant might not be currently assigned to a unit (e.g., prospective tenant)
+        references: {
+          model: 'properties', // References the 'units' table
+          key: 'id',
+        },
+        onDelete: 'SET NULL', // If a unit is deleted, lease's unitId becomes null (lease can still exist)
+        onUpdate: 'CASCADE',
+        comment: 'ID of the unit the lease is currently occupying or assigned to',
+      },
       unitId: {
         type: DataTypes.UUID,
         allowNull: true, // Tenant might not be currently assigned to a unit (e.g., prospective tenant)
@@ -31,6 +42,11 @@ module.exports = (sequelize, DataTypes) => {
         onDelete: 'SET NULL', // If a unit is deleted, tenant's unitId becomes null (tenant can still exist)
         onUpdate: 'CASCADE',
         comment: 'ID of the tenant is currently occupying or assigned to',
+      },
+      leaseNo: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        comment: 'Unique Lease number for the bill, generated per account',
       },
       leaseStartDate: {
         type: DataTypes.DATEONLY, // Use DATEONLY if you only need the date
@@ -100,6 +116,7 @@ module.exports = (sequelize, DataTypes) => {
   Lease.associate = (models) => {
     Lease.belongsTo(models.Tenant, { foreignKey: 'tenantId', as: 'tenant' });
     Lease.belongsTo(models.Unit, { foreignKey: 'unitId', as: 'unit' });
+    Lease.belongsTo(models.Property, { foreignKey: 'propertyId', as: 'property' });
   };
 
   return Lease;

@@ -1,5 +1,5 @@
 const httpStatus = require('http-status');
-const { Tenant, Unit, Lease, Submeter } = require('../models');
+const { Tenant, Unit, Lease, Submeter, Property } = require('../models');
 const { leaseService, meterReadingService } = require('../services');
 const catchAsync = require('../utils/catchAsync');
 const pick = require('../utils/pick');
@@ -13,6 +13,7 @@ const parseInclude = (include) => {
   const modelMap = {
     unit: Unit,
     tenant: Tenant,
+    property: Property,
   };
 
   const includes = include
@@ -61,7 +62,7 @@ const createLease = catchAsync(async (req, res) => {
 });
 
 const getLeases = catchAsync(async (req, res) => {
-  const filter = pick(req.query, ['unitId', 'tenantId', 'status']);
+  const filter = pick(req.query, ['unitId', 'tenantId', 'propertyId', 'status']);
   const options = pick(req.query, ['sortBy', 'limit', 'page']);
   options.include = parseInclude(req.query.include);
   if (req.user.role !== 'super_admin') filter.accountId = req.user.accountId;

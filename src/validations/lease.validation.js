@@ -1,5 +1,9 @@
 const Joi = require('joi');
 
+const statusTypes = {
+  ACTIVE: 'active',
+  TERMINATED: 'terminated',
+};
 const createLease = {
   body: Joi.object().keys({
     unitId: Joi.string()
@@ -15,6 +19,13 @@ const createLease = {
       .messages({
         'string.base': 'Tenant ID must be a string',
         'string.uuid': 'Tenant ID must be a valid UUID',
+      }),
+    propertyId: Joi.string()
+      .uuid({ version: ['uuidv4'] })
+      .required()
+      .messages({
+        'string.base': 'propertyId ID must be a string',
+        'string.uuid': 'propertyId ID must be a valid UUID',
       }),
     leaseStartDate: Joi.date().required().messages({
       'date.base': 'Lease start date must be a valid date',
@@ -51,6 +62,19 @@ const getLeases = {
       .messages({
         'string.base': 'Tenant ID must be a string',
         'string.uuid': 'Tenant ID must be a valid UUID',
+      }),
+    propertyId: Joi.string()
+      .uuid({ version: ['uuidv4'] })
+      .messages({
+        'string.base': 'Property ID must be a string',
+        'string.uuid': 'Property ID must be a valid UUID',
+      }),
+    status: Joi.string()
+      .valid(...Object.values(statusTypes))
+      // .default('active')
+      .messages({
+        'string.base': 'Status must be a string',
+        'any.only': 'Status must be one of: active, terminated',
       }),
     sortBy: Joi.string()
       .pattern(/^[a-zA-Z]+:(asc|desc)$/)
@@ -122,6 +146,13 @@ const updateLease = {
         .messages({
           'string.base': 'Tenant ID must be a string',
           'string.uuid': 'Tenant ID must be a valid UUID',
+        }),
+      propertyId: Joi.string()
+        .uuid({ version: ['uuidv4'] })
+        .required()
+        .messages({
+          'string.base': 'Property ID must be a string',
+          'string.uuid': 'Property ID must be a valid UUID',
         }),
       leaseStartDate: Joi.date().messages({
         'date.base': 'Lease start date must be a valid date',

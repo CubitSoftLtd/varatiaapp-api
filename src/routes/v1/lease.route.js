@@ -39,6 +39,9 @@ const router = express.Router();
  *               tenantId:
  *                 type: string
  *                 format: uuid
+ *               propertyId:
+ *                 type: string
+ *                 format: uuid
  *               unitId:
  *                 type: string
  *                 format: uuid
@@ -66,6 +69,7 @@ const router = express.Router();
  *             example:
  *               tenantId: 123e4567-e89b-12d3-a456-426614174000
  *               unitId: 223e4567-e89b-12d3-a456-426614174001
+ *               propertyId: 223e4567-e89b-12d3-a456-426614174001
  *               leaseStartDate: 2025-06-01
  *               leaseEndDate: 2025-06-30
  *               moveInDate: 2025-06-01
@@ -96,6 +100,11 @@ const router = express.Router();
  *           format: uuid
  *       - in: query
  *         name: unitId
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *       - in: query
+ *         name: propertyId
  *         schema:
  *           type: string
  *           format: uuid
@@ -224,6 +233,9 @@ const router = express.Router();
  *               unitId:
  *                 type: string
  *                 format: uuid
+ *               propertyId:
+ *                 type: string
+ *                 format: uuid
  *               leaseStartDate:
  *                 type: string
  *                 format: date
@@ -248,6 +260,7 @@ const router = express.Router();
  *             example:
  *               tenantId: 123e4567-e89b-12d3-a456-426614174000
  *               unitId: 223e4567-e89b-12d3-a456-426614174001
+ *               propertyId: 223e4567-e89b-12d3-a456-426614174001
  *               leaseStartDate: 2025-06-01
  *               leaseEndDate: 2025-06-30
  *               moveInDate: 2025-06-01
