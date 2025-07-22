@@ -31,6 +31,14 @@ const createSubmeter = {
         'string.empty': 'Unit ID is required',
         'string.uuid': 'Unit ID must be a valid UUID',
       }),
+    propertyId: Joi.string()
+      .uuid({ version: ['uuidv4'] })
+      .required()
+      .messages({
+        'string.base': 'Property ID must be a string',
+        'string.empty': 'Property ID is required',
+        'string.uuid': 'Property ID must be a valid UUID',
+      }),
     status: Joi.string()
       .valid(...Object.values(statusTypes))
       .default('active')
@@ -136,6 +144,14 @@ const updateSubmeter = {
         .messages({
           'string.base': 'Meter ID must be a string',
           'string.uuid': 'Meter ID must be a valid UUID',
+        }),
+      propertyId: Joi.string()
+        .uuid({ version: ['uuidv4'] })
+        .required()
+        .messages({
+          'string.base': 'Property ID must be a string',
+          'string.empty': 'Property ID is required',
+          'string.uuid': 'Property ID must be a valid UUID',
         }),
       unitId: Joi.string()
         .uuid({ version: ['uuidv4'] })

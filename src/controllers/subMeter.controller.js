@@ -2,7 +2,7 @@ const httpStatus = require('http-status');
 const pick = require('../utils/pick');
 const catchAsync = require('../utils/catchAsync');
 const { subMeterService } = require('../services');
-const { Meter, Unit } = require('../models');
+const { Meter, Unit, Property } = require('../models');
 
 // Helper function to parse include query parameter
 const parseInclude = (include) => {
@@ -23,6 +23,7 @@ const parseInclude = (include) => {
         const modelMap = {
           meter: Meter,
           unit: Unit,
+          property: Property,
         };
 
         // Get the Sequelize model from the map.

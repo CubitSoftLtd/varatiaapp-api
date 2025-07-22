@@ -43,6 +43,10 @@ const router = express.Router();
  *                 type: string
  *                 format: uuid
  *                 description: ID of the main meter to which this submeter is connected
+ *               propertyId:
+ *                 type: string
+ *                 format: uuid
+ *                 description: ID of the property to which unit of this submeter is installed
  *               unitId:
  *                 type: string
  *                 format: uuid
@@ -60,6 +64,7 @@ const router = express.Router();
  *             example:
  *               number: SUB123456
  *               meterId: 123e4567-e89b-12d3-a456-426614174000
+ *               propertyId: 789c1234-d56e-78f9-g012-345678901234
  *               unitId: 789c1234-d56e-78f9-g012-345678901234
  *               status: active
  *               installedDate: 2025-01-01
@@ -241,6 +246,10 @@ const router = express.Router();
  *                 type: string
  *                 format: uuid
  *                 description: ID of the unit to which this submeter is installed
+ *               propertyId:
+ *                 type: string
+ *                 format: uuid
+ *                 description: ID of the unit to which this submeter is installed
  *               status:
  *                 type: string
  *                 enum: [active, inactive, maintenance, retired]
@@ -254,6 +263,7 @@ const router = express.Router();
  *               number: SUB123456-UPDATED
  *               meterId: 123e4567-e89b-12d3-a456-426614174000
  *               unitId: 789c1234-d56e-78f9-g012-345678901234
+ *               propertyId: 789c1234-d56e-78f9-g012-345678901234
  *               status: maintenance
  *               installedDate: 2025-01-01
  *     responses:

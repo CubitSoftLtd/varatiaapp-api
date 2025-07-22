@@ -20,6 +20,17 @@ module.exports = (sequelize, DataTypes) => {
         onUpdate: 'CASCADE',
         comment: 'ID of the main meter to which this submeter is connected',
       },
+      propertyId: {
+        type: DataTypes.UUID,
+        allowNull: true, // Tenant might not be currently assigned to a unit (e.g., prospective tenant)
+        references: {
+          model: 'properties', // References the 'units' table
+          key: 'id',
+        },
+        onDelete: 'SET NULL', // If a unit is deleted, lease's unitId becomes null (lease can still exist)
+        onUpdate: 'CASCADE',
+        comment: 'ID of the unit the lease is currently occupying or assigned to',
+      },
       unitId: {
         type: DataTypes.UUID,
         allowNull: false,
@@ -84,6 +95,7 @@ module.exports = (sequelize, DataTypes) => {
   Submeter.associate = (models) => {
     Submeter.belongsTo(models.Meter, { foreignKey: 'meterId', as: 'meter' });
     Submeter.belongsTo(models.Unit, { foreignKey: 'unitId', as: 'unit' });
+    Submeter.belongsTo(models.Property, { foreignKey: 'propertyId', as: 'property' });
   };
 
   return Submeter;

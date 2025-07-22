@@ -38,6 +38,7 @@ const createSubmeter = async (submeterBody) => {
       {
         meterId: submeterBody.meterId,
         unitId: submeterBody.unitId,
+        propertyId: submeterBody.propertyId,
         number: submeterBody.number,
         status: submeterBody.status || 'active',
         installedDate: submeterBody.installedDate,
