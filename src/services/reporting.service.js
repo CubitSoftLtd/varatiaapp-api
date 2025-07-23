@@ -46,9 +46,9 @@ const getFinancialReport = async (filter) => {
 
   // Revenues & expenses
   const totalRevenue = (await Payment.sum('amountPaid', { where })) || 0;
-  const otherExpenses = (await Expense.sum('amount', { where })) || 0;
-  const meterCharges = (await MeterCharge.sum('amount', { where })) || 0;
-  const totalExpenses = otherExpenses + meterCharges;
+  const totalExpenses = (await Expense.sum('amount', { where })) || 0;
+  // const meterCharges = (await MeterCharge.sum('amount', { where })) || 0;
+  // const totalExpenses = otherExpenses + meterCharges;
 
   // ✅ Correct way to calculate outstanding payments:
   const bills = await Bill.findAll({
@@ -191,11 +191,11 @@ const getMonthlyRevenueExpenseReport = async ({ year, accountId }) => {
   });
 
   // ✅ Fetch all meter charges within year
-  const meterCharges = await MeterCharge.findAll({
-    where: whereClause,
-    attributes: ['amount', 'createdAt'],
-    raw: true,
-  });
+  // const meterCharges = await MeterCharge.findAll({
+  //   where: whereClause,
+  //   attributes: ['amount', 'createdAt'],
+  //   raw: true,
+  // });
 
   // Map payments to months
   for (const p of payments) {
@@ -210,10 +210,10 @@ const getMonthlyRevenueExpenseReport = async ({ year, accountId }) => {
   }
 
   // ✅ Map meter charges to months
-  for (const m of meterCharges) {
-    const monthIndex = new Date(m.createdAt).getMonth();
-    result[monthIndex].expense += parseFloat(m.amount);
-  }
+  // for (const m of meterCharges) {
+  //   const monthIndex = new Date(m.createdAt).getMonth();
+  //   result[monthIndex].expense += parseFloat(m.amount);
+  // }
 
   return {
     year: parseInt(year),
@@ -402,7 +402,7 @@ const getTenantHistoryReport = async (filter) => {
       {
         model: Bill,
         as: 'bill',
-        attributes: ['id', 'invoiceNo', 'issueDate'],
+        attributes: ['id', 'invoiceNo', 'issueDate', 'totalAmount'],
       },
     ],
   });

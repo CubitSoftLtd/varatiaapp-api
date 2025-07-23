@@ -46,7 +46,7 @@ const createLease = catchAsync(async (req, res) => {
   if (lease && lease.unitId && lease.startedMeterReading && lease.leaseStartDate) {
     const submeter = await Submeter.findOne({
       where: { unitId: lease.unitId },
-      attributes: ['id', 'meterId'], // শুধু দরকারি ফিল্ড আনুন
+      attributes: ['id', 'meterId'],
     });
 
     await meterReadingService.createMeterReading({
