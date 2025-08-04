@@ -41,10 +41,54 @@ const getBillPaymentPieByYear = catchAsync(async (req, res) => {
   const data = await reportingService.getBillPaymentPieByYear(filter);
   res.send(data);
 });
+
+const getMeterRechargeReport = catchAsync(async (req, res) => {
+  const filter = pick(req.query, ['propertyId', 'meterId', 'startDate', 'endDate']);
+  if (!filter.propertyId) {
+    return res.status(400).send({ message: 'propertyId is required' });
+  }
+  if (!filter.startDate || !filter.endDate) {
+    return res.status(400).send({ message: 'startDate and endDate are required' });
+  }
+  if (req.user.role !== 'super_admin') {
+    filter.accountId = req.user.accountId;
+  }
+  const startDate = new Date(filter.startDate);
+  const endDate = new Date(filter.endDate);
+  const report = await reportingService.getMeterRechargeReportByProperty({
+    ...filter,
+    startDate,
+    endDate,
+  });
+
+  res.send(report);
+});
+const getMeterSubmeterConsumption = catchAsync(async (req, res) => {
+  // const { meterId, startDate, endDate } = req.query;
+  const filter = pick(req.query, ['meterId', 'startDate', 'endDate']);
+
+  if (!filter.meterId || !filter.startDate || !filter.endDate) {
+    return res.status(400).send({ message: 'meterId, startDate and endDate are required' });
+  }
+  if (req.user.role !== 'super_admin') {
+    filter.accountId = req.user.accountId;
+  }
+  const startDate = new Date(filter.startDate);
+  const endDate = new Date(filter.endDate);
+  const result = await reportingService.getMeterWithSubmeterConsumption({
+    ...filter,
+    startDate,
+    endDate,
+  });
+
+  res.send(result);
+});
 module.exports = {
   getFinancialReport,
   getTenantActivityReport,
   getMonthlyRevenueExpenseReport,
   getTenantHistoryReportController,
   getBillPaymentPieByYear,
+  getMeterRechargeReport,
+  getMeterSubmeterConsumption,
 };

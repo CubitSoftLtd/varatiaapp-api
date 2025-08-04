@@ -392,6 +392,67 @@ const router = express.Router();
  *       "403":
  *         $ref: '#/components/responses/Forbidden'
  */
+/**
+ * @swagger
+ * /reports/meter-recharges:
+ *   get:
+ *     summary: Get year-wise bill payment pie report
+ *     description: Returns the Meter recharge of a month and year .
+ *     tags: [Reports]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: startDate
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *           example: 2025-07-01
+ *       - in: query
+ *         name: endDate
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *           example: 2025-07-31
+ *         description: The year for which to generate the report
+ *       - in: query
+ *         name: propertyId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: a1b2c3d4
+ *         description: ID of the tenant
+ *       - in: query
+ *         name: meterId
+ *         required: false
+ *         schema:
+ *           type: string
+ *           example: a1b2c3d4
+ *         description: ID of the tenant
+ *     responses:
+ *       "200":
+ *         description: Pie data retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   name:
+ *                     type: string
+ *                     enum: [Paid, Outstanding]
+ *                   value:
+ *                     type: number
+ *                     format: float
+ *                     example: 70.25
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
+ */
 router.route('/financial').get(auth(), validate(reportingValidation.getFinancialRe), reportingController.getFinancialReport);
 
 router
@@ -406,5 +467,8 @@ router
 router
   .route('/bill-pie')
   .get(auth(), validate(reportingValidation.getBillPaymentPieByYear), reportingController.getBillPaymentPieByYear);
+router
+  .route('/meter-recharges')
+  .get(auth(), validate(reportingValidation.getMeterRechargeReport), reportingController.getMeterRechargeReport);
 
 module.exports = router;

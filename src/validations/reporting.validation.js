@@ -24,9 +24,24 @@ const getBillPaymentPieByYear = {
     year: Joi.number().integer().min(2000).max(2099).optional(),
   }),
 };
+
+const getMeterRechargeReport = {
+  query: Joi.object().keys({
+    propertyId: Joi.string().uuid().required(),
+    startDate: Joi.date().iso().required(),
+    endDate: Joi.date().iso().greater(Joi.ref('startDate')).required(),
+    meterId: Joi.string().uuid().optional(),
+  }),
+};
+
+module.exports = {
+  getMeterRechargeReport,
+};
+
 module.exports = {
   getFinancialSummary,
   getMaintenanceStats,
   getMonthlyFinancialReport,
   getBillPaymentPieByYear,
+  getMeterRechargeReport,
 };

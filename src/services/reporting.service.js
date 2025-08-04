@@ -1,7 +1,7 @@
 /* eslint-disable prettier/prettier */
 const { Op } = require('sequelize');
 const moment = require('moment');
-const { Bill, Payment, Expense, Lease, MaintenanceRequest, MeterCharge, Unit, Tenant, Property } = require('../models');
+const { Bill, Payment, Expense, Lease, MaintenanceRequest, MeterCharge, Unit, Tenant, Property, Meter, Sequelize, MeterReading, UtilityType } = require('../models');
 
 // const getFinancialReport = async (filter) => {
 //   const { startDate, endDate, propertyId } = filter;
@@ -104,59 +104,7 @@ const getTenantActivityReport = async (filter) => {
     generatedAt: new Date(),
   };
 };
-// const getMonthlyRevenueExpenseReport = async (year) => {
-//   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-//   const result = Array.from({ length: 12 }, (_, i) => ({
-//     month: monthNames[i],
-//     revenue: 0,
-//     expense: 0,
-//   }));
-
-//   // Fetch all payments within year
-//   const payments = await Payment.findAll({
-//     where: {
-//       isDeleted: false,
-//       createdAt: {
-//         [Op.gte]: new Date(`${year}-01-01`),
-//         [Op.lt]: new Date(`${parseInt(year) + 1}-01-01`),
-//       },
-//     },
-//     attributes: ['amountPaid', 'createdAt'],
-//     raw: true,
-//   });
-
-//   // Fetch all expenses within year
-//   const expenses = await Expense.findAll({
-//     where: {
-//       isDeleted: false,
-//       createdAt: {
-//         [Op.gte]: new Date(`${year}-01-01`),
-//         [Op.lt]: new Date(`${parseInt(year) + 1}-01-01`),
-//       },
-//     },
-//     attributes: ['amount', 'createdAt'],
-//     raw: true,
-//   });
-
-//   // Map payments to months
-//   for (const p of payments) {
-//     const monthIndex = new Date(p.createdAt).getMonth();
-//     result[monthIndex].revenue += parseFloat(p.amountPaid);
-//   }
-
-//   // Map expenses to months
-//   for (const e of expenses) {
-//     const monthIndex = new Date(e.createdAt).getMonth();
-//     result[monthIndex].expense += parseFloat(e.amount);
-//   }
-
-//   return {
-//     year: parseInt(year),
-//     data: result,
-//     generatedAt: new Date(),
-//   };
-// };
 const getMonthlyRevenueExpenseReport = async ({ year, accountId }) => {
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -190,13 +138,6 @@ const getMonthlyRevenueExpenseReport = async ({ year, accountId }) => {
     raw: true,
   });
 
-  // ✅ Fetch all meter charges within year
-  // const meterCharges = await MeterCharge.findAll({
-  //   where: whereClause,
-  //   attributes: ['amount', 'createdAt'],
-  //   raw: true,
-  // });
-
   // Map payments to months
   for (const p of payments) {
     const monthIndex = new Date(p.createdAt).getMonth();
@@ -208,12 +149,6 @@ const getMonthlyRevenueExpenseReport = async ({ year, accountId }) => {
     const monthIndex = new Date(e.createdAt).getMonth();
     result[monthIndex].expense += parseFloat(e.amount);
   }
-
-  // ✅ Map meter charges to months
-  // for (const m of meterCharges) {
-  //   const monthIndex = new Date(m.createdAt).getMonth();
-  //   result[monthIndex].expense += parseFloat(m.amount);
-  // }
 
   return {
     year: parseInt(year),
@@ -509,6 +444,134 @@ const getBillPaymentPieByYear = async ({ year, accountId }) => {
     { name: 'Outstanding', value: parseFloat(outstandingPercentage.toFixed(2)) },
   ];
 };
+const getMeterRechargeReportByProperty = async ({ propertyId, meterId, startDate, endDate, accountId }) => {
+  if (!propertyId || !startDate || !endDate) {
+    throw new Error('propertyId, startDate and endDate are required');
+  }
+
+  const whereClause = {
+    propertyId,
+    accountId,
+    expenseDate: {
+      [Op.gte]: startDate,
+      [Op.lte]: endDate,
+    },
+  };
+
+  if (meterId) {
+    whereClause.meterId = meterId;
+  }
+
+  const meterCharges = await MeterCharge.findAll({
+    where: whereClause,
+    attributes: ['meterId', 'amount', 'expenseDate', 'propertyId'],
+    include: [
+      {
+        model: Meter,
+        as: 'meter',      
+        attributes: ['id', 'number'],
+      },
+      {
+        model: Property,
+        as: 'property',  
+        attributes: ['id', 'name'],
+      },
+    ],
+    raw: false,
+  });
+
+  // meterId অনুযায়ী গ্রুপিং কিন্তু নামসহ
+  const meterMap = {};
+
+  for (const mc of meterCharges) {
+    const id = mc.meterId;
+    if (!meterMap[id]) {
+      meterMap[id] = {
+        meterId: id,
+        meterNumber: mc.meter?.number || null,
+        propertyId: mc.propertyId,
+        propertyName: mc.property?.name || null,
+        expenseDate: mc.expenseDate,
+        rechargeCount: 0,
+        totalRechargeAmount: 0,
+      };
+    }
+
+    meterMap[id].rechargeCount += 1;
+    meterMap[id].totalRechargeAmount += parseFloat(mc.amount ?? 0);
+  }
+
+  return {
+    propertyId,
+    month: startDate.getMonth() + 1,
+    year: startDate.getFullYear(),
+    meterId: meterId ?? null,
+    results: Object.values(meterMap),
+    generatedAt: new Date(),
+  };
+};
+const getMeterWithSubmeterConsumption = async ({ meterId, startDate, endDate, accountId }) => {
+  // Step 1: All meters (main + submeters) for the account
+  const meters = await Meter.findAll({
+    where: {
+      [Op.or]: [{ id: meterId }, { parentMeterId: meterId }],
+      accountId, // <-- 🔐 added account-based filtering
+    },
+    include: [
+      {
+        model: UtilityType,
+        attributes: ['unitRate'],
+        where: { accountId }, // <-- 🔐 optional, if utilityType is account scoped
+        required: false,
+      },
+    ],
+    attributes: ['id', 'name', 'utilityTypeId'],
+  });
+
+  const meterMap = {};
+  meters.forEach((m) => {
+    meterMap[m.id] = {
+      name: m.name,
+      unitRate: Number(m.UtilityType?.unitRate || 0),
+    };
+  });
+
+  const meterIds = meters.map((m) => m.id);
+
+  // Step 2: Readings
+  const readings = await MeterReading.findAll({
+    where: {
+      meterId: { [Op.in]: meterIds },
+      readingDate: {
+        [Op.between]: [startDate, endDate],
+      },
+      accountId, // <-- 🔐 filter readings by account
+    },
+    attributes: [
+      'meterId',
+      [Sequelize.fn('SUM', Sequelize.col('consumption')), 'totalConsumption'],
+    ],
+    group: ['meterId'],
+    raw: true,
+  });
+
+  // Step 3: Final calculation
+  return readings.map((r) => {
+    const unitRate = meterMap[r.meterId]?.unitRate || 0;
+    const meterName = meterMap[r.meterId]?.name || '';
+    const consumption = Number(r.totalConsumption);
+    const totalAmount = consumption * unitRate;
+
+    return {
+      meterId: r.meterId,
+      meterName,
+      totalConsumption: consumption,
+      unitRate,
+      totalAmount,
+    };
+  });
+};
+
 
 module.exports = {
   getFinancialReport,
@@ -516,4 +579,6 @@ module.exports = {
   getMonthlyRevenueExpenseReport,
   getTenantHistoryReport,
   getBillPaymentPieByYear,
+  getMeterRechargeReportByProperty,
+  getMeterWithSubmeterConsumption,
 };
