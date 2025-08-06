@@ -453,6 +453,70 @@ const router = express.Router();
  *       "403":
  *         $ref: '#/components/responses/Forbidden'
  */
+/**
+ * @swagger
+ * /reports/submeter-consumption:
+ *   get:
+ *     summary: Get submeter consumption report
+ *     description: Retrieve submeter usage and cost within a specified period.
+ *     tags: [Reports]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: propertyId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: UUID of the property
+ *       - in: query
+ *         name: meterId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Filter by a specific meter (optional)
+ *       - in: query
+ *         name: startDate
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *           example: 2025-07-01
+ *         description: Start date of the report
+ *       - in: query
+ *         name: endDate
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *           example: 2025-07-31
+ *         description: End date of the report
+ *     responses:
+ *       "200":
+ *         description: Submeter report retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   unitName:
+ *                     type: string
+ *                   meterId:
+ *                     type: string
+ *                     format: uuid
+ *                   consumption:
+ *                     type: number
+ *                   cost:
+ *                     type: number
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
+ */
 router.route('/financial').get(auth(), validate(reportingValidation.getFinancialRe), reportingController.getFinancialReport);
 
 router
@@ -470,5 +534,7 @@ router
 router
   .route('/meter-recharges')
   .get(auth(), validate(reportingValidation.getMeterRechargeReport), reportingController.getMeterRechargeReport);
-
+router
+  .route('/submeter-consumption')
+  .get(auth(), validate(reportingValidation.getSubmeterConsumptionReport), reportingController.getSubmeterConsumptionReport);
 module.exports = router;

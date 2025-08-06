@@ -1,7 +1,7 @@
 /* eslint-disable prettier/prettier */
-const { Op } = require('sequelize');
+const { Op, fn, col } = require('sequelize');
 const moment = require('moment');
-const { Bill, Payment, Expense, Lease, MaintenanceRequest, MeterCharge, Unit, Tenant, Property, Meter, Sequelize, MeterReading, UtilityType } = require('../models');
+const { Bill, Payment, Expense, Lease, MaintenanceRequest, MeterCharge, Unit, Tenant, Property, Meter, Sequelize, MeterReading, UtilityType, Submeter } = require('../models');
 
 // const getFinancialReport = async (filter) => {
 //   const { startDate, endDate, propertyId } = filter;
@@ -510,69 +510,76 @@ const getMeterRechargeReportByProperty = async ({ propertyId, meterId, startDate
     generatedAt: new Date(),
   };
 };
-const getMeterWithSubmeterConsumption = async ({ meterId, startDate, endDate, accountId }) => {
-  // Step 1: All meters (main + submeters) for the account
-  const meters = await Meter.findAll({
-    where: {
-      [Op.or]: [{ id: meterId }, { parentMeterId: meterId }],
-      accountId, // <-- 🔐 added account-based filtering
-    },
-    include: [
-      {
-        model: UtilityType,
-        attributes: ['unitRate'],
-        where: { accountId }, // <-- 🔐 optional, if utilityType is account scoped
-        required: false,
-      },
-    ],
-    attributes: ['id', 'name', 'utilityTypeId'],
+
+const getSubmeterConsumptionReport = async ({ propertyId, meterId, startDate, endDate, accountId }) => {
+  // Validation
+  if (!propertyId || !meterId || !startDate || !endDate) {
+    throw new Error("propertyId, meterId, startDate, endDate are required.");
+  }
+  // Get the main meter with utility info
+  const meter = await Meter.findOne({
+    where: { id: meterId, propertyId, accountId },
+    include: [{ model: UtilityType, as: "utilityType", attributes: ["name", "unitRate"] }],
   });
 
-  const meterMap = {};
-  meters.forEach((m) => {
-    meterMap[m.id] = {
-      name: m.name,
-      unitRate: Number(m.UtilityType?.unitRate || 0),
-    };
-  });
+  if (!meter) throw new Error("Meter not found");
 
-  const meterIds = meters.map((m) => m.id);
+  const unitRate = parseFloat(meter.utilityType?.unitRate || 0);
 
-  // Step 2: Readings
-  const readings = await MeterReading.findAll({
-    where: {
-      meterId: { [Op.in]: meterIds },
-      readingDate: {
-        [Op.between]: [startDate, endDate],
-      },
-      accountId, // <-- 🔐 filter readings by account
-    },
-    attributes: [
-      'meterId',
-      [Sequelize.fn('SUM', Sequelize.col('consumption')), 'totalConsumption'],
-    ],
-    group: ['meterId'],
+  // Get submeters under this meter
+  const submeters = await Submeter.findAll({
+    where: { meterId, propertyId, accountId },
+    attributes: ["id", "number"],
     raw: true,
   });
 
-  // Step 3: Final calculation
-  return readings.map((r) => {
-    const unitRate = meterMap[r.meterId]?.unitRate || 0;
-    const meterName = meterMap[r.meterId]?.name || '';
-    const consumption = Number(r.totalConsumption);
-    const totalAmount = consumption * unitRate;
+  const submeterIds = submeters.map((s) => s.id);
+
+  // Get all readings within date range for these submeters
+  const readings = await MeterReading.findAll({
+    where: {
+      submeterId: { [Op.in]: submeterIds },
+      readingDate: { [Op.between]: [startDate, endDate] },
+    },
+    attributes: ["submeterId", "consumption"],
+    raw: true,
+  });
+
+  // Group readings by submeterId and sum their consumption
+  const consumptionMap = {};
+
+  for (const reading of readings) {
+    const id = reading.submeterId;
+    const consumption = parseFloat(reading.consumption || 0);
+    if (!consumptionMap[id]) {
+      consumptionMap[id] = 0;
+    }
+    consumptionMap[id] += consumption;
+  }
+
+  // Final result: match submeters with their consumption and amount
+const result = submeters
+  .map((sub) => {
+    const totalConsumption = consumptionMap[sub.id] || 0;
+
+    if (totalConsumption === 0) return null;
+
+    const totalAmount = parseFloat((totalConsumption * unitRate).toFixed(2));
 
     return {
-      meterId: r.meterId,
-      meterName,
-      totalConsumption: consumption,
-      unitRate,
+      propertyId,
+      meterId,
+      meterNumber: meter.number,
+      submeterId: sub.id,
+      submeterNumber: sub.number,
+      totalConsumption,
       totalAmount,
     };
-  });
+  })
+  .filter(Boolean);
+
+  return result;
 };
-
-
 module.exports = {
   getFinancialReport,
   getTenantActivityReport,
@@ -580,5 +587,5 @@ module.exports = {
   getTenantHistoryReport,
   getBillPaymentPieByYear,
   getMeterRechargeReportByProperty,
-  getMeterWithSubmeterConsumption,
+  getSubmeterConsumptionReport
 };

@@ -63,26 +63,21 @@ const getMeterRechargeReport = catchAsync(async (req, res) => {
 
   res.send(report);
 });
-const getMeterSubmeterConsumption = catchAsync(async (req, res) => {
-  // const { meterId, startDate, endDate } = req.query;
-  const filter = pick(req.query, ['meterId', 'startDate', 'endDate']);
+const getSubmeterConsumptionReport = catchAsync(async (req, res) => {
+  const filter = pick(req.query, ['propertyId', 'meterId', 'startDate', 'endDate']);
 
-  if (!filter.meterId || !filter.startDate || !filter.endDate) {
-    return res.status(400).send({ message: 'meterId, startDate and endDate are required' });
+  if (!filter.propertyId || !filter.meterId || !filter.startDate || !filter.endDate) {
+    return res.status(400).send({ message: 'propertyId, meterId, startDate and endDate are required' });
   }
+
   if (req.user.role !== 'super_admin') {
     filter.accountId = req.user.accountId;
   }
-  const startDate = new Date(filter.startDate);
-  const endDate = new Date(filter.endDate);
-  const result = await reportingService.getMeterWithSubmeterConsumption({
-    ...filter,
-    startDate,
-    endDate,
-  });
 
-  res.send(result);
+  const report = await reportingService.getSubmeterConsumptionReport(filter);
+  res.send(report);
 });
+
 module.exports = {
   getFinancialReport,
   getTenantActivityReport,
@@ -90,5 +85,5 @@ module.exports = {
   getTenantHistoryReportController,
   getBillPaymentPieByYear,
   getMeterRechargeReport,
-  getMeterSubmeterConsumption,
+  getSubmeterConsumptionReport,
 };

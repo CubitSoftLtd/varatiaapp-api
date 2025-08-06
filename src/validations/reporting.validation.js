@@ -33,9 +33,13 @@ const getMeterRechargeReport = {
     meterId: Joi.string().uuid().optional(),
   }),
 };
-
-module.exports = {
-  getMeterRechargeReport,
+const getSubmeterConsumptionReport = {
+  query: Joi.object().keys({
+    propertyId: Joi.string().uuid().required(),
+    meterId: Joi.string().uuid().optional(),
+    startDate: Joi.date().iso().required(),
+    endDate: Joi.date().iso().greater(Joi.ref('startDate')).required(),
+  }),
 };
 
 module.exports = {
@@ -44,4 +48,5 @@ module.exports = {
   getMonthlyFinancialReport,
   getBillPaymentPieByYear,
   getMeterRechargeReport,
+  getSubmeterConsumptionReport,
 };
