@@ -72,7 +72,6 @@ const createLease = async (leaseBody) => {
       { transaction: t }
     );
 
-    // ✅ Step 2: Update Unit Status
     await Unit.update(
       { status: 'occupied' },
       {

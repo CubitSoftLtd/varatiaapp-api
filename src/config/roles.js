@@ -33,6 +33,7 @@ const allRoles = {
     // Meter/Submeter permissions
     'meter:management',
     'sub_meter:management',
+    'personal_expense:management',
     'meter_reading:management',
     // Expense permissions
     'expense:management',
@@ -102,6 +103,7 @@ const allRoles = {
     'meter:management',
     'sub_meter:management',
     'meter_reading:management',
+    'personal_expense:management',
     // Expense permissions
     'expense:management',
     // Expense Category permissions
