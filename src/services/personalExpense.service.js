@@ -79,13 +79,14 @@ const getAllPersonalExpenses = async (filter, options, deleted = 'false') => {
     const [field, order] = options.sortBy.split(':');
     sort.push([field, order?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC']);
   }
-
+  const include = options.include || [];
 
   const { count, rows } = await PersonalExpense.findAndCountAll({
     where: whereClause,
     limit,
     offset,
     order: sort.length ? sort : [['createdAt', 'DESC']],
+    include
   });
 
 
@@ -104,8 +105,8 @@ const getAllPersonalExpenses = async (filter, options, deleted = 'false') => {
  * @param {Array} [include=[]] - Array of objects specifying models and attributes to include
  * @returns {Promise<Lease>}
  */
-const getPersonalExpenseById = async (id) => {
-  const personalExpense = await PersonalExpense.findByPk(id);
+const getPersonalExpenseById = async (id,include = []) => {
+  const personalExpense = await PersonalExpense.findByPk(id, { include });
   if (!personalExpense) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Expense not found');
   }

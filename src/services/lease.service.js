@@ -1,6 +1,6 @@
 const httpStatus = require('http-status');
 const { Op } = require('sequelize');
-const { Tenant, Unit, Lease, Property } = require('../models');
+const { Tenant, Unit, Lease, Property, Submeter, MeterReading } = require('../models');
 const ApiError = require('../utils/ApiError');
 
 /**
@@ -9,42 +9,35 @@ const ApiError = require('../utils/ApiError');
  * @returns {Promise<Lease>}
  */
 
-const createLease = async (leaseBody) => {
+const createLease = async (leaseBody, user) => {
   if (leaseBody.unitId) {
     const unit = await Unit.findByPk(leaseBody.unitId);
-    if (!unit) {
-      throw new ApiError(httpStatus.NOT_FOUND, 'Unit not found');
-    }
+    if (!unit) throw new ApiError(httpStatus.NOT_FOUND, 'Unit not found');
   }
 
   if (leaseBody.tenantId) {
     const tenant = await Tenant.findByPk(leaseBody.tenantId);
-    if (!tenant) {
-      throw new ApiError(httpStatus.NOT_FOUND, 'Tenant not found');
-    }
+    if (!tenant) throw new ApiError(httpStatus.NOT_FOUND, 'Tenant not found');
   }
+
   if (leaseBody.propertyId) {
-    const tenant = await Property.findByPk(leaseBody.propertyId);
-    if (!tenant) {
-      throw new ApiError(httpStatus.NOT_FOUND, 'Property not found');
-    }
+    const property = await Property.findByPk(leaseBody.propertyId);
+    if (!property) throw new ApiError(httpStatus.NOT_FOUND, 'Property not found');
   }
 
   const existingActiveLease = await Lease.findOne({
-    where: {
-      unitId: leaseBody.unitId,
-      status: 'active',
-    },
+    where: { unitId: leaseBody.unitId, status: 'active' },
   });
-
   if (existingActiveLease) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'This unit already has an active lease.');
   }
+
   const leaseStart = new Date(leaseBody?.leaseStartDate);
   const currentYear = leaseStart.getFullYear();
   const startOfYear = new Date(currentYear, 0, 1);
   const endOfYear = new Date(currentYear, 11, 31, 23, 59, 59, 999);
-  const lease = await Lease.sequelize.transaction(async (t) => {
+
+  return Lease.sequelize.transaction(async (t) => {
     // Step 1: Create Lease
     const { accountId } = leaseBody;
     const lastLease = await Lease.findOne({
@@ -72,20 +65,41 @@ const createLease = async (leaseBody) => {
       { transaction: t }
     );
 
-    await Unit.update(
-      { status: 'occupied' },
-      {
-        where: { id: leaseBody.unitId },
+    // Step 2: Update unit status
+    await Unit.update({ status: 'occupied' }, { where: { id: leaseBody.unitId }, transaction: t });
+
+    // Step 3: Create meter reading (inside same transaction)
+    if (leaseBody.unitId && leaseBody.startedMeterReading && leaseBody.leaseStartDate) {
+      const submeter = await Submeter.findOne({
+        where: { unitId: leaseBody.unitId },
+        attributes: ['id', 'meterId'],
         transaction: t,
+      });
+
+      if (!submeter) {
+        throw new ApiError(httpStatus.NOT_FOUND, 'Submeter not found');
       }
-    );
+
+      await MeterReading.create(
+        {
+          meterId: submeter.meterId,
+          submeterId: submeter.id,
+          readingValue: leaseBody.startedMeterReading,
+          readingDate: leaseBody.leaseStartDate,
+          accountId: user.accountId,
+          createdBy: user.id,
+        },
+        { transaction: t }
+      );
+    }
+
     const formattedLeaseNo = String(createdLease.leaseNo).padStart(4, '0');
     createdLease.dataValues.fullLeaseNo = `LSE-${currentYear}-${formattedLeaseNo}`;
+
     return createdLease;
   });
-
-  return lease;
 };
+
 /**
  * Query for lease with pagination, sorting, and optional inclusion of specific columns from associated models
  * @param {Object} filter - Sequelize filter

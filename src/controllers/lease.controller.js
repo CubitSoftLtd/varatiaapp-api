@@ -41,23 +41,8 @@ const parseInclude = (include) => {
 };
 
 const createLease = catchAsync(async (req, res) => {
-  const lease = await leaseService?.createLease({ ...req.body, accountId: req.user.accountId });
+  const lease = await leaseService.createLease({ ...req.body, accountId: req.user.accountId }, req.user);
 
-  if (lease && lease.unitId && lease.startedMeterReading && lease.leaseStartDate) {
-    const submeter = await Submeter.findOne({
-      where: { unitId: lease.unitId },
-      attributes: ['id', 'meterId'],
-    });
-
-    await meterReadingService.createMeterReading({
-      meterId: submeter.meterId,
-      submeterId: submeter.id,
-      readingValue: lease.startedMeterReading,
-      readingDate: lease.leaseStartDate,
-      accountId: req.user.accountId,
-      createdBy: req.user.id,
-    });
-  }
   res.status(httpStatus.CREATED).send(lease);
 });
 

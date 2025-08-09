@@ -120,6 +120,11 @@ const router = express.Router();
  *           minimum: 1
  *         default: 1
  *         description: Page number
+ *       - in: query
+ *         name: include
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of associations and their attributes (ex. category:id,name)
  *     responses:
  *       "200":
  *         description: OK
@@ -169,6 +174,11 @@ const router = express.Router();
  *           type: string
  *           format: uuid
  *         description: Expense ID
+ *       - in: query
+ *         name: include
+ *         schema:
+ *           type: string
+ *         description: Comma-separated list of associations and their attributes (ex. category:id,name)
  *     responses:
  *       "200":
  *         description: OK
@@ -340,7 +350,7 @@ router
 
 router
   .route('/:id')
-  .get(auth('personal_expense:managementt'), validate(personalExpenseValidation.getPersonalExpense), personalExpenseController.getPersonalExpenseById)
+  .get(auth('personal_expense:management'), validate(personalExpenseValidation.getPersonalExpense), personalExpenseController.getPersonalExpenseById)
   .patch(auth('personal_expense:management'), validate(personalExpenseValidation.updatePersonalExpense), personalExpenseController.updatePersonalExpenseById)
   .delete(auth('personal_expense:management'), validate(personalExpenseValidation.deletePersonalExpense), personalExpenseController.deletePersonalExpenseById);
 

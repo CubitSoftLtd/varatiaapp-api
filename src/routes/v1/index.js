@@ -17,6 +17,7 @@ const expenseRoute = require('./expense.route');
 const roleRoute = require('./role.route');
 const leaseRoute = require('./lease.route');
 const meterChargeRoute = require('./meterCharge.route');
+const personalExpenseRoute = require('./personalExpense.route');
 // Removed direct mounting of expenseRoute under /expenses
 const reportingRoute = require('./reporting.route');
 const notificationRoute = require('./notification.route');
@@ -44,6 +45,7 @@ const defaultRoutes = [
   { path: '/roles', route: roleRoute },
   { path: '/leases', route: leaseRoute },
   { path: '/meter-charges', route: meterChargeRoute },
+  { path: '/personal-expenses', route: personalExpenseRoute },
 ];
 
 const devRoutes = [{ path: '/docs', route: docsRoute }];

@@ -10,6 +10,14 @@ module.exports = (sequelize, DataTypes) => {
                 allowNull: false,
                 comment: 'Unique identifier for the personal Expense',
             },
+            accountId: {
+                type: DataTypes.UUID,
+                allowNull: false,
+                references: { model: 'accounts', key: 'id' },
+                onDelete: 'CASCADE',
+                onUpdate: 'CASCADE',
+                comment: 'ID of the account that generated this bill',
+            },
             beneficiary: {
                 type: DataTypes.STRING(100), // Specify reasonable length (e.g., "Repairs", "Utilities", "Management Fees")
                 allowNull: false,
@@ -65,6 +73,12 @@ module.exports = (sequelize, DataTypes) => {
         }
     );
 
+PersonalExpense.associate = (models) => {
+    PersonalExpense.belongsTo(models.ExpenseCategory, {
+      foreignKey: 'categoryId',
+      as: 'category',
+    });
 
+  };
     return PersonalExpense;
 };

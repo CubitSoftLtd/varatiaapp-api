@@ -61,7 +61,9 @@ const getPersonalExpenses = {
             'number.integer': 'Page must be an integer',
             'number.min': 'Page must be at least 1',
         }),
-
+        include: Joi.string().optional().messages({
+            'string.base': 'Include must be a string',
+        }),
         deleted: Joi.string().valid('true', 'false', 'all').optional().messages({
             'string.base': 'Deleted must be a string',
             'any.only': 'Deleted must be one of "true", "false", or "all"',
@@ -148,11 +150,11 @@ const deleteHardPersonalExpense = {
 };
 
 module.exports = {
-  createPersonalExpense,
-  getPersonalExpenses,
-  getPersonalExpense,
-  updatePersonalExpense,
-  deletePersonalExpense,
-  deleteHardPersonalExpense,
-  restorePersonalExpense,
+    createPersonalExpense,
+    getPersonalExpenses,
+    getPersonalExpense,
+    updatePersonalExpense,
+    deletePersonalExpense,
+    deleteHardPersonalExpense,
+    restorePersonalExpense,
 };
