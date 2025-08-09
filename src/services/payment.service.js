@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 /* eslint-disable no-console */
 const httpStatus = require('http-status');
 const { Op } = require('sequelize');
@@ -32,9 +33,7 @@ const createPayment = async (paymentData) => {
 
   if (tenantId) {
     const tenant = await Tenant.findByPk(tenantId);
-    if (!tenant) {
-      throw new ApiError(httpStatus.NOT_FOUND, `Tenant not found for ID: ${tenantId}`);
-    }
+    if (!tenant) throw new ApiError(httpStatus.NOT_FOUND, `Tenant not found for ID: ${tenantId}`);
     if (bill.tenantId !== tenantId) {
       throw new ApiError(httpStatus.BAD_REQUEST, `Tenant ID ${tenantId} does not match bill's tenant ID`);
     }
@@ -78,12 +77,22 @@ const createPayment = async (paymentData) => {
     );
 
     const newAmountPaid = parseFloat(bill.amountPaid) + parseFloat(amountPaid);
-    let newStatus = 'unpaid';
-    if (newAmountPaid >= parseFloat(bill.totalAmount)) newStatus = 'paid';
-    else if (newAmountPaid > 0) newStatus = 'partially_paid';
-    if (newStatus !== 'paid' && new Date(bill.dueDate) < new Date()) newStatus = 'overdue';
 
-    await bill.update({ amountPaid: newAmountPaid, paymentStatus: newStatus }, { transaction: t });
+    // নতুন status সেট করা
+    let newStatus;
+    if (newAmountPaid >= parseFloat(bill.totalAmount)) {
+      newStatus = 'paid';
+    } else if (newAmountPaid > 0) {
+      newStatus = 'partially_paid';
+    } else {
+      newStatus = 'unpaid';
+    }
+
+    await bill.update(
+      { amountPaid: newAmountPaid, paymentStatus: newStatus },
+      { transaction: t }
+    );
+
     return payment;
   });
 };
@@ -201,6 +210,8 @@ const getPaymentById = async (paymentId, include = []) => {
 
 const updatePayment = async (paymentId, updateBody) => {
   const payment = await getPaymentById(paymentId);
+  if (!payment) throw new ApiError(httpStatus.NOT_FOUND, 'Payment not found');
+
   const { tenantId, amountPaid, paymentDate, paymentMethod, transactionId, notes, billId } = updateBody;
 
   if (billId) {
@@ -208,6 +219,7 @@ const updatePayment = async (paymentId, updateBody) => {
   }
 
   const bill = await Bill.findByPk(payment.billId);
+  if (!bill) throw new ApiError(httpStatus.NOT_FOUND, 'Bill not found');
   if (bill.paymentStatus === 'cancelled') {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Cannot update payment for a cancelled bill');
   }
@@ -215,17 +227,24 @@ const updatePayment = async (paymentId, updateBody) => {
   if (tenantId !== undefined && tenantId !== null) {
     const tenant = await Tenant.findByPk(tenantId);
     if (!tenant) throw new ApiError(httpStatus.NOT_FOUND, `Tenant not found for ID: ${tenantId}`);
-    if (bill.tenantId !== tenantId)
+    if (bill.tenantId !== tenantId) {
       throw new ApiError(httpStatus.BAD_REQUEST, `Tenant ID ${tenantId} does not match bill's tenant ID`);
+    }
   }
 
   if (amountPaid !== undefined) {
     if (amountPaid <= 0) throw new ApiError(httpStatus.BAD_REQUEST, 'Payment amount must be greater than 0');
+
     const otherPayments = await Payment.findAll({
-      where: { billId: payment.billId, id: { [Op.ne]: paymentId }, isDeleted: false },
+      where: {
+        billId: payment.billId,
+        id: { [Op.ne]: paymentId },
+        isDeleted: false,
+      },
     });
     const totalOtherPaid = otherPayments.reduce((sum, p) => sum + parseFloat(p.amountPaid), 0);
     const totalPaid = totalOtherPaid + parseFloat(amountPaid);
+
     if (totalPaid > parseFloat(bill.totalAmount)) {
       throw new ApiError(httpStatus.BAD_REQUEST, 'Total payment exceeds bill amount');
     }
@@ -255,17 +274,29 @@ const updatePayment = async (paymentId, updateBody) => {
       { transaction: t }
     );
 
-    const allPayments = await Payment.findAll({ where: { billId: payment.billId, isDeleted: false } });
+    // আপডেট হওয়া payment ID বাদে সব active payment নিয়ে মোট টাকা বের করুন
+    const allPayments = await Payment.findAll({
+      where: { billId: payment.billId, isDeleted: false },
+      transaction: t,
+    });
     const totalPaid = allPayments.reduce((sum, p) => sum + parseFloat(p.amountPaid), 0);
-    let newStatus = 'unpaid';
+
+    // নতুন স্ট্যাটাস হিসাব করুন
+    let newStatus;
     if (totalPaid >= parseFloat(bill.totalAmount)) newStatus = 'paid';
     else if (totalPaid > 0) newStatus = 'partially_paid';
-    if (newStatus !== 'paid' && new Date(bill.dueDate) < new Date()) newStatus = 'overdue';
+    else newStatus = 'unpaid';
 
-    await bill.update({ amountPaid: totalPaid, paymentStatus: newStatus }, { transaction: t });
+    // bill টেবিলে আপডেট করুন
+    await bill.update(
+      { amountPaid: totalPaid, paymentStatus: newStatus },
+      { transaction: t }
+    );
+
     return payment;
   });
 };
+
 
 const deletePayment = async (paymentId) => {
   const payment = await getPaymentById(paymentId);
