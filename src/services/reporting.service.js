@@ -471,12 +471,12 @@ const getMeterRechargeReportByProperty = async ({ propertyId, meterId, startDate
     include: [
       {
         model: Meter,
-        as: 'meter',      
+        as: 'meter',
         attributes: ['id', 'number'],
       },
       {
         model: Property,
-        as: 'property',  
+        as: 'property',
         attributes: ['id', 'name'],
       },
     ],
@@ -561,25 +561,25 @@ const getSubmeterConsumptionReport = async ({ propertyId, meterId, startDate, en
   }
 
   // Final result: match submeters with their consumption and amount
-const result = submeters
-  .map((sub) => {
-    const totalConsumption = consumptionMap[sub.id] || 0;
+  const result = submeters
+    .map((sub) => {
+      const totalConsumption = consumptionMap[sub.id] || 0;
 
-    if (totalConsumption === 0) return null;
+      if (totalConsumption === 0) return null;
 
-    const totalAmount = parseFloat((totalConsumption * unitRate).toFixed(2));
+      const totalAmount = parseFloat((totalConsumption * unitRate).toFixed(2));
 
-    return {
-      propertyId,
-      meterId,
-      meterNumber: meter.number,
-      submeterId: sub.id,
-      submeterNumber: sub.number,
-      totalConsumption,
-      totalAmount,
-    };
-  })
-  .filter(Boolean);
+      return {
+        propertyId,
+        meterId,
+        meterNumber: meter.number,
+        submeterId: sub.id,
+        submeterNumber: sub.number,
+        totalConsumption,
+        totalAmount,
+      };
+    })
+    .filter(Boolean);
 
   return result;
 };
@@ -635,31 +635,31 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
     ],
   });
 
-const year = new Date(startDate).getFullYear();
+  const year = new Date(startDate).getFullYear();
 
-const lastBill = await Bill.findOne({
-  include: [
-    {
-      model: Unit,
-      as: 'unit',
-      where: { propertyId },
-      attributes: [],
+  const lastBill = await Bill.findOne({
+    include: [
+      {
+        model: Unit,
+        as: 'unit',
+        where: { propertyId },
+        attributes: [],
+      },
+    ],
+    where: {
+      issueDate: {
+        [Op.between]: [`${year}-01-01`, `${year}-12-31`],
+      },
     },
-  ],
-  where: {
-    issueDate: {
-      [Op.between]: [`${year}-01-01`, `${year}-12-31`],
-    },
-  },
-  order: [['invoiceNo', 'DESC']],
-});
+    order: [['invoiceNo', 'DESC']],
+  });
 
-let lastInvoiceNo = lastBill ? lastBill.invoiceNo : 0;
-lastInvoiceNo += 1;
+  let lastInvoiceNo = lastBill ? lastBill.invoiceNo : 0;
 
 
   const billsData = [];
   for (const unit of units) {
+    lastInvoiceNo += 1;
     const rentAmount = parseFloat(unit.rentAmount) || 0;
     let totalUtilityAmount = 0;
 
@@ -692,9 +692,9 @@ lastInvoiceNo += 1;
 
     const tenantId = unitTenantMap[unit.id];
     const tenant = tenantId ? await Tenant.findByPk(tenantId, { attributes: ['id', 'name'] }) : null;
-
-    lastInvoiceNo += 1;
-
+    const dueDateObj = new Date(endDate);
+    dueDateObj.setMonth(dueDateObj.getMonth() + 1);
+    dueDateObj.setDate(10);
     // Bill table এ ডাটা ইনসার্ট
     const newBill = await Bill.create({
       invoiceNo: lastInvoiceNo,
@@ -708,7 +708,7 @@ lastInvoiceNo += 1;
       otherChargesAmount,
       totalAmount,
       amountPaid: 0,
-      dueDate: endDate,  // প্রয়োজনে আলাদা লজিক যোগ করতে পারেন
+      dueDate: dueDateObj,  
       issueDate: new Date(),
       paymentStatus: 'unpaid',
       notes: null,
