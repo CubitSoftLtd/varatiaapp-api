@@ -585,12 +585,12 @@ const result = submeters
 };
 
 
-const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDate) => {
-  // ১. Validate property exists
+const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDate, accountId) => {
+  // Validate property exists
   const property = await Property.findByPk(propertyId);
   if (!property) throw new ApiError(httpStatus.NOT_FOUND, `Property not found: ${propertyId}`);
 
-  // ২. Get active leases for this property
+  // Get active leases for this property
   const leases = await Lease.findAll({
     where: {
       propertyId,
@@ -603,46 +603,64 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
     return { results: [], totalResults: 0 };
   }
 
-  // ৩. Extract unitIds and map unitId to tenantId
   const unitIds = leases.map((l) => l.unitId);
   const unitTenantMap = {};
   leases.forEach((l) => {
     unitTenantMap[l.unitId] = l.tenantId;
   });
 
-  // ৪. Get units with rentAmount, address, submeters & utilityType
-const units = await Unit.findAll({
-  where: { id: { [Op.in]: unitIds } },
-  attributes: ['id', 'name', 'rentAmount'],
+  const units = await Unit.findAll({
+    where: { id: { [Op.in]: unitIds } },
+    attributes: ['id', 'name', 'rentAmount'],
+    include: [
+      {
+        model: Submeter,
+        as: 'submeters',
+        attributes: ['id', 'meterId'],
+        include: [
+          {
+            model: Meter,
+            as: 'meter',
+            include: [
+              {
+                model: UtilityType,
+                as: 'utilityType',
+                attributes: ['unitRate'],
+                required: true,
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  });
+
+const year = new Date(startDate).getFullYear();
+
+const lastBill = await Bill.findOne({
   include: [
     {
-      model: Submeter,
-      as: 'submeters',
-      attributes: ['id', 'meterId'],
-      include: [
-        {
-          model: Meter,
-          as: 'meter',  // অবশ্যই association এ এই নাম ঠিক থাকতে হবে
-          include: [
-            {
-              model: UtilityType,
-              as: 'utilityType', // association এ যেটা দেওয়া আছে
-              attributes: ['unitRate'],
-              required: true,
-            }
-          ],
-        },
-      ],
+      model: Unit,
+      as: 'unit',
+      where: { propertyId },
+      attributes: [],
     },
   ],
+  where: {
+    issueDate: {
+      [Op.between]: [`${year}-01-01`, `${year}-12-31`],
+    },
+  },
+  order: [['invoiceNo', 'DESC']],
 });
 
+let lastInvoiceNo = lastBill ? lastBill.invoiceNo : 0;
+lastInvoiceNo += 1;
 
-  // ৫. Calculate bills for each unit
+
   const billsData = [];
   for (const unit of units) {
-    const rentAmount = unit.rentAmount || 0;
-    let totalConsumption = 0;
+    const rentAmount = parseFloat(unit.rentAmount) || 0;
     let totalUtilityAmount = 0;
 
     for (const submeter of unit.submeters) {
@@ -654,10 +672,9 @@ const units = await Unit.findAll({
         attributes: ['consumption'],
       });
 
-      const submeterConsumption = readings.reduce((acc, r) => acc + (r.consumption || 0), 0);
-      totalConsumption += submeterConsumption;
+      const submeterConsumption = readings.reduce((acc, r) => acc + (parseFloat(r.consumption) || 0), 0);
 
-      const unitRate = submeter.utilityType?.unitRate || 0;
+      const unitRate = submeter.meter?.utilityType?.unitRate || 0;
       totalUtilityAmount += submeterConsumption * unitRate;
     }
 
@@ -669,25 +686,46 @@ const units = await Unit.findAll({
       attributes: ['amount'],
     });
 
-    const otherChargesAmount = expenses.reduce((acc, e) => acc + (e.amount || 0), 0);
+    const otherChargesAmount = expenses.reduce((acc, e) => acc + (parseFloat(e.amount) || 0), 0);
 
     const totalAmount = rentAmount + totalUtilityAmount + otherChargesAmount;
 
     const tenantId = unitTenantMap[unit.id];
     const tenant = tenantId ? await Tenant.findByPk(tenantId, { attributes: ['id', 'name'] }) : null;
 
-    billsData.push({
-      invoiceNo: null,
-      issueDate: new Date(),
+    lastInvoiceNo += 1;
+
+    // Bill table এ ডাটা ইনসার্ট
+    const newBill = await Bill.create({
+      invoiceNo: lastInvoiceNo,
+      tenantId,
+      unitId: unit.id,
+      accountId,
+      billingPeriodStart: startDate,
+      billingPeriodEnd: endDate,
       rentAmount,
       totalUtilityAmount,
       otherChargesAmount,
       totalAmount,
+      amountPaid: 0,
+      dueDate: endDate,  // প্রয়োজনে আলাদা লজিক যোগ করতে পারেন
+      issueDate: new Date(),
+      paymentStatus: 'unpaid',
+      notes: null,
+      isDeleted: false,
+    });
+
+    billsData.push({
+      invoiceNo: newBill.invoiceNo,
+      issueDate: newBill.issueDate,
+      rentAmount: newBill.rentAmount,
+      totalUtilityAmount: newBill.totalUtilityAmount,
+      otherChargesAmount: newBill.otherChargesAmount,
+      totalAmount: newBill.totalAmount,
       tenant: tenant ? { id: tenant.id, name: tenant.name } : null,
       unit: {
         id: unit.id,
         name: unit.name,
-        // address: unit.address,
         property: {
           name: property.name,
         },
@@ -695,22 +733,20 @@ const units = await Unit.findAll({
     });
   }
 
-  // Format results without pagination
   const formattedResults = billsData.map((bill) => {
     const billYear = new Date(bill.issueDate).getFullYear();
     const formattedInvoiceNo = bill.invoiceNo ? String(bill.invoiceNo).padStart(4, '0') : '0000';
 
     return {
       fullInvoiceNumber: `INV-${billYear}-${formattedInvoiceNo}`,
-      rentAmountFormatted: bill.rentAmount,
+      rentAmountFormatted: bill.rentAmount.toFixed(2),
       issueDate: bill.issueDate,
-      totalUtilityAmountFormatted: bill.totalUtilityAmount,
-      otherChargesAmount: bill.otherChargesAmount,
-      totalAmountFormatted: bill.totalAmount,
+      totalUtilityAmountFormatted: bill.totalUtilityAmount.toFixed(2),
+      otherChargesAmount: bill.otherChargesAmount.toFixed(2),
+      totalAmountFormatted: bill.totalAmount.toFixed(2),
       tenantName: bill.tenant?.name || 'N/A',
       unitName: bill.unit?.name || 'N/A',
       propertyName: bill.unit?.property?.name || 'N/A',
-      // unitAddress: bill.unit?.address || 'N/A',
     };
   });
 
@@ -719,6 +755,8 @@ const units = await Unit.findAll({
     totalResults: formattedResults.length,
   };
 };
+
+
 
 module.exports = {
   getFinancialReport,

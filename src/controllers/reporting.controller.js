@@ -97,7 +97,8 @@ const { propertyId } = req.query
   const result = await reportingService.generateBillsByPropertyAndDateRange(
     propertyId,
     filter.startDate,
-    filter.endDate
+    filter.endDate,
+    filter.accountId
   );
 
   res.status(httpStatus.OK).send(result);
