@@ -41,7 +41,13 @@ const getSubmeterConsumptionReport = {
     endDate: Joi.date().iso().greater(Joi.ref('startDate')).required(),
   }),
 };
-
+const getBillByPropertyAndDateRangeReport = {
+  query: Joi.object().keys({
+    propertyId: Joi.string().uuid().required(),
+    startDate: Joi.date().iso().required(),
+    endDate: Joi.date().iso().greater(Joi.ref('startDate')).required(),
+  }),
+};
 module.exports = {
   getFinancialSummary,
   getMaintenanceStats,
@@ -49,4 +55,5 @@ module.exports = {
   getBillPaymentPieByYear,
   getMeterRechargeReport,
   getSubmeterConsumptionReport,
+  getBillByPropertyAndDateRangeReport,
 };

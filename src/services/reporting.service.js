@@ -1,7 +1,10 @@
+/* eslint-disable no-await-in-loop */
 /* eslint-disable prettier/prettier */
 const { Op, fn, col } = require('sequelize');
 const moment = require('moment');
+const httpStatus = require('http-status');
 const { Bill, Payment, Expense, Lease, MaintenanceRequest, MeterCharge, Unit, Tenant, Property, Meter, Sequelize, MeterReading, UtilityType, Submeter } = require('../models');
+const ApiError = require('../utils/ApiError');
 
 // const getFinancialReport = async (filter) => {
 //   const { startDate, endDate, propertyId } = filter;
@@ -580,6 +583,143 @@ const result = submeters
 
   return result;
 };
+
+
+const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDate) => {
+  // ১. Validate property exists
+  const property = await Property.findByPk(propertyId);
+  if (!property) throw new ApiError(httpStatus.NOT_FOUND, `Property not found: ${propertyId}`);
+
+  // ২. Get active leases for this property
+  const leases = await Lease.findAll({
+    where: {
+      propertyId,
+      status: 'active',
+    },
+    attributes: ['unitId', 'tenantId'],
+  });
+
+  if (leases.length === 0) {
+    return { results: [], totalResults: 0 };
+  }
+
+  // ৩. Extract unitIds and map unitId to tenantId
+  const unitIds = leases.map((l) => l.unitId);
+  const unitTenantMap = {};
+  leases.forEach((l) => {
+    unitTenantMap[l.unitId] = l.tenantId;
+  });
+
+  // ৪. Get units with rentAmount, address, submeters & utilityType
+const units = await Unit.findAll({
+  where: { id: { [Op.in]: unitIds } },
+  attributes: ['id', 'name', 'rentAmount'],
+  include: [
+    {
+      model: Submeter,
+      as: 'submeters',
+      attributes: ['id', 'meterId'],
+      include: [
+        {
+          model: Meter,
+          as: 'meter',  // অবশ্যই association এ এই নাম ঠিক থাকতে হবে
+          include: [
+            {
+              model: UtilityType,
+              as: 'utilityType', // association এ যেটা দেওয়া আছে
+              attributes: ['unitRate'],
+              required: true,
+            }
+          ],
+        },
+      ],
+    },
+  ],
+});
+
+
+  // ৫. Calculate bills for each unit
+  const billsData = [];
+  for (const unit of units) {
+    const rentAmount = unit.rentAmount || 0;
+    let totalConsumption = 0;
+    let totalUtilityAmount = 0;
+
+    for (const submeter of unit.submeters) {
+      const readings = await MeterReading.findAll({
+        where: {
+          submeterId: submeter.id,
+          readingDate: { [Op.between]: [startDate, endDate] },
+        },
+        attributes: ['consumption'],
+      });
+
+      const submeterConsumption = readings.reduce((acc, r) => acc + (r.consumption || 0), 0);
+      totalConsumption += submeterConsumption;
+
+      const unitRate = submeter.utilityType?.unitRate || 0;
+      totalUtilityAmount += submeterConsumption * unitRate;
+    }
+
+    const expenses = await Expense.findAll({
+      where: {
+        unitId: unit.id,
+        expenseDate: { [Op.between]: [startDate, endDate] },
+      },
+      attributes: ['amount'],
+    });
+
+    const otherChargesAmount = expenses.reduce((acc, e) => acc + (e.amount || 0), 0);
+
+    const totalAmount = rentAmount + totalUtilityAmount + otherChargesAmount;
+
+    const tenantId = unitTenantMap[unit.id];
+    const tenant = tenantId ? await Tenant.findByPk(tenantId, { attributes: ['id', 'name'] }) : null;
+
+    billsData.push({
+      invoiceNo: null,
+      issueDate: new Date(),
+      rentAmount,
+      totalUtilityAmount,
+      otherChargesAmount,
+      totalAmount,
+      tenant: tenant ? { id: tenant.id, name: tenant.name } : null,
+      unit: {
+        id: unit.id,
+        name: unit.name,
+        // address: unit.address,
+        property: {
+          name: property.name,
+        },
+      },
+    });
+  }
+
+  // Format results without pagination
+  const formattedResults = billsData.map((bill) => {
+    const billYear = new Date(bill.issueDate).getFullYear();
+    const formattedInvoiceNo = bill.invoiceNo ? String(bill.invoiceNo).padStart(4, '0') : '0000';
+
+    return {
+      fullInvoiceNumber: `INV-${billYear}-${formattedInvoiceNo}`,
+      rentAmountFormatted: bill.rentAmount,
+      issueDate: bill.issueDate,
+      totalUtilityAmountFormatted: bill.totalUtilityAmount,
+      otherChargesAmount: bill.otherChargesAmount,
+      totalAmountFormatted: bill.totalAmount,
+      tenantName: bill.tenant?.name || 'N/A',
+      unitName: bill.unit?.name || 'N/A',
+      propertyName: bill.unit?.property?.name || 'N/A',
+      // unitAddress: bill.unit?.address || 'N/A',
+    };
+  });
+
+  return {
+    results: formattedResults,
+    totalResults: formattedResults.length,
+  };
+};
+
 module.exports = {
   getFinancialReport,
   getTenantActivityReport,
@@ -587,5 +727,6 @@ module.exports = {
   getTenantHistoryReport,
   getBillPaymentPieByYear,
   getMeterRechargeReportByProperty,
-  getSubmeterConsumptionReport
+  getSubmeterConsumptionReport,
+  generateBillsByPropertyAndDateRange,
 };

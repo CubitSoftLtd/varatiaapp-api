@@ -1,3 +1,5 @@
+/* eslint-disable prettier/prettier */
+const httpStatus = require('http-status');
 const pick = require('../utils/pick');
 const catchAsync = require('../utils/catchAsync');
 const { reportingService } = require('../services');
@@ -77,7 +79,33 @@ const getSubmeterConsumptionReport = catchAsync(async (req, res) => {
   const report = await reportingService.getSubmeterConsumptionReport(filter);
   res.send(report);
 });
+const getBillsByPropertyAndDateRange = catchAsync(async (req, res) => {
+const { propertyId } = req.query
+  const filter = pick(req.query, ['startDate', 'endDate']);
 
+  // role অনুযায়ী accountId filter দিতে চাইলে uncomment করুন
+  if (req.user.role !== 'super_admin') {
+    filter.accountId = req.user.accountId;
+  }
+
+  if (!filter.startDate || !filter.endDate) {
+    return res.status(httpStatus.BAD_REQUEST).send({
+      message: 'startDate and endDate query parameters are required',
+    });
+  }
+
+  const result = await reportingService.generateBillsByPropertyAndDateRange(
+    propertyId,
+    filter.startDate,
+    filter.endDate
+  );
+
+  res.status(httpStatus.OK).send(result);
+});
+
+module.exports = {
+  getBillsByPropertyAndDateRange,
+};
 module.exports = {
   getFinancialReport,
   getTenantActivityReport,
@@ -86,4 +114,5 @@ module.exports = {
   getBillPaymentPieByYear,
   getMeterRechargeReport,
   getSubmeterConsumptionReport,
+  getBillsByPropertyAndDateRange,
 };
