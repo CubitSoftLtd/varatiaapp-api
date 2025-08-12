@@ -1,5 +1,9 @@
 const Joi = require('joi');
 
+const statusTypes = {
+  PENDING: 'pending',
+  APPROVED: 'approved',
+};
 const paymentSchema = {
   billId: Joi.string()
     .uuid({ version: ['uuidv4'] })
@@ -73,6 +77,13 @@ const getPayments = {
       'string.base': 'Payment method must be a string',
       'any.valid': 'Invalid payment method',
     }),
+    status: Joi.string()
+      .valid(...Object.values(statusTypes))
+      // .default('active')
+      .messages({
+        'string.base': 'Status must be a string',
+        'any.only': 'Status must be one of: pending, approved',
+      }),
     sortBy: Joi.string()
       .pattern(/^[a-zA-Z]+:(asc|desc)$/)
       .messages({

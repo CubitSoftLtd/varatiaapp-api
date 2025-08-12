@@ -63,6 +63,12 @@ module.exports = (sequelize) => {
         allowNull: true,
         comment: 'Any additional notes about the payment',
       },
+      status: {
+        type: DataTypes.ENUM('pending', 'approved'), // More descriptive statuses
+        allowNull: false,
+        defaultValue: 'pending',
+        comment: ' status of the payment in the property management system',
+      },
       isDeleted: {
         type: DataTypes.BOOLEAN,
         allowNull: false,
