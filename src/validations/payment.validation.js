@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 const Joi = require('joi');
 
 const statusTypes = {
@@ -206,6 +207,33 @@ const deletePayment = {
       }),
   }),
 };
+const approvePaymentVal = {
+  params: Joi.object().keys({
+    id: Joi.string()
+      .uuid({ version: ['uuidv4'] })
+      .required()
+      .messages({
+        'string.base': 'ID must be a string',
+        'string.empty': 'ID is required',
+        'string.uuid': 'ID must be a valid UUID',
+      }),
+  }),
+  body: Joi.object()
+    .keys({
+      status: Joi.string()
+        .valid(statusTypes.APPROVED)
+        .required()
+        .messages({
+          'string.base': 'Status must be a string',
+          'any.only': 'Status must be approved',
+          'any.required': 'Status is required',
+        }),
+    })
+    .required()
+    .messages({
+      'object.base': 'Request body must be an object',
+    }),
+};
 
 module.exports = {
   createPayment,
@@ -214,4 +242,5 @@ module.exports = {
   getPaymentsByBillId,
   updatePayment,
   deletePayment,
+  approvePaymentVal
 };

@@ -413,7 +413,53 @@ const router = express.Router({ mergeParams: true }); // mergeParams to inherit 
  *       "404":
  *         $ref: '#/components/responses/NotFound'
  */
-
+/**
+ * @swagger
+ * /payments/{id}/approve:
+ *   patch:
+ *     summary: Approve a payment by ID (only status update)
+ *     description: |
+ *       Update the status of a payment to approved.
+ *       Only admins can perform this action.
+ *       Last updated: August 2025.
+ *     tags: [Payments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Payment ID to approve
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [approved]
+ *                 example: approved
+ *     responses:
+ *       "200":
+ *         description: Payment status updated to approved
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Payment'
+ *       "400":
+ *         $ref: '#/components/responses/BadRequest'
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
+ *       "404":
+ *         $ref: '#/components/responses/NotFound'
+ */
 router
   .route('/')
   .post(auth('payment:create'), validate(paymentValidation.createPayment), paymentController.createPayment)
@@ -437,4 +483,7 @@ router
 .route('/:billId/billPay')
 .get(auth('payment:view'),validate(paymentValidation.getPaymentsByBillId),paymentController.getPaymentsByBillId
 );
+router
+  .route('/:id/approve')
+  .patch(auth('payment:approved'), validate(paymentValidation.deletePayment), paymentController.approvePaymentById);
 module.exports = router;

@@ -16,7 +16,7 @@ const allRoles = {
     'payment:delete',
     'payment:hard_delete',
     'payment:restore',
-
+    'payment:approved',
     // Tenant permissions
     'tenant:tenant_create',
     'tenant:view_all',
@@ -85,6 +85,7 @@ const allRoles = {
     'payment:delete',
     'payment:hard_delete',
     'payment:restore',
+    'payment:approved',
 
     // Tenant permissions
     'tenant:tenant_create',
@@ -155,7 +156,13 @@ const allRoles = {
     'property:management',
     // Read-only permissions for financial oversight
     'bill:view_all',
+    'payment:create',
+    'payment:view',
     'payment:view_all',
+    'payment:update',
+    'payment:delete',
+    'payment:hard_delete',
+    'payment:restore',
     'role:permission',
     'report:management',
   ],

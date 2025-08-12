@@ -54,49 +54,20 @@ const createPayment = async (paymentData) => {
     }
   }
 
-  const payments = await Payment.findAll({ where: { billId, isDeleted: false } });
-  const totalPaid = payments.reduce((sum, p) => sum + parseFloat(p.amountPaid), 0) + parseFloat(amountPaid);
-  if (totalPaid > parseFloat(bill.totalAmount)) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Total payment exceeds bill amount');
-  }
-
-  return Payment.sequelize.transaction(async (t) => {
-    const payment = await Payment.create(
-      {
-        billId,
-        tenantId: tenantId || null,
-        accountId,
-        amountPaid,
-        paymentDate: paymentDate || new Date(),
-        paymentMethod,
-        transactionId: transactionId || null,
-        notes: notes || null,
-        isDeleted: false,
-      },
-      { transaction: t }
-    );
-
-    const newAmountPaid = parseFloat(bill.amountPaid) + parseFloat(amountPaid);
-
-    // নতুন status সেট করা
-    let newStatus;
-    if (newAmountPaid >= parseFloat(bill.totalAmount)) {
-      newStatus = 'paid';
-    } else if (newAmountPaid > 0) {
-      newStatus = 'partially_paid';
-    } else {
-      newStatus = 'unpaid';
-    }
-
-    await bill.update(
-      { amountPaid: newAmountPaid, paymentStatus: newStatus },
-      { transaction: t }
-    );
-
-    return payment;
+  // ✅ শুধু পেমেন্ট তৈরি করা হবে, Bill আপডেট নয়
+  return Payment.create({
+    billId,
+    tenantId: tenantId || null,
+    accountId,
+    amountPaid,
+    paymentDate: paymentDate || new Date(),
+    paymentMethod,
+    transactionId: transactionId || null,
+    notes: notes || null,
+    status: 'pending', // নতুন status
+    isDeleted: false,
   });
 };
-
 const getAllPayments = async (filter, options, deleted = 'false') => {
   const whereClause = { ...filter };
 
@@ -232,22 +203,8 @@ const updatePayment = async (paymentId, updateBody) => {
     }
   }
 
-  if (amountPaid !== undefined) {
-    if (amountPaid <= 0) throw new ApiError(httpStatus.BAD_REQUEST, 'Payment amount must be greater than 0');
-
-    const otherPayments = await Payment.findAll({
-      where: {
-        billId: payment.billId,
-        id: { [Op.ne]: paymentId },
-        isDeleted: false,
-      },
-    });
-    const totalOtherPaid = otherPayments.reduce((sum, p) => sum + parseFloat(p.amountPaid), 0);
-    const totalPaid = totalOtherPaid + parseFloat(amountPaid);
-
-    if (totalPaid > parseFloat(bill.totalAmount)) {
-      throw new ApiError(httpStatus.BAD_REQUEST, 'Total payment exceeds bill amount');
-    }
+  if (amountPaid !== undefined && amountPaid <= 0) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Payment amount must be greater than 0');
   }
 
   if (paymentMethod && !validMethods.includes(paymentMethod)) {
@@ -261,42 +218,17 @@ const updatePayment = async (paymentId, updateBody) => {
     }
   }
 
-  return Payment.sequelize.transaction(async (t) => {
-    await payment.update(
-      {
-        tenantId: tenantId ?? payment.tenantId,
-        amountPaid: amountPaid ?? payment.amountPaid,
-        paymentDate: paymentDate || payment.paymentDate,
-        paymentMethod: paymentMethod || payment.paymentMethod,
-        transactionId: transactionId ?? payment.transactionId,
-        notes: notes ?? payment.notes,
-      },
-      { transaction: t }
-    );
-
-    // আপডেট হওয়া payment ID বাদে সব active payment নিয়ে মোট টাকা বের করুন
-    const allPayments = await Payment.findAll({
-      where: { billId: payment.billId, isDeleted: false },
-      transaction: t,
-    });
-    const totalPaid = allPayments.reduce((sum, p) => sum + parseFloat(p.amountPaid), 0);
-
-    // নতুন স্ট্যাটাস হিসাব করুন
-    let newStatus;
-    if (totalPaid >= parseFloat(bill.totalAmount)) newStatus = 'paid';
-    else if (totalPaid > 0) newStatus = 'partially_paid';
-    else newStatus = 'unpaid';
-
-    // bill টেবিলে আপডেট করুন
-    await bill.update(
-      { amountPaid: totalPaid, paymentStatus: newStatus },
-      { transaction: t }
-    );
-
-    return payment;
+  await payment.update({
+    tenantId: tenantId ?? payment.tenantId,
+    amountPaid: amountPaid ?? payment.amountPaid,
+    paymentDate: paymentDate || payment.paymentDate,
+    paymentMethod: paymentMethod || payment.paymentMethod,
+    transactionId: transactionId ?? payment.transactionId,
+    notes: notes ?? payment.notes,
   });
-};
 
+  return payment;
+};
 
 const deletePayment = async (paymentId) => {
   const payment = await getPaymentById(paymentId);
@@ -346,6 +278,46 @@ const hardDeletePayment = async (paymentId) => {
     await bill.update({ amountPaid: 0, paymentStatus: 'unpaid' }, { transaction: t });
   });
 };
+const approvePayment = async (paymentId) => {
+  const payment = await getPaymentById(paymentId);
+  if (!payment) throw new ApiError(httpStatus.NOT_FOUND, 'Payment not found');
+
+  if (payment.status === 'approved') {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Payment is already approved');
+  }
+
+  const bill = await Bill.findByPk(payment.billId);
+  if (!bill) throw new ApiError(httpStatus.NOT_FOUND, 'Bill not found');
+  if (bill.paymentStatus === 'cancelled') {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Cannot approve payment for a cancelled bill');
+  }
+
+  return Payment.sequelize.transaction(async (t) => {
+    // পেমেন্টের স্ট্যাটাস approved করা
+    await payment.update({ status: 'approved' }, { transaction: t });
+
+    // সব approved পেমেন্ট নিয়ে মোট টাকা বের করা
+    const approvedPayments = await Payment.findAll({
+      where: { billId: bill.id, isDeleted: false, status: 'approved' },
+      transaction: t,
+    });
+    const totalPaid = approvedPayments.reduce((sum, p) => sum + parseFloat(p.amountPaid), 0);
+
+    // নতুন bill status নির্ধারণ
+    let newBillStatus;
+    if (totalPaid >= parseFloat(bill.totalAmount)) newBillStatus = 'paid';
+    else if (totalPaid > 0) newBillStatus = 'partially_paid';
+    else newBillStatus = 'unpaid';
+
+    // Bill আপডেট
+    await bill.update(
+      { amountPaid: totalPaid, paymentStatus: newBillStatus },
+      { transaction: t }
+    );
+
+    return { payment, bill };
+  });
+};
 
 
 module.exports = {
@@ -357,4 +329,5 @@ module.exports = {
   deletePayment,
   restorePayment,
   hardDeletePayment,
+  approvePayment
 };

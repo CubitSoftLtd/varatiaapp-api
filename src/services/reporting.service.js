@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /* eslint-disable no-await-in-loop */
 /* eslint-disable prettier/prettier */
 const { Op, fn, col } = require('sequelize');
@@ -656,10 +657,11 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
 
   let lastInvoiceNo = lastBill ? lastBill.invoiceNo : 0;
 
-
   const billsData = [];
   for (const unit of units) {
-    lastInvoiceNo += 1;
+    const tenantId = unitTenantMap[unit.id];
+
+    // Calculate amounts
     const rentAmount = parseFloat(unit.rentAmount) || 0;
     let totalUtilityAmount = 0;
 
@@ -690,38 +692,66 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
 
     const totalAmount = rentAmount + totalUtilityAmount + otherChargesAmount;
 
-    const tenantId = unitTenantMap[unit.id];
-    const tenant = tenantId ? await Tenant.findByPk(tenantId, { attributes: ['id', 'name'] }) : null;
     const dueDateObj = new Date(endDate);
     dueDateObj.setMonth(dueDateObj.getMonth() + 1);
     dueDateObj.setDate(10);
-    // Bill table এ ডাটা ইনসার্ট
-    const newBill = await Bill.create({
-      invoiceNo: lastInvoiceNo,
-      tenantId,
-      unitId: unit.id,
-      accountId,
-      billingPeriodStart: startDate,
-      billingPeriodEnd: endDate,
-      rentAmount,
-      totalUtilityAmount,
-      otherChargesAmount,
-      totalAmount,
-      amountPaid: 0,
-      dueDate: dueDateObj,  
-      issueDate: new Date(),
-      paymentStatus: 'unpaid',
-      notes: null,
-      isDeleted: false,
+
+    // Check if bill exists
+    const existingBill = await Bill.findOne({
+      where: {
+        tenantId,
+        unitId: unit.id,
+        billingPeriodStart: startDate,
+        billingPeriodEnd: endDate,
+        isDeleted: false,
+      },
     });
 
+    let billRecord;
+    if (existingBill) {
+      // Update existing bill
+      billRecord = await existingBill.update({
+        rentAmount,
+        totalUtilityAmount,
+        otherChargesAmount,
+        totalAmount,
+        dueDate: dueDateObj,
+        issueDate: new Date(),
+        paymentStatus: 'unpaid',
+        isDeleted: false,
+      });
+    } else {
+      // Create new bill
+      lastInvoiceNo += 1;
+      billRecord = await Bill.create({
+        invoiceNo: lastInvoiceNo,
+        tenantId,
+        unitId: unit.id,
+        accountId,
+        billingPeriodStart: startDate,
+        billingPeriodEnd: endDate,
+        rentAmount,
+        totalUtilityAmount,
+        otherChargesAmount,
+        totalAmount,
+        amountPaid: 0,
+        dueDate: dueDateObj,
+        issueDate: new Date(),
+        paymentStatus: 'unpaid',
+        notes: null,
+        isDeleted: false,
+      });
+    }
+
+    const tenant = tenantId ? await Tenant.findByPk(tenantId, { attributes: ['id', 'name'] }) : null;
+
     billsData.push({
-      invoiceNo: newBill.invoiceNo,
-      issueDate: newBill.issueDate,
-      rentAmount: newBill.rentAmount,
-      totalUtilityAmount: newBill.totalUtilityAmount,
-      otherChargesAmount: newBill.otherChargesAmount,
-      totalAmount: newBill.totalAmount,
+      invoiceNo: billRecord.invoiceNo,
+      issueDate: billRecord.issueDate,
+      rentAmount: billRecord.rentAmount,
+      totalUtilityAmount: billRecord.totalUtilityAmount,
+      otherChargesAmount: billRecord.otherChargesAmount,
+      totalAmount: billRecord.totalAmount,
       tenant: tenant ? { id: tenant.id, name: tenant.name } : null,
       unit: {
         id: unit.id,
@@ -753,8 +783,11 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
   return {
     results: formattedResults,
     totalResults: formattedResults.length,
+    message: `Bills Generated Successfully.`,
   };
 };
+
+
 
 
 

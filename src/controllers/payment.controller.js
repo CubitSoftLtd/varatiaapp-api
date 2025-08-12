@@ -108,7 +108,11 @@ const hardDeletePaymentById = catchAsync(async (req, res) => {
   await paymentService.hardDeletePayment(req.params.id);
   res.status(httpStatus.NO_CONTENT).send();
 });
-
+const approvePaymentById = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const payment = await paymentService.approvePayment(id);
+  res.json(payment);
+});
 module.exports = {
   createPayment,
   getPayments,
@@ -118,4 +122,5 @@ module.exports = {
   deletePaymentById,
   restorePaymentById,
   hardDeletePaymentById,
+  approvePaymentById
 };
