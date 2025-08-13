@@ -8,6 +8,7 @@ const allRoles = {
     'bill:delete',
     'bill:hard_delete',
     'bill:restore',
+    'bill:generate',
     // Payment permissions
     'payment:create',
     'payment:view',
@@ -77,6 +78,7 @@ const allRoles = {
     'bill:delete',
     'bill:hard_delete',
     'bill:restore',
+    'bill:generate',
     // Payment permissions
     'payment:create',
     'payment:view',
@@ -156,6 +158,8 @@ const allRoles = {
     'property:management',
     // Read-only permissions for financial oversight
     'bill:view_all',
+    'bill:generate',
+    'bill:view',
     'payment:create',
     'payment:view',
     'payment:view_all',

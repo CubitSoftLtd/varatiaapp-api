@@ -650,5 +650,5 @@ router
   .get(auth(), validate(reportingValidation.getSubmeterConsumptionReport), reportingController.getSubmeterConsumptionReport);
 router
   .route('/property-wise-bill')
-  .get(auth(), validate(reportingValidation.getBillByPropertyAndDateRangeReport), reportingController.getBillsByPropertyAndDateRange);
+  .get(auth('bill:generate'), validate(reportingValidation.getBillByPropertyAndDateRangeReport), reportingController.getBillsByPropertyAndDateRange);
 module.exports = router;

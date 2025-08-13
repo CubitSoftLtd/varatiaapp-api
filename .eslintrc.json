@@ -17,6 +17,8 @@
     "security/detect-object-injection": "off",
     "no-unused-vars": "off",
     "no-restricted-syntax": "off",
-    "radix": "off"
+    "radix": "off",
+    "no-plusplus": "off",
+    "no-continue": "off"
   }
 }

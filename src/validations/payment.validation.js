@@ -38,7 +38,7 @@ const paymentSchema = {
       'any.valid': 'Invalid payment method',
       'any.required': 'Payment method is required',
     }),
-  transactionId: Joi.string().max(255).allow(null).messages({
+  transactionId: Joi.string().max(255).allow('').messages({
     'string.base': 'Transaction ID must be a string',
     'string.max': 'Transaction ID must not exceed 255 characters',
   }),
