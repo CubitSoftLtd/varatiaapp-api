@@ -5,6 +5,7 @@ const pick = require('../utils/pick');
 const catchAsync = require('../utils/catchAsync');
 const { paymentService } = require('../services');
 const { Bill, Tenant, Account } = require('../models');
+const ApiError = require('../utils/ApiError');
 
 // Helper function to parse include query parameter
 const parseInclude = (include) => {
@@ -66,7 +67,7 @@ const createPayment = catchAsync(async (req, res) => {
 });
 
 const getPayments = catchAsync(async (req, res) => {
-  const filter = pick(req.query, ['billId', 'tenantId', 'accountId', 'paymentDate', 'paymentMethod']);
+  const filter = pick(req.query, ['billId', 'tenantId', 'accountId', 'paymentDate', 'paymentMethod', 'status']);
   const options = pick(req.query, ['sortBy', 'limit', 'page']);
   options.include = parseInclude(req.query.include);
   const deleted = req.query.deleted || 'false'; // Default to 'false'
@@ -113,6 +114,17 @@ const approvePaymentById = catchAsync(async (req, res) => {
   const payment = await paymentService.approvePayment(id);
   res.json(payment);
 });
+
+const approveMultiplePayments = catchAsync(async (req, res) => {
+  const { paymentIds } = req.body; // Expecting array of payment IDs from request body
+
+  if (!Array.isArray(paymentIds) || paymentIds.length === 0) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'paymentIds must be a non-empty array');
+  }
+
+  const result = await paymentService.approveMultiplePayments(paymentIds);
+  res.json(result);
+});
 module.exports = {
   createPayment,
   getPayments,
@@ -122,5 +134,6 @@ module.exports = {
   deletePaymentById,
   restorePaymentById,
   hardDeletePaymentById,
-  approvePaymentById
+  approvePaymentById,
+  approveMultiplePayments
 };

@@ -1,7 +1,7 @@
 /* eslint-disable spaced-comment */
 const httpStatus = require('http-status');
 const { Op } = require('sequelize'); // <--- ADD THIS LINE: Import Op for date range queries
-const { Bill, Account, Meter, Property, UtilityType, Unit, Tenant } = require('../models');
+const { Bill, Account, Meter, Property, UtilityType, Unit, Tenant, Lease } = require('../models');
 const ApiError = require('../utils/ApiError');
 const meterReadingService = require('./meterReading.service');
 
@@ -96,8 +96,19 @@ const createBill = async (billBody) => {
   }
 
   // **Calculate totalAmount**
+  const lease = await Lease.findOne({
+    where: { tenantId, unitId, status: 'active' },
+  });
+
+  const deductedAmount = lease?.deductedAmount ? parseFloat(lease.deductedAmount) : 0;
+
+  // **Calculate totalAmount**
   const otherChargesAmount = 0.0; // Placeholder: Update with expense logic if needed
-  const totalAmount = parseFloat(rentAmount) + parseFloat(calculatedTotalUtilityAmount) + parseFloat(otherChargesAmount);
+
+  // rent থেকে deductedAmount বাদ
+  const adjustedRentAmount = parseFloat(rentAmount) - deductedAmount; // Placeholder: Update with expense logic if needed
+  const totalAmount =
+    parseFloat(adjustedRentAmount) + parseFloat(calculatedTotalUtilityAmount) + parseFloat(otherChargesAmount);
 
   // **Issue Date and Invoice Number**
   const billIssueDate = new Date(issueDate);
@@ -316,8 +327,16 @@ const updateBill = async (id, updateBody) => {
   }
 
   // **Calculate totalAmount**
-  const { otherChargesAmount } = bill; // Placeholder: Update if expense logic added
-  const totalAmount = parseFloat(rentAmount) + parseFloat(calculatedTotalUtilityAmount) + parseFloat(otherChargesAmount);
+  // **Get deductedAmount from Lease**
+  const lease = await Lease.findOne({
+    where: { tenantId, unitId, status: 'active' },
+  });
+  const deductedAmount = lease?.deductedAmount ? parseFloat(lease.deductedAmount) : 0;
+
+  // **Calculate totalAmount**
+  const { otherChargesAmount } = bill;
+  const adjustedRentAmount = parseFloat(rentAmount) - deductedAmount;
+  const totalAmount = adjustedRentAmount + parseFloat(calculatedTotalUtilityAmount) + parseFloat(otherChargesAmount);
 
   // **Update Bill**
   await bill.update({
@@ -326,9 +345,11 @@ const updateBill = async (id, updateBody) => {
     unitId,
     billingPeriodStart,
     billingPeriodEnd,
+
     rentAmount: parseFloat(rentAmount),
     totalUtilityAmount: parseFloat(calculatedTotalUtilityAmount),
     otherChargesAmount,
+    deductedAmount,
     totalAmount,
     dueDate,
     issueDate,
@@ -405,9 +426,9 @@ const getBillsByPropertyAndDateRange = async (propertyId, filter, options) => {
   whereClause.unitId = { [Op.in]: unitIds };
 
   // Pagination and sorting
-  const limit = Math.max(parseInt(options.limit, 10) || 10, 1);
-  const page = Math.max(parseInt(options.page, 10) || 1, 1);
-  const offset = (page - 1) * limit;
+  // const limit = Math.max(parseInt(options.limit, 10) || 10, 1);
+  // const page = Math.max(parseInt(options.page, 10) || 1, 1);
+  // const offset = (page - 1) * limit;
   const sort = options.sortBy
     ? [[options.sortBy.split(':')[0], options.sortBy.split(':')[1].toUpperCase() === 'DESC' ? 'DESC' : 'ASC']]
     : [['createdAt', 'DESC']];
@@ -427,35 +448,45 @@ const getBillsByPropertyAndDateRange = async (propertyId, filter, options) => {
   // Query bills
   const { count, rows } = await Bill.findAndCountAll({
     where: { ...whereClause, isDeleted: false },
-    limit,
-    offset,
     order: sort,
     include,
   });
 
   // Format bills for printing
-  const formattedResults = rows.map((bill) => {
-    const billYear = new Date(bill.issueDate).getFullYear();
-    const formattedInvoiceNo = String(bill.invoiceNo).padStart(4, '0');
-    return {
-      fullInvoiceNumber: `INV-${billYear}-${formattedInvoiceNo}`,
-      rentAmountFormatted: bill.rentAmount,
-      issueDate: bill.issueDate,
-      totalUtilityAmountFormatted: bill.totalUtilityAmount,
-      otherChargesAmount: bill.otherChargesAmount,
-      totalAmountFormatted: bill.totalAmount,
-      tenantName: bill.tenant?.name || 'N/A',
-      unitName: bill.unit?.name || 'N/A',
-      propertyName: bill.unit?.property?.name || 'N/A',
-      unitAddress: bill.unit?.address || 'N/A',
-    };
-  });
+  const formattedResults = await Promise.all(
+    rows.map(async (bill) => {
+      // Active lease থেকে deductedAmount নেওয়া
+      const lease = await Lease.findOne({
+        where: { tenantId: bill.tenantId, unitId: bill.unitId, status: 'active' },
+      });
+      const deductedAmount = lease?.deductedAmount ? parseFloat(lease.deductedAmount) : 0;
+
+      // Adjusted total
+      const adjustedRentAmount = parseFloat(bill.rentAmount) - deductedAmount;
+      const adjustedTotalAmount =
+        adjustedRentAmount + parseFloat(bill.totalUtilityAmount) + parseFloat(bill.otherChargesAmount);
+
+      const billYear = new Date(bill.issueDate).getFullYear();
+      const formattedInvoiceNo = String(bill.invoiceNo).padStart(4, '0');
+
+      return {
+        fullInvoiceNumber: `INV-${billYear}-${formattedInvoiceNo}`,
+        rentAmountFormatted: bill.rentAmount,
+        issueDate: bill.issueDate,
+        totalUtilityAmountFormatted: bill.totalUtilityAmount,
+        otherChargesAmount: bill.otherChargesAmount,
+        deductedAmount,
+        totalAmountFormatted: adjustedTotalAmount,
+        tenantName: bill.tenant?.name || 'N/A',
+        unitName: bill.unit?.name || 'N/A',
+        propertyName: bill.unit?.property?.name || 'N/A',
+        unitAddress: bill.unit?.address || 'N/A',
+      };
+    })
+  );
 
   return {
     results: formattedResults,
-    page,
-    limit,
-    totalPages: Math.ceil(count / limit),
     totalResults: count,
   };
 };

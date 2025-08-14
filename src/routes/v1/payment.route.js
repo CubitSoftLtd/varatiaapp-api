@@ -132,6 +132,12 @@ const router = express.Router({ mergeParams: true }); // mergeParams to inherit 
  *           enum: [cash, credit_card, bank_transfer, mobile_payment, check, online]
  *         description: Filter by payment method
  *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [approved, pending]
+ *         description: Tenant status
+ *       - in: query
  *         name: deleted
  *         schema:
  *           type: string
@@ -460,11 +466,75 @@ const router = express.Router({ mergeParams: true }); // mergeParams to inherit 
  *       "404":
  *         $ref: '#/components/responses/NotFound'
  */
+
+/**
+ * @swagger
+ * tags:
+ *   name: Payments
+ *   description: Payment management and retrieval
+ */
+
+/**
+ * @swagger
+ * /payments/approve-multiple:
+ *   patch:
+ *     summary: Approve multiple payments by IDs
+ *     description: |
+ *       Approve multiple payments at once. Only admins can perform this action.
+ *       Last updated: August 2025.
+ *     tags: [Payments]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - paymentIds
+ *             properties:
+ *               paymentIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: uuid
+ *                 description: Array of payment IDs to approve
+ *             example:
+ *               paymentIds: [
+ *                 "123e4567-e89b-12d3-a456-426614174000",
+ *                 "223e4567-e89b-12d3-a456-426614174001"
+ *               ]
+ *     responses:
+ *       "200":
+ *         description: Payments approved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Payments approved successfully
+ *                 approvedPayments:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Payment'
+ *       "400":
+ *         $ref: '#/components/responses/BadRequest'
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
+ */
+router
+  .route('/approve-multiple')
+  .patch(auth('payment:approved'), validate(paymentValidation.approveMultiplePaymentsVal), paymentController.approveMultiplePayments);
 router
   .route('/')
   .post(auth('payment:create'), validate(paymentValidation.createPayment), paymentController.createPayment)
   .get(auth('payment:view_all', 'payment:view_own'), validate(paymentValidation.getPayments), paymentController.getPayments)
-  // .get(auth('payment:view'), validate(paymentValidation.getPaymentsByBillId), paymentController.getPaymentsByBillId);
+// .get(auth('payment:view'), validate(paymentValidation.getPaymentsByBillId), paymentController.getPaymentsByBillId);
 
 router
   .route('/:id')
@@ -478,12 +548,14 @@ router
 router
   .route('/:id/restore')
   .delete(auth('payment:restore'), validate(paymentValidation.deletePayment), paymentController.restorePaymentById);
-  
+
 router
-.route('/:billId/billPay')
-.get(auth('payment:view'),validate(paymentValidation.getPaymentsByBillId),paymentController.getPaymentsByBillId
-);
+  .route('/:billId/billPay')
+  .get(auth('payment:view'), validate(paymentValidation.getPaymentsByBillId), paymentController.getPaymentsByBillId
+  );
+
 router
   .route('/:id/approve')
   .patch(auth('payment:approved'), validate(paymentValidation.deletePayment), paymentController.approvePaymentById);
+
 module.exports = router;

@@ -600,7 +600,8 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
   // Active leases আনুন
   const leases = await Lease.findAll({
     where: { propertyId, status: 'active' },
-    attributes: ['unitId', 'tenantId'],
+    attributes: ['unitId', 'tenantId', 'deductedAmount'],
+
   });
 
   if (leases.length === 0) {
@@ -609,8 +610,10 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
 
   const unitIds = leases.map(l => l.unitId);
   const unitTenantMap = {};
+  const unitDeductedMap = {};
   leases.forEach(l => {
     unitTenantMap[l.unitId] = l.tenantId;
+    unitDeductedMap[l.unitId] = parseFloat(l.deductedAmount) || 0;
   });
 
   // Unit data আনুন
@@ -654,7 +657,7 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
 
   for (const unit of units) {
     const tenantId = unitTenantMap[unit.id];
-
+    const deductedAmount = unitDeductedMap[unit.id] || 0;
     // আগে থেকে এই তারিখে বিল আছে কিনা চেক
     const existingBill = await Bill.findOne({
       where: {
@@ -670,7 +673,8 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
     }
 
     lastInvoiceNo += 1;
-    const rentAmount = parseFloat(unit.rentAmount) || 0;
+    const baseRentAmount = parseFloat(unit.rentAmount) || 0;
+    const adjustedRentAmount = baseRentAmount - deductedAmount;
     let totalUtilityAmount = 0;
 
     for (const submeter of unit.submeters) {
@@ -696,7 +700,7 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
     });
 
     const otherChargesAmount = expenses.reduce((acc, e) => acc + (parseFloat(e.amount) || 0), 0);
-    const totalAmount = rentAmount + totalUtilityAmount + otherChargesAmount;
+    const totalAmount = adjustedRentAmount + totalUtilityAmount + otherChargesAmount;
 
     const tenant = tenantId ? await Tenant.findByPk(tenantId, { attributes: ['id', 'name'] }) : null;
 
@@ -711,7 +715,8 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
       accountId,
       billingPeriodStart: startDate,
       billingPeriodEnd: endDate,
-      rentAmount,
+      rentAmount: baseRentAmount, // আসল ভাড়া সংরক্ষণ
+      deductedAmount, // নতুন ফিল্ড
       totalUtilityAmount,
       otherChargesAmount,
       totalAmount,
@@ -728,7 +733,8 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
     billsData.push({
       invoiceNo: newBill.invoiceNo,
       issueDate: newBill.issueDate,
-      rentAmount: newBill.rentAmount,
+      rentAmount: baseRentAmount,
+      deductedAmount,
       totalUtilityAmount: newBill.totalUtilityAmount,
       otherChargesAmount: newBill.otherChargesAmount,
       totalAmount: newBill.totalAmount,
@@ -757,6 +763,7 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
     return {
       fullInvoiceNumber: `INV-${billYear}-${formattedInvoiceNo}`,
       rentAmountFormatted: bill.rentAmount.toFixed(2),
+      deductedAmountFormatted: bill.deductedAmount.toFixed(2),
       issueDate: bill.issueDate,
       totalUtilityAmountFormatted: bill.totalUtilityAmount.toFixed(2),
       otherChargesAmount: bill.otherChargesAmount.toFixed(2),

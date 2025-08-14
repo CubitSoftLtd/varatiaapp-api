@@ -234,6 +234,27 @@ const approvePaymentVal = {
       'object.base': 'Request body must be an object',
     }),
 };
+const approveMultiplePaymentsVal = {
+  body: Joi.object({
+    paymentIds: Joi.array()
+      .items(
+        Joi.string()
+          .uuid({ version: 'uuidv4' })
+          .messages({
+            'string.base': 'Each Payment ID must be a string',
+            'string.uuid': 'Each Payment ID must be a valid UUID',
+          })
+      )
+      .min(1)
+      .required()
+      .messages({
+        'array.base': 'paymentIds must be an array',
+        'array.min': 'At least one Payment ID is required',
+        'any.required': 'paymentIds is required',
+      }),
+  }).required().unknown(false), // <-- unknown(false) disallows any extra fields
+};
+
 
 module.exports = {
   createPayment,
@@ -242,5 +263,6 @@ module.exports = {
   getPaymentsByBillId,
   updatePayment,
   deletePayment,
-  approvePaymentVal
+  approvePaymentVal,
+  approveMultiplePaymentsVal
 };

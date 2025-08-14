@@ -75,6 +75,12 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         comment: 'The actual meter reading value at the time of lease start',
       },
+      deductedAmount: {
+        type: DataTypes.DECIMAL(18, 2),
+        allowNull: true,
+        defaultValue: 0.0,
+        comment: 'The amount which is deducted from tenant advance',
+      },
       notes: {
         type: DataTypes.TEXT,
         allowNull: true,

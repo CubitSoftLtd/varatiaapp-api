@@ -42,7 +42,13 @@ const createLease = {
     moveOutDate: Joi.date().allow(null).messages({
       'date.base': 'Move-out date must be a valid date',
     }),
-    notes: Joi.string().max(65535).allow(null).messages({
+    deductedAmount: Joi.number().min(0).precision(2).messages({
+      'number.base': 'Deducted amount must be a number',
+      'number.min': 'Deducted amount cannot be negative',
+      'number.precision': 'Deducted amount must have at most 2 decimal places',
+      'any.required': 'Deducted amount is required',
+    }),
+    notes: Joi.string().max(65535).allow('').messages({
       'string.base': 'Notes must be a string',
       'string.max': 'Notes cannot exceed 65535 characters',
     }),
@@ -166,6 +172,12 @@ const updateLease = {
       }),
       moveOutDate: Joi.date().allow(null).messages({
         'date.base': 'Move-out date must be a valid date',
+      }),
+      deductedAmount: Joi.number().min(0).precision(2).messages({
+        'number.base': 'Deducted amount must be a number',
+        'number.min': 'Deducted amount cannot be negative',
+        'number.precision': 'Deducted amount must have at most 2 decimal places',
+        'any.required': 'Deducted amount is required',
       }),
       notes: Joi.string().max(65535).allow(null).messages({
         'string.base': 'Notes must be a string',

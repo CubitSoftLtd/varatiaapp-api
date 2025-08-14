@@ -59,7 +59,7 @@ const createTenant = {
     // leaseEndDate: Joi.date().allow(null).messages({
     //   'date.base': 'Lease end date must be a valid date',
     // }),
-    depositAmount: Joi.number().required().min(0).precision(2).messages({
+    depositAmount: Joi.number().min(0).precision(2).messages({
       'number.base': 'Deposit amount must be a number',
       'number.min': 'Deposit amount cannot be negative',
       'number.precision': 'Deposit amount must have at most 2 decimal places',

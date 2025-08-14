@@ -108,7 +108,7 @@ const hardDeleteBillById = catchAsync(async (req, res) => {
 const getBillsByPropertyForPrint = catchAsync(async (req, res) => {
   const { propertyId } = req.params;
   const filter = pick(req.query, ['startDate', 'endDate']);
-  const options = pick(req.query, ['sortBy', 'limit', 'page']);
+  const options = pick(req.query, ['sortBy']);
 
   // Restrict non-super admins to their own account
   if (req.user.role !== 'super_admin') {

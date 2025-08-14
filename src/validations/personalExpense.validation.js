@@ -45,6 +45,10 @@ const getPersonalExpenses = {
         expenseDate: Joi.date().messages({
             'date.base': 'Expense date must be a valid date',
         }),
+        categoryId: uuidV4Schema.messages({
+            'string.base': 'Category ID must be a string',
+            'string.uuid': 'Category ID must be a valid UUID',
+        }),
         sortBy: Joi.string()
             .pattern(/^[a-zA-Z0-9_]+:(asc|desc)$/)
             .messages({

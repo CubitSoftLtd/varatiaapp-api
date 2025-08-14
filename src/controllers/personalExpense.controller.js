@@ -41,7 +41,7 @@ const createPersonalExpense = catchAsync(async (req, res) => {
 });
 
 const getPersonalExpenses = catchAsync(async (req, res) => {
-  const filter = pick(req.query, ['accountId', 'beneficiary', 'expenseDate']);
+  const filter = pick(req.query, ['accountId', 'beneficiary', 'expenseDate','categoryId']);
   const options = pick(req.query, ['sortBy', 'limit', 'page']);
   options.include = parseInclude(req.query.include);
   const deleted = req.query.deleted || 'false'; // Default to 'false'

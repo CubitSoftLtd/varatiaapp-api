@@ -87,7 +87,13 @@ module.exports = (sequelize, DataTypes) => {
       // },
       depositAmount: {
         type: DataTypes.DECIMAL(18, 2), // Increased precision for currency
-        allowNull: false,
+        allowNull: true,
+        defaultValue: 0.0,
+        comment: 'The security deposit amount paid by the tenant',
+      },
+      depositAmountLeft: {
+        type: DataTypes.DECIMAL(18, 2), // Increased precision for currency
+        allowNull: true,
         defaultValue: 0.0,
         comment: 'The security deposit amount paid by the tenant',
       },

@@ -2,7 +2,7 @@
 /* eslint-disable no-console */
 const httpStatus = require('http-status');
 const { Op } = require('sequelize');
-const { Payment, Bill, Tenant, Account } = require('../models');
+const { Payment, Bill, Tenant, Account, Lease } = require('../models');
 const ApiError = require('../utils/ApiError');
 
 const validMethods = ['cash', 'credit_card', 'bank_transfer', 'mobile_payment', 'check', 'online'];
@@ -315,10 +315,98 @@ const approvePayment = async (paymentId) => {
       { transaction: t }
     );
 
+    // 🔹 Unit থেকে active lease বের করা
+    const activeLease = await Lease.findOne({
+      where: {
+        unitId: bill.unitId,        // Bill এর unitId ধরে
+        status: 'active',
+      },
+      transaction: t
+    });
+
+    if (activeLease && activeLease.deductedAmount && activeLease.deductedAmount > 0) {
+      const tenant = await Tenant.findByPk(activeLease.tenantId, { transaction: t });
+
+      if (tenant && tenant.depositAmountLeft && tenant.depositAmountLeft > 0) {
+        const newDepositAmountLeft = parseFloat(tenant.depositAmountLeft) - parseFloat(activeLease.deductedAmount);
+        await tenant.update(
+          { depositAmountLeft: newDepositAmountLeft < 0 ? 0 : newDepositAmountLeft },
+          { transaction: t }
+        );
+      }
+    }
+
     return { payment, bill };
   });
 };
 
+const approveMultiplePayments = async (paymentIds) => {
+  if (!Array.isArray(paymentIds) || paymentIds.length === 0) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'No payment IDs provided');
+  }
+
+  return Payment.sequelize.transaction(async (t) => {
+    const payments = await Payment.findAll({
+      where: { id: paymentIds, isDeleted: false },
+      transaction: t,
+    });
+
+    if (payments.length === 0) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'No payments found for provided IDs');
+    }
+
+    const results = [];
+
+    for (const payment of payments) {
+      if (payment.status === 'approved') continue; // skip already approved
+
+      const bill = await Bill.findByPk(payment.billId, { transaction: t });
+      if (!bill) {
+        throw new ApiError(httpStatus.NOT_FOUND, `Bill not found for payment ID: ${payment.id}`);
+      }
+      if (bill.paymentStatus === 'cancelled') {
+        throw new ApiError(httpStatus.BAD_REQUEST, `Cannot approve payment for cancelled bill ID: ${bill.id}`);
+      }
+
+      // Auto approve payment
+      await payment.update({ status: 'approved' }, { transaction: t });
+
+      // Calculate total approved payments
+      const approvedPayments = await Payment.findAll({
+        where: { billId: bill.id, isDeleted: false, status: 'approved' },
+        transaction: t,
+      });
+      const totalPaid = approvedPayments.reduce((sum, p) => sum + parseFloat(p.amountPaid || 0), 0);
+
+      // Update bill status
+      const totalAmount = parseFloat(bill.totalAmount || 0);
+      let newBillStatus;
+      if (totalPaid >= totalAmount) newBillStatus = 'paid';
+      else if (totalPaid > 0) newBillStatus = 'partially_paid';
+      else newBillStatus = 'unpaid';
+
+      await bill.update({ amountPaid: totalPaid, paymentStatus: newBillStatus }, { transaction: t });
+
+      // Update tenant deposit if lease deductedAmount exists
+      const activeLease = await Lease.findOne({
+        where: { unitId: bill.unitId, status: 'active' },
+        transaction: t,
+      });
+
+      if (activeLease && parseFloat(activeLease.deductedAmount || 0) > 0) {
+        const tenant = await Tenant.findByPk(activeLease.tenantId, { transaction: t });
+        if (tenant && parseFloat(tenant.depositAmountLeft || 0) > 0) {
+          const newDepositLeft = parseFloat(tenant.depositAmountLeft || 0) - parseFloat(activeLease.deductedAmount || 0);
+          await tenant.update({ depositAmountLeft: newDepositLeft < 0 ? 0 : newDepositLeft }, { transaction: t });
+        }
+      }
+
+      results.push({ payment, bill });
+    }
+
+    return results;
+  });
+};
 
 module.exports = {
   createPayment,
@@ -329,5 +417,6 @@ module.exports = {
   deletePayment,
   restorePayment,
   hardDeletePayment,
-  approvePayment
+  approvePayment,
+  approveMultiplePayments
 };

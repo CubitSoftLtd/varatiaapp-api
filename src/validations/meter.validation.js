@@ -162,7 +162,7 @@ const updateMeter = {
       lastReadingDate: Joi.date().allow(null).messages({
         'date.base': 'Last reading date must be a valid date',
       }),
-      description: Joi.string().allow(null).max(65535).messages({
+      description: Joi.string().allow('').max(65535).messages({
         'string.base': 'Description must be a string',
         'string.max': 'Description cannot exceed 65535 characters',
       }),

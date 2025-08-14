@@ -68,6 +68,12 @@ module.exports = (sequelize) => {
         defaultValue: 0.0,
         comment: 'Total amount for additional charges (e.g., late fees, repairs)',
       },
+      deductedAmount: {
+        type: DataTypes.DECIMAL(18, 2),
+        allowNull: false,
+        defaultValue: 0.0,
+        comment: 'The amount which is deducted from tenant advance',
+      },
       totalAmount: {
         type: DataTypes.DECIMAL(18, 2),
         allowNull: false,

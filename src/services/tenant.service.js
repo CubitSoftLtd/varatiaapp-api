@@ -46,6 +46,7 @@ const createTenant = async (tenantBody) => {
         // leaseStartDate: tenantBody.leaseStartDate,
         // leaseEndDate: tenantBody.leaseEndDate,
         depositAmount: tenantBody.depositAmount,
+        depositAmountLeft: tenantBody.depositAmount,
         status: tenantBody.status || 'current',
         nationalId: tenantBody.nationalId,
         // moveInDate: tenantBody.moveInDate,
