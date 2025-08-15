@@ -77,6 +77,12 @@ const getSubmeters = {
         'string.base': 'Unit ID must be a string',
         'string.uuid': 'Unit ID must be a valid UUID',
       }),
+    propertyId: Joi.string()
+      .uuid({ version: ['uuidv4'] })
+      .messages({
+        'string.base': 'Submeter ID must be a string',
+        'string.uuid': 'Submeter ID must be a valid UUID',
+      }),
     sortBy: Joi.string()
       .pattern(/^[a-zA-Z]+:(asc|desc)$/)
       .messages({

@@ -63,7 +63,7 @@ const createSubmeter = catchAsync(async (req, res) => {
 });
 
 const getSubmeters = catchAsync(async (req, res) => {
-  const filter = pick(req.query, ['number', 'status', 'meterId', 'unitId']);
+  const filter = pick(req.query, ['number', 'status', 'meterId', 'unitId', 'propertyId']);
   const options = pick(req.query, ['sortBy', 'limit', 'page']);
   options.include = parseInclude(req.query.include);
   const deleted = req.query.deleted || 'false'; // Default to 'false'

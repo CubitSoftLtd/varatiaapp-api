@@ -103,6 +103,12 @@ const router = express.Router();
  *           enum: [active, inactive, maintenance, retired]
  *         description: Submeter status
  *       - in: query
+ *         name: propertyId
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Property ID
+ *       - in: query
  *         name: meterId
  *         schema:
  *           type: string
