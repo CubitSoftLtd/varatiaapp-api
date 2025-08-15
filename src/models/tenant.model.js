@@ -26,11 +26,8 @@ module.exports = (sequelize, DataTypes) => {
       },
       email: {
         type: DataTypes.STRING(255),
-        allowNull: false,
-        unique: true, // Email should be unique for each tenant
-        validate: {
-          isEmail: true,
-        },
+        allowNull: true,
+        unique: true,
         comment: "Tenant's primary email address",
       },
       phoneNumber: {
@@ -47,7 +44,6 @@ module.exports = (sequelize, DataTypes) => {
         comment: "Tenant's primary phone number",
       },
       emergencyContactName: {
-        // Separating name and number for clarity
         type: DataTypes.STRING(255),
         allowNull: true,
         comment: 'Name of the emergency contact person',
@@ -55,12 +51,6 @@ module.exports = (sequelize, DataTypes) => {
       emergencyContactPhone: {
         type: DataTypes.STRING(50),
         allowNull: true,
-        validate: {
-          is: {
-            args: /^\+?[0-9\s\-.()]{7,25}$/,
-            msg: 'Emergency contact phone must be a valid phone number (7-25 characters, digits, spaces, +, -, () allowed)',
-          },
-        },
         comment: 'Phone number for the emergency contact',
       },
       // unitId: {
@@ -115,16 +105,6 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING(50),
         allowNull: true,
         unique: true,
-        validate: {
-          notEmpty: {
-            msg: 'National ID cannot be empty if provided',
-          },
-          is: {
-            // Change 'args' to 'is' for regex validation
-            args: /^[A-Za-z0-9\-/]{5,50}$/,
-            msg: 'National ID must be valid (5-50 characters, alphanumeric, hyphen, slash allowed)', // Custom message for regex failure
-          },
-        },
         comment: 'National identification number (e.g., NID, Passport number)',
       },
       // moveInDate: {

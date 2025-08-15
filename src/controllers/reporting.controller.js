@@ -103,10 +103,20 @@ const { propertyId } = req.query
 
   res.status(httpStatus.OK).send(result);
 });
+const getPersonalExpenseReportC = catchAsync(async (req, res) => {
+  const filter = pick(req.query, ['beneficiary', 'startDate', 'endDate']);
 
-module.exports = {
-  getBillsByPropertyAndDateRange,
-};
+  if (!filter.beneficiary ||!filter.startDate || !filter.endDate) {
+    return res.status(400).send({ message: 'propertyId, meterId, startDate and endDate are required' });
+  }
+
+  if (req.user.role !== 'super_admin') {
+    filter.accountId = req.user.accountId;
+  }
+
+  const report = await reportingService.getPersonalExpenseReport(filter);
+  res.send(report);
+});
 module.exports = {
   getFinancialReport,
   getTenantActivityReport,
@@ -116,4 +126,6 @@ module.exports = {
   getMeterRechargeReport,
   getSubmeterConsumptionReport,
   getBillsByPropertyAndDateRange,
+  getPersonalExpenseReportC,
+  
 };

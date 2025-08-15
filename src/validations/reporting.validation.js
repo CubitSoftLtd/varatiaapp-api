@@ -48,6 +48,13 @@ const getBillByPropertyAndDateRangeReport = {
     endDate: Joi.date().iso().greater(Joi.ref('startDate')).required(),
   }),
 };
+const getPersonalExpenseReportV = {
+  query: Joi.object().keys({
+    beneficiary: Joi.string().required(),
+    startDate: Joi.date().iso().required(),
+    endDate: Joi.date().iso().greater(Joi.ref('startDate')).required(),
+  }),
+};
 module.exports = {
   getFinancialSummary,
   getMaintenanceStats,
@@ -56,4 +63,5 @@ module.exports = {
   getMeterRechargeReport,
   getSubmeterConsumptionReport,
   getBillByPropertyAndDateRangeReport,
+  getPersonalExpenseReportV,
 };

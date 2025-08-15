@@ -20,13 +20,13 @@ const createTenant = {
       'string.min': 'First name must be at least 1 character long',
       'string.max': 'First name cannot exceed 100 characters',
     }),
-    lastName: Joi.string().required().min(1).max(100).messages({
+    lastName: Joi.string().allow('').max(100).messages({
       'string.base': 'Last name must be a string',
       'string.empty': 'Last name is required',
       'string.min': 'Last name must be at least 1 character long',
       'string.max': 'Last name cannot exceed 100 characters',
     }),
-    email: Joi.string().required().email().max(255).messages({
+    email: Joi.string().email().allow('').max(255).messages({
       'string.base': 'Email must be a string',
       'string.empty': 'Email is required',
       'string.email': 'Email must be a valid email address',
@@ -37,11 +37,11 @@ const createTenant = {
       'string.empty': 'Phone number is required',
       'string.pattern.base': 'Phone number must be valid (7-25 characters, digits, spaces, +, -, () allowed)',
     }),
-    emergencyContactName: Joi.string().max(255).allow(null).messages({
+    emergencyContactName: Joi.string().max(255).allow('').messages({
       'string.base': 'Emergency contact name must be a string',
       'string.max': 'Emergency contact name cannot exceed 255 characters',
     }),
-    emergencyContactPhone: Joi.string().pattern(phoneRegex).allow(null).messages({
+    emergencyContactPhone: Joi.string().pattern(phoneRegex).allow('').messages({
       'string.base': 'Emergency contact phone must be a string',
       'string.pattern.base': 'Emergency contact phone must be valid (7-25 characters, digits, spaces, +, -, () allowed)',
     }),
@@ -72,7 +72,7 @@ const createTenant = {
         'string.base': 'Status must be a string',
         'any.only': 'Status must be one of: current, prospective, past, evicted, notice, inactive',
       }),
-    nationalId: Joi.string().pattern(nationalIdRegex).allow(null).messages({
+    nationalId: Joi.string().pattern(nationalIdRegex).allow('').messages({
       'string.base': 'National ID must be a string',
       'string.pattern.base': 'National ID must be valid (5-50 characters, alphanumeric, hyphen, slash allowed)',
     }),
@@ -82,7 +82,7 @@ const createTenant = {
     // moveOutDate: Joi.date().allow(null).messages({
     //   'date.base': 'Move-out date must be a valid date',
     // }),
-    notes: Joi.string().max(65535).allow(null).messages({
+    notes: Joi.string().max(65535).allow('').messages({
       'string.base': 'Notes must be a string',
       'string.max': 'Notes cannot exceed 65535 characters',
     }),
@@ -179,30 +179,34 @@ const updateTenant = {
   }),
   body: Joi.object()
     .keys({
-      firstName: Joi.string().min(1).max(100).messages({
+      firstName: Joi.string().required().min(1).max(100).messages({
         'string.base': 'First name must be a string',
+        'string.empty': 'First name is required',
         'string.min': 'First name must be at least 1 character long',
         'string.max': 'First name cannot exceed 100 characters',
       }),
-      lastName: Joi.string().min(1).max(100).messages({
+      lastName: Joi.string().allow('').max(100).messages({
         'string.base': 'Last name must be a string',
+        'string.empty': 'Last name is required',
         'string.min': 'Last name must be at least 1 character long',
         'string.max': 'Last name cannot exceed 100 characters',
       }),
-      email: Joi.string().email().max(255).messages({
+      email: Joi.string().email().allow('').max(255).messages({
         'string.base': 'Email must be a string',
+        'string.empty': 'Email is required',
         'string.email': 'Email must be a valid email address',
         'string.max': 'Email cannot exceed 255 characters',
       }),
-      phoneNumber: Joi.string().pattern(phoneRegex).messages({
+      phoneNumber: Joi.string().required().pattern(phoneRegex).messages({
         'string.base': 'Phone number must be a string',
+        'string.empty': 'Phone number is required',
         'string.pattern.base': 'Phone number must be valid (7-25 characters, digits, spaces, +, -, () allowed)',
       }),
-      emergencyContactName: Joi.string().max(255).allow(null).messages({
+      emergencyContactName: Joi.string().max(255).allow('').messages({
         'string.base': 'Emergency contact name must be a string',
         'string.max': 'Emergency contact name cannot exceed 255 characters',
       }),
-      emergencyContactPhone: Joi.string().pattern(phoneRegex).allow(null).messages({
+      emergencyContactPhone: Joi.string().pattern(phoneRegex).allow('').messages({
         'string.base': 'Emergency contact phone must be a string',
         'string.pattern.base': 'Emergency contact phone must be valid (7-25 characters, digits, spaces, +, -, () allowed)',
       }),
@@ -213,8 +217,9 @@ const updateTenant = {
       //     'string.base': 'Unit ID must be a string',
       //     'string.uuid': 'Unit ID must be a valid UUID',
       //   }),
-      // leaseStartDate: Joi.date().messages({
+      // leaseStartDate: Joi.date().required().messages({
       //   'date.base': 'Lease start date must be a valid date',
+      //   'any.required': 'Lease start date is required',
       // }),
       // leaseEndDate: Joi.date().allow(null).messages({
       //   'date.base': 'Lease end date must be a valid date',
@@ -223,14 +228,16 @@ const updateTenant = {
         'number.base': 'Deposit amount must be a number',
         'number.min': 'Deposit amount cannot be negative',
         'number.precision': 'Deposit amount must have at most 2 decimal places',
+        'any.required': 'Deposit amount is required',
       }),
       status: Joi.string()
         .valid(...Object.values(statusTypes))
+        .default('current')
         .messages({
           'string.base': 'Status must be a string',
           'any.only': 'Status must be one of: current, prospective, past, evicted, notice, inactive',
         }),
-      nationalId: Joi.string().pattern(nationalIdRegex).allow(null).messages({
+      nationalId: Joi.string().pattern(nationalIdRegex).allow('').messages({
         'string.base': 'National ID must be a string',
         'string.pattern.base': 'National ID must be valid (5-50 characters, alphanumeric, hyphen, slash allowed)',
       }),
@@ -240,7 +247,7 @@ const updateTenant = {
       // moveOutDate: Joi.date().allow(null).messages({
       //   'date.base': 'Move-out date must be a valid date',
       // }),
-      notes: Joi.string().max(65535).allow(null).messages({
+      notes: Joi.string().max(65535).allow('').messages({
         'string.base': 'Notes must be a string',
         'string.max': 'Notes cannot exceed 65535 characters',
       }),

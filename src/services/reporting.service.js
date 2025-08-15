@@ -781,6 +781,62 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
   };
 };
 
+const getPersonalExpenseReport = async (filter) => {
+  const { beneficiary, startDate, endDate, accountId } = filter;
+
+  const where = {};
+
+  // Beneficiary filter
+  if (beneficiary) {
+    where.beneficiary = beneficiary;
+  }
+
+  // Date range filter
+  if (startDate) where.expenseDate = { [Op.gte]: new Date(startDate) };
+  if (endDate) {
+    if (!where.expenseDate) where.expenseDate = {};
+    where.expenseDate[Op.lte] = new Date(endDate);
+  }
+
+  // Account filter
+  if (accountId) where.accountId = accountId;
+
+  // Get all personal expenses
+  const expenses = await PersonalExpense.findAll({
+    where,
+    order: [['expenseDate', 'ASC']],
+    raw: true,
+  });
+
+  // Calculate total
+  const totalAmount = expenses.reduce((sum, exp) => {
+    return sum + parseFloat(exp.amount || 0);
+  }, 0);
+
+  // মাস আকারে period
+  let period = 'All Time';
+  if (startDate && endDate) {
+    const startMonth = new Date(startDate).toLocaleString('en-US', { month: 'long', year: 'numeric' });
+    const endMonth = new Date(endDate).toLocaleString('en-US', { month: 'long', year: 'numeric' });
+    period = startMonth === endMonth ? startMonth : `${startMonth} - ${endMonth}`;
+  }
+
+  return {
+    beneficiary: beneficiary || 'All',
+    period,
+    totalExpense: totalAmount,
+    expenseCount: expenses.length,
+    expenses: expenses.map((e) => ({
+      id: e.id,
+      beneficiary: e.beneficiary,
+      description: e.description,
+      amount: parseFloat(e.amount || 0),
+      expenseDate: e.expenseDate,
+      createdAt: e.createdAt,
+    })),
+    generatedAt: new Date(),
+  };
+};
 
 module.exports = {
   getFinancialReport,
@@ -791,4 +847,5 @@ module.exports = {
   getMeterRechargeReportByProperty,
   getSubmeterConsumptionReport,
   generateBillsByPropertyAndDateRange,
+  getPersonalExpenseReport
 };

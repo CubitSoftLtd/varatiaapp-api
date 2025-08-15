@@ -627,6 +627,115 @@ const router = express.Router();
  *                   type: string
  *                   example: Property not found a1b2c3d4
  */
+/**
+ * @swagger
+ * /reports/personal-expenses:
+ *   get:
+ *     summary: Personal Expense within date range
+ *     description: Generate bills for all active units of a property between startDate and endDate
+ *     tags: [Reports]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: beneficiary
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Beneficiary
+ *       - in: query
+ *         name: startDate
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *           example: 2025-07-01
+ *         description: Start date of the expense period
+ *       - in: query
+ *         name: endDate
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *           example: 2025-07-31
+ *         description: End date of the Expense period
+ *     responses:
+ *       200:
+ *         description: Expense data retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 results:
+ *                   type: array
+ *                   description: List of bills for each unit
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       fullInvoiceNumber:
+ *                         type: string
+ *                         example: INV-2025-0000
+ *                       rentAmountFormatted:
+ *                         type: number
+ *                         format: float
+ *                         example: 15000
+ *                       issueDate:
+ *                         type: string
+ *                         format: date-time
+ *                         example: 2025-07-31T00:00:00.000Z
+ *                       totalUtilityAmountFormatted:
+ *                         type: number
+ *                         format: float
+ *                         example: 2500.50
+ *                       otherChargesAmount:
+ *                         type: number
+ *                         format: float
+ *                         example: 1200
+ *                       totalAmountFormatted:
+ *                         type: number
+ *                         format: float
+ *                         example: 18700.50
+ *                       tenantName:
+ *                         type: string
+ *                         example: John Doe
+ *                       unitName:
+ *                         type: string
+ *                         example: Unit A1
+ *                       propertyName:
+ *                         type: string
+ *                         example: Green View Apartments
+ *                       unitAddress:
+ *                         type: string
+ *                         example: 123 Street, City
+ *                 totalResults:
+ *                   type: integer
+ *                   example: 5
+ *       400:
+ *         description: Bad request - missing or invalid parameters
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: startDate and endDate query parameters are required
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         description: Property not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Property not found a1b2c3d4
+ */
 
 router.route('/financial').get(auth(), validate(reportingValidation.getFinancialRe), reportingController.getFinancialReport);
 
@@ -651,4 +760,7 @@ router
 router
   .route('/property-wise-bill')
   .get(auth('bill:generate'), validate(reportingValidation.getBillByPropertyAndDateRangeReport), reportingController.getBillsByPropertyAndDateRange);
+router
+  .route('/personal-expenses')
+  .get(auth('bill:generate'), validate(reportingValidation.getPersonalExpenseReportV), reportingController.getPersonalExpenseReportC);
 module.exports = router;
