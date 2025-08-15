@@ -20,3 +20,4 @@ module.exports.roleService = require('./role.service');
 module.exports.leaseService = require('./lease.service');
 module.exports.meterChargeService = require('./meterCharge.service');
 module.exports.personalExpenseService = require('./personalExpense.service');
+module.exports.beneficiaryService = require('./beneficiary.service');

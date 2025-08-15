@@ -64,6 +64,7 @@ const allRoles = {
     'utility_type:restore',
     // Role management
     'role:management',
+    'report:management',
     'lease:management',
     'meter_charge:management',
     'role:permission',
@@ -134,8 +135,10 @@ const allRoles = {
     'utility_type:restore',
     'role:permission',
     'report:management',
+    'beneficiary:management',
     'lease:management',
     'meter_charge:management',
+    'report:management',
   ],
   property_manager: [
     // Tenant permissions

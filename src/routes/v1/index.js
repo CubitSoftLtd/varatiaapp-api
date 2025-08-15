@@ -21,6 +21,7 @@ const personalExpenseRoute = require('./personalExpense.route');
 // Removed direct mounting of expenseRoute under /expenses
 const reportingRoute = require('./reporting.route');
 const notificationRoute = require('./notification.route');
+const beneficiaryRoute = require('./beneficiary.route');
 const config = require('../../config/config');
 
 const router = express.Router();
@@ -46,6 +47,7 @@ const defaultRoutes = [
   { path: '/leases', route: leaseRoute },
   { path: '/meter-charges', route: meterChargeRoute },
   { path: '/personal-expenses', route: personalExpenseRoute },
+  { path: '/beneficiaries', route: beneficiaryRoute },
 ];
 
 const devRoutes = [{ path: '/docs', route: docsRoute }];

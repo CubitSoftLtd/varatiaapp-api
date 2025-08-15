@@ -19,3 +19,4 @@ module.exports.roleController = require('./role.controller');
 module.exports.leaseController = require('./lease.controller');
 module.exports.meterChargeController = require('./meterCharge.contoller');
 module.exports.personalExpenseController = require('./personalExpense.controller');
+module.exports.beneficiaryController = require('./beneficiary.controller');

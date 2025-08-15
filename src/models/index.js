@@ -21,6 +21,7 @@ const ExpenseCategory = require('./expenseCategory.model');
 const TenancyHistory = require('./tenancyHistory.model');
 const Document = require('./document.model');
 const PersonalExpense = require('./personalExpense.model');
+const Beneficiary = require('./beneficiary.model');
 
 const env = process.env.NODE_ENV || 'development';
 const dbConfig = config.database[env];
@@ -56,6 +57,7 @@ const models = {
   Payment: Payment(sequelize, DataTypes),
   Document: Document(sequelize, DataTypes),
   PersonalExpense: PersonalExpense(sequelize, DataTypes),
+  Beneficiary: Beneficiary(sequelize, DataTypes),
 };
 
 // Associate models

@@ -14,3 +14,4 @@ module.exports.expenseCategoryValidation = require('./expenseCategory.validation
 module.exports.expenseValidation = require('./expense.validation');
 module.exports.meterChargeValidation = require('./meterCharge.validation');
 module.exports.personalExpenseValidation = require('./personalExpense.validation');
+module.exports.beneficiaryValidation = require('./beneficiary.validation');

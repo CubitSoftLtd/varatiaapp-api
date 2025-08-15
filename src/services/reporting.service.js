@@ -522,31 +522,40 @@ const getMeterRechargeReportByProperty = async ({ propertyId, meterId, startDate
   };
 };
 
+
+
 const getSubmeterConsumptionReport = async ({ propertyId, meterId, startDate, endDate, accountId }) => {
-  // Validation
   if (!propertyId || !meterId || !startDate || !endDate) {
     throw new Error("propertyId, meterId, startDate, endDate are required.");
   }
-  // Get the main meter with utility info
+  const monthName = moment(startDate).format("MMMM YYYY");
+  // Main meter with utility info and property name
   const meter = await Meter.findOne({
     where: { id: meterId, propertyId, accountId },
-    include: [{ model: UtilityType, as: "utilityType", attributes: ["name", "unitRate"] }],
+    include: [
+      { model: UtilityType, as: "utilityType", attributes: ["name", "unitRate"] },
+      { model: Property, as: "property", attributes: ["name"] }, // join Property table
+    ],
   });
 
   if (!meter) throw new Error("Meter not found");
 
   const unitRate = parseFloat(meter.utilityType?.unitRate || 0);
+  const propertyName = meter.property?.name || "";
 
-  // Get submeters under this meter
+  // All submeters
   const submeters = await Submeter.findAll({
     where: { meterId, propertyId, accountId },
     attributes: ["id", "number"],
+    include: [
+      { model: Unit, as: "unit", attributes: ["name"] }
+    ],
     raw: true,
+    nest: true
   });
+  const submeterIds = submeters.map(s => s.id);
 
-  const submeterIds = submeters.map((s) => s.id);
-
-  // Get all readings within date range for these submeters
+  // All readings for these submeters in date range
   const readings = await MeterReading.findAll({
     where: {
       submeterId: { [Op.in]: submeterIds },
@@ -556,23 +565,29 @@ const getSubmeterConsumptionReport = async ({ propertyId, meterId, startDate, en
     raw: true,
   });
 
-  // Group readings by submeterId and sum their consumption
+  // Group readings
   const consumptionMap = {};
-
-  for (const reading of readings) {
-    const id = reading.submeterId;
-    const consumption = parseFloat(reading.consumption || 0);
-    if (!consumptionMap[id]) {
-      consumptionMap[id] = 0;
-    }
-    consumptionMap[id] += consumption;
+  for (const r of readings) {
+    const sid = r.submeterId;
+    const cons = parseFloat(r.consumption || 0);
+    consumptionMap[sid] = (consumptionMap[sid] || 0) + cons;
   }
 
-  // Final result: match submeters with their consumption and amount
-  const result = submeters
-    .map((sub) => {
-      const totalConsumption = consumptionMap[sub.id] || 0;
+  // Meter recharge sum
+  const rechargeData = await MeterCharge.findOne({
+    where: {
+      meterId,
+      expenseDate: { [Op.between]: [startDate, endDate] },
+    },
+    attributes: [[fn("SUM", col("amount")), "totalRechargeAmount"]],
+    raw: true,
+  });
+  const totalRechargeAmount = parseFloat(rechargeData?.totalRechargeAmount || 0);
 
+  // Build submeter array
+  const submeterData = submeters
+    .map(sub => {
+      const totalConsumption = consumptionMap[sub.id] || 0;
       if (totalConsumption === 0) return null;
 
       const totalAmount = parseFloat((totalConsumption * unitRate).toFixed(2));
@@ -581,15 +596,26 @@ const getSubmeterConsumptionReport = async ({ propertyId, meterId, startDate, en
         propertyId,
         meterId,
         meterNumber: meter.number,
+        unitId: sub.unitId,
+        unitName: sub.unit?.name || "",
         submeterId: sub.id,
         submeterNumber: sub.number,
         totalConsumption,
-        totalAmount,
+        totalAmount
       };
     })
     .filter(Boolean);
 
-  return result;
+  // Final structure
+  return {
+    propertyId,
+    propertyName,
+    meterId: meter.id,
+    meterNumber: meter.number,
+    monthName,
+    totalRechargeAmount,
+    submeters: submeterData
+  };
 };
 
 const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDate, accountId) => {
