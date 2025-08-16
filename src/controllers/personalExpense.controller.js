@@ -3,7 +3,7 @@ const httpStatus = require("http-status");
 const catchAsync = require("../utils/catchAsync");
 const { personalExpenseService } = require("../services");
 const pick = require("../utils/pick");
-const { ExpenseCategory } = require("../models");
+const { ExpenseCategory, Beneficiary } = require("../models");
 
 const parseInclude = (include) => {
   if (!include) return [];
@@ -15,6 +15,7 @@ const parseInclude = (include) => {
 
       const modelMap = {
         category: ExpenseCategory, // Assuming 'category' maps to ExpenseCategory model
+        beneficiary: Beneficiary, // Assuming 'category' maps to ExpenseCategory model
       };
       const model = modelMap[modelName];
       if (!model) {
@@ -41,7 +42,7 @@ const createPersonalExpense = catchAsync(async (req, res) => {
 });
 
 const getPersonalExpenses = catchAsync(async (req, res) => {
-  const filter = pick(req.query, ['accountId', 'beneficiary', 'expenseDate','categoryId']);
+  const filter = pick(req.query, ['accountId', 'beneficiaryId', 'expenseDate','categoryId']);
   const options = pick(req.query, ['sortBy', 'limit', 'page']);
   options.include = parseInclude(req.query.include);
   const deleted = req.query.deleted || 'false'; // Default to 'false'

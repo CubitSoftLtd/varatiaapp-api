@@ -18,11 +18,16 @@ module.exports = (sequelize, DataTypes) => {
                 onUpdate: 'CASCADE',
                 comment: 'ID of the account that generated this bill',
             },
-            beneficiary: {
-                type: DataTypes.STRING(100), // Specify reasonable length (e.g., "Repairs", "Utilities", "Management Fees")
-                allowNull: false,
-                unique: false, // Category names should be unique
-                comment: 'Name of the expense beneficiary',
+            beneficiaryId: {
+                type: DataTypes.UUID,
+                allowNull: true, // Tenant might not be currently assigned to a unit (e.g., prospective tenant)
+                references: {
+                    model: 'beneficiary', // References the 'units' table
+                    key: 'id',
+                },
+                onDelete: 'SET NULL', // If a unit is deleted, lease's unitId becomes null (lease can still exist)
+                onUpdate: 'CASCADE',
+                comment: 'ID of the beneficiary the lease is currently occupying or assigned to',
             },
             categoryId: {
                 type: DataTypes.UUID,
@@ -67,18 +72,22 @@ module.exports = (sequelize, DataTypes) => {
             modelName: 'personalExpense',
             indexes: [
                 {
-                    fields: ['beneficiary'],
+                    fields: ['expenseDate'],
                 },
             ],
         }
     );
 
-PersonalExpense.associate = (models) => {
-    PersonalExpense.belongsTo(models.ExpenseCategory, {
-      foreignKey: 'categoryId',
-      as: 'category',
-    });
+    PersonalExpense.associate = (models) => {
+        PersonalExpense.belongsTo(models.ExpenseCategory, {
+            foreignKey: 'categoryId',
+            as: 'category',
+        });
+        PersonalExpense.belongsTo(models.Beneficiary, {
+            foreignKey: 'beneficiaryId',
+            as: 'beneficiary',
+        });
 
-  };
+    };
     return PersonalExpense;
 };

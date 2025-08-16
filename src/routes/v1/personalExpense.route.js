@@ -37,9 +37,10 @@ const router = express.Router();
  *               - amount
  *               - expenseDate
  *             properties:
- *               beneficiary:
+ *               beneficiaryId:
  *                 type: string
- *                 description: beneficiary name
+ *                 format: uuid
+ *                 description: ID of the beneficiary
  *               categoryId:
  *                 type: string
  *                 format: uuid
@@ -56,8 +57,8 @@ const router = express.Router();
  *                 description: Detailed description of the expense
  *                 nullable: true
  *             example:
- *               beneficiary: Iqbal Hossain
  *               categoryId: 423e4567-e89b-12d3-a456-426614174003
+ *               beneficiaryId: 423e4567-e89b-12d3-a456-426614174003
  *               amount: 500.00
  *               expenseDate: 2025-07-01
  *               description: For his personal use
@@ -85,10 +86,10 @@ const router = express.Router();
  *       - bearerAuth: []
  *     parameters:
  *       - in: query
- *         name: beneficiary
+ *         name: beneficiaryId
  *         schema:
  *           type: string
- *         description: beneficiary name
+ *           format: uuid
  *       - in: query
  *         name: expenseDate
  *         schema:
@@ -216,9 +217,10 @@ const router = express.Router();
  *           schema:
  *             type: object
  *             properties:
- *               beneficiary:
+ *               beneficiaryId:
  *                 type: string
- *                 description: beneficiary name
+ *                 format: uuid
+ *                 description: ID of the beneficiary
  *               categoryId:
  *                 type: string
  *                 format: uuid
@@ -235,7 +237,7 @@ const router = express.Router();
  *                 description: Detailed description of the expense
  *                 nullable: true
  *             example:
- *               beneficiary: Iqbal Hossain
+ *               beneficiaryId: 423e4567-e89b-12d3-a456-426614174003
  *               categoryId: 423e4567-e89b-12d3-a456-426614174003
  *               amount: 500.00
  *               expenseDate: 2025-07-01

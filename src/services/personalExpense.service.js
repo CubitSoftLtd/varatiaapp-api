@@ -2,7 +2,7 @@
 
 const httpStatus = require("http-status");
 const ApiError = require("../utils/ApiError");
-const { Account, ExpenseCategory, PersonalExpense } = require("../models");
+const { Account, ExpenseCategory, PersonalExpense, Beneficiary } = require("../models");
 
 /**
  * Create a new expense with validation and transaction
@@ -10,10 +10,10 @@ const { Account, ExpenseCategory, PersonalExpense } = require("../models");
  * @returns {Promise<Expense>}
  */
 const createPersonalExpense = async (expenseBody) => {
-  const { accountId,beneficiary,categoryId, amount, expenseDate, description } = expenseBody;
+  const { accountId,beneficiaryId,categoryId, amount, expenseDate, description } = expenseBody;
 
   // Validate required fields
-  if (!accountId ||!beneficiary || !categoryId || !amount || !expenseDate) {
+  if (!accountId ||!beneficiaryId || !categoryId || !amount || !expenseDate) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Account ID, Beneficiary, category ID, amount, and expense date are required');
   }
   // Validate foreign keys
@@ -25,13 +25,17 @@ const createPersonalExpense = async (expenseBody) => {
   if (!category) {
     throw new ApiError(httpStatus.NOT_FOUND, `Expense category not found for ID: ${categoryId}`);
   }
+  const beneficiary = await Beneficiary.findByPk(beneficiaryId);
+  if (!beneficiary) {
+    throw new ApiError(httpStatus.NOT_FOUND, `beneficiary not found for ID: ${beneficiaryId}`);
+  }
 
   // Create expense and update bill in a transaction
   const personalExpense = await PersonalExpense.sequelize.transaction(async (t) => {
     const createdPersonalExpense = await PersonalExpense.create(
       {
         accountId,
-        beneficiary,
+        beneficiaryId,
         categoryId,
         amount,
         expenseDate,
@@ -126,6 +130,12 @@ const updatePesonalExpense = async (personalExpenseId, updateBody) => {
     const category = await ExpenseCategory.findByPk(updateBody.categoryId);
     if (!category) {
       throw new ApiError(httpStatus.NOT_FOUND, `Expense category not found for ID: ${updateBody.categoryId}`);
+    }
+  }
+  if (updateBody.beneficiaryId) {
+    const beneficiary = await Beneficiary.findByPk(updateBody.categoryId);
+    if (!beneficiary) {
+      throw new ApiError(httpStatus.NOT_FOUND, `beneficiary not found for ID: ${updateBody.categoryId}`);
     }
   }
   await expense.update(updateBody);

@@ -6,16 +6,16 @@ const uuidV4Schema = Joi.string().uuid({ version: 'uuidv4' });
 
 const createPersonalExpense = {
     body: Joi.object().keys({
-        beneficiary: Joi.string().required().min(1).max(100).messages({
-            'string.base': 'Beneficiary must be a string',
-            'string.empty': 'Beneficiary is required',
-            'string.min': 'Beneficiary must be at least 1 character long',
-            'string.max': 'Beneficiary cannot exceed 100 characters',
-        }),
+
         categoryId: uuidV4Schema.required().messages({
             'string.base': 'Category ID must be a string',
             'string.empty': 'Category ID is required',
             'string.uuid': 'Category ID must be a valid UUID',
+        }),
+        beneficiaryId: uuidV4Schema.required().messages({
+            'string.base': 'Beneficiary ID must be a string',
+            'string.empty': 'Beneficiary ID is required',
+            'string.uuid': 'Beneficiary ID must be a valid UUID',
         }),
         amount: Joi.number().required().min(0.01).precision(2).messages({
             'number.base': 'Amount must be a number',
@@ -37,17 +37,16 @@ const createPersonalExpense = {
 const getPersonalExpenses = {
     query: Joi.object().keys({
 
-        beneficiary: Joi.string().min(1).max(100).messages({
-            'string.base': 'Beneficiary must be a string',
-            'string.min': 'Beneficiary must be at least 1 character long',
-            'string.max': 'Beneficiary cannot exceed 100 characters',
-        }),
         expenseDate: Joi.date().messages({
             'date.base': 'Expense date must be a valid date',
         }),
         categoryId: uuidV4Schema.messages({
             'string.base': 'Category ID must be a string',
             'string.uuid': 'Category ID must be a valid UUID',
+        }),
+        beneficiaryId: uuidV4Schema.messages({
+            'string.base': 'Beneficiary ID must be a string',
+            'string.uuid': 'Beneficiary ID must be a valid UUID',
         }),
         sortBy: Joi.string()
             .pattern(/^[a-zA-Z0-9_]+:(asc|desc)$/)
@@ -95,11 +94,10 @@ const updatePersonalExpense = {
     }),
     body: Joi.object()
         .keys({
-            beneficiary: Joi.string().required().min(1).max(100).messages({
-                'string.base': 'Beneficiary must be a string',
-                'string.empty': 'Beneficiary is required',
-                'string.min': 'Beneficiary must be at least 1 character long',
-                'string.max': 'Beneficiary cannot exceed 100 characters',
+            beneficiaryId: uuidV4Schema.required().messages({
+                'string.base': 'Beneficiary ID must be a string',
+                'string.empty': 'Beneficiary ID is required',
+                'string.uuid': 'Beneficiary ID must be a valid UUID',
             }),
             categoryId: uuidV4Schema.messages({
                 'string.base': 'Category ID must be a string',

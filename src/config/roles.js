@@ -65,6 +65,7 @@ const allRoles = {
     // Role management
     'role:management',
     'report:management',
+    'beneficiary:management',
     'lease:management',
     'meter_charge:management',
     'role:permission',
