@@ -66,6 +66,16 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: true,
         comment: 'Date the submeter was installed',
       },
+      adjustedConsumption: {
+        type: DataTypes.DECIMAL(18, 6), // Increased precision for utility readings
+        allowNull: false,
+        comment: 'The adjusted consumption value at the time of reading',
+      },
+      adjustedUnitRate: {
+        type: DataTypes.DECIMAL(18, 6), // Increased precision for utility readings
+        allowNull: false,
+        comment: 'The adjusted uni rate for submeter',
+      },
       isDeleted: {
         type: DataTypes.BOOLEAN,
         allowNull: false,

@@ -39,6 +39,8 @@ const createSubmeter = {
         'string.empty': 'Property ID is required',
         'string.uuid': 'Property ID must be a valid UUID',
       }),
+    adjustedConsumption: Joi.number().allow(null),
+    adjustedUnitRate: Joi.number().allow(0),
     status: Joi.string()
       .valid(...Object.values(statusTypes))
       .default('active')
@@ -159,6 +161,8 @@ const updateSubmeter = {
           'string.empty': 'Property ID is required',
           'string.uuid': 'Property ID must be a valid UUID',
         }),
+      adjustedConsumption: Joi.number().allow(null),
+      adjustedUnitRate: Joi.number().allow(0),
       unitId: Joi.string()
         .uuid({ version: ['uuidv4'] })
         .messages({
@@ -171,7 +175,7 @@ const updateSubmeter = {
           'string.base': 'Status must be a string',
           'any.only': 'Status must be one of: active, inactive, maintenance, retired',
         }),
-      installedDate: Joi.date().allow(null).messages({
+      installedDate: Joi.date().allow('').messages({
         'date.base': 'Installed date must be a valid date',
       }),
     })

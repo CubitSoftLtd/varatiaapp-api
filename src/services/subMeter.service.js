@@ -42,6 +42,8 @@ const createSubmeter = async (submeterBody) => {
         number: submeterBody.number,
         status: submeterBody.status || 'active',
         installedDate: submeterBody.installedDate,
+        adjustedConsumption: submeterBody.adjustedConsumption,
+        adjustedUnitRate: submeterBody.adjustedUnitRate,
         accountId: submeterBody.accountId,
         isDeleted: false,
       },
@@ -77,7 +79,7 @@ const getSubmeters = async (filter, options, deleted = 'false') => {
   }
 
   const limit = options.limit && parseInt(options.limit, 10) > 0 ? parseInt(options.limit, 10) : 10;
-  const page = options.page && parseInt(options.page, 10) ? 1 : parseInt(options.page, 10);
+  const page = options.page && parseInt(options.page, 10) > 0 ? parseInt(options.page, 10) : 1;
   const offset = (page - 1) * limit;
 
   const sortBy = [];

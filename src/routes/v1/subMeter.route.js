@@ -68,6 +68,8 @@ const router = express.Router();
  *               unitId: 789c1234-d56e-78f9-g012-345678901234
  *               status: active
  *               installedDate: 2025-01-01
+ *               adjustedConsumption: 100
+ *               adjustedUnitRate: 13.00
  *     responses:
  *       "201":
  *         description: Created
@@ -272,6 +274,8 @@ const router = express.Router();
  *               propertyId: 789c1234-d56e-78f9-g012-345678901234
  *               status: maintenance
  *               installedDate: 2025-01-01
+ *               adjustedConsumption: 100
+ *               adjustedUnitRate: 13.00
  *     responses:
  *       "200":
  *         description: OK

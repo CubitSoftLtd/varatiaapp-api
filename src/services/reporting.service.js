@@ -627,7 +627,6 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
   const leases = await Lease.findAll({
     where: { propertyId, status: 'active' },
     attributes: ['unitId', 'tenantId', 'deductedAmount'],
-
   });
 
   if (leases.length === 0) {
@@ -650,7 +649,7 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
       {
         model: Submeter,
         as: 'submeters',
-        attributes: ['id', 'meterId'],
+        attributes: ['id', 'meterId', 'adjustedConsumption', 'adjustedUnitRate'],
         include: [
           {
             model: Meter,
@@ -684,6 +683,7 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
   for (const unit of units) {
     const tenantId = unitTenantMap[unit.id];
     const deductedAmount = unitDeductedMap[unit.id] || 0;
+
     // আগে থেকে এই তারিখে বিল আছে কিনা চেক
     const existingBill = await Bill.findOne({
       where: {
@@ -693,16 +693,14 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
         billingPeriodEnd: endDate,
       },
     });
-
-    if (existingBill) {
-      continue; // Skip করুন
-    }
+    if (existingBill) continue;
 
     lastInvoiceNo += 1;
     const baseRentAmount = parseFloat(unit.rentAmount) || 0;
     const adjustedRentAmount = baseRentAmount - deductedAmount;
     let totalUtilityAmount = 0;
 
+    // Utility Calculation
     for (const submeter of unit.submeters) {
       const readings = await MeterReading.findAll({
         where: {
@@ -712,11 +710,29 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
         attributes: ['consumption'],
       });
 
-      const submeterConsumption = readings.reduce((acc, r) => acc + (parseFloat(r.consumption) || 0), 0);
-      const unitRate = submeter.meter?.utilityType?.unitRate || 0;
+      const submeterConsumption = readings.reduce(
+        (acc, r) => acc + (parseFloat(r.consumption) || 0),
+        0
+      );
+
+      // Base rate (UtilityType থেকে)
+      let unitRate = submeter.meter?.utilityType?.unitRate || 0;
+
+      // Condition apply → যদি consumption adjustedConsumption ছাড়ায়
+      if (
+        submeter.adjustedConsumption !== null &&
+        submeter.adjustedConsumption !== undefined &&
+        submeterConsumption > submeter.adjustedConsumption
+      ) {
+        if (submeter.adjustedUnitRate !== null && submeter.adjustedUnitRate !== undefined) {
+          unitRate = submeter.adjustedUnitRate;
+        }
+      }
+
       totalUtilityAmount += submeterConsumption * unitRate;
     }
 
+    // Expenses আনুন
     const expenses = await Expense.findAll({
       where: {
         unitId: unit.id,
@@ -724,16 +740,18 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
       },
       attributes: ['amount'],
     });
-
     const otherChargesAmount = expenses.reduce((acc, e) => acc + (parseFloat(e.amount) || 0), 0);
+
     const totalAmount = adjustedRentAmount + totalUtilityAmount + otherChargesAmount;
 
     const tenant = tenantId ? await Tenant.findByPk(tenantId, { attributes: ['id', 'name'] }) : null;
 
+    // Due Date সেট করুন
     const dueDateObj = new Date(endDate);
     dueDateObj.setMonth(dueDateObj.getMonth() + 1);
     dueDateObj.setDate(10);
 
+    // Bill create
     const newBill = await Bill.create({
       invoiceNo: lastInvoiceNo,
       tenantId,
@@ -741,8 +759,8 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
       accountId,
       billingPeriodStart: startDate,
       billingPeriodEnd: endDate,
-      rentAmount: baseRentAmount, // আসল ভাড়া সংরক্ষণ
-      deductedAmount, // নতুন ফিল্ড
+      rentAmount: baseRentAmount,
+      deductedAmount,
       totalUtilityAmount,
       otherChargesAmount,
       totalAmount,
@@ -773,16 +791,11 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
     });
   }
 
-  // যদি নতুন বিল তৈরি না হয়
   if (createdBillsCount === 0) {
     const monthName = new Date(startDate).toLocaleString('en-US', { month: 'long', year: 'numeric' });
-    throw new ApiError(
-      httpStatus.BAD_REQUEST,
-      `All bills for ${monthName} already created!!`
-    );
+    throw new ApiError(httpStatus.BAD_REQUEST, `All bills for ${monthName} already created!!`);
   }
 
-  // ফরম্যাট রিটার্ন
   const formattedResults = billsData.map((bill) => {
     const billYear = new Date(bill.issueDate).getFullYear();
     const formattedInvoiceNo = bill.invoiceNo ? String(bill.invoiceNo).padStart(4, '0') : '0000';
