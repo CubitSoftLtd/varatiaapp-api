@@ -4,7 +4,7 @@
 const { Op, fn, col } = require('sequelize');
 const moment = require('moment');
 const httpStatus = require('http-status');
-const { Bill, Payment, Expense, Lease, MaintenanceRequest, MeterCharge, Unit, Tenant, Property, Meter, Sequelize, MeterReading, UtilityType, Submeter, PersonalExpense } = require('../models');
+const { Bill, Payment, Expense, Lease, MaintenanceRequest, MeterCharge, Unit, Tenant, Property, Meter, Sequelize, MeterReading, UtilityType, Submeter, PersonalExpense, Beneficiary } = require('../models');
 const ApiError = require('../utils/ApiError');
 
 // const getFinancialReport = async (filter) => {
@@ -820,15 +820,15 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
   };
 };
 
-const getPersonalExpenseReport = async (filter) => {
-  const { beneficiary, startDate, endDate, accountId } = filter;
 
-  const where = {};
+const getPersonalExpenseReportByBeneficiary = async (filter) => {
+  const { beneficiaryId, startDate, endDate,accountId } = filter;
 
-  // Beneficiary filter
-  if (beneficiary) {
-    where.beneficiary = beneficiary;
+  if (!beneficiaryId) {
+    throw new Error("beneficiaryId is required");
   }
+
+  const where = { beneficiaryId, accountId };
 
   // Date range filter
   if (startDate) where.expenseDate = { [Op.gte]: new Date(startDate) };
@@ -837,46 +837,55 @@ const getPersonalExpenseReport = async (filter) => {
     where.expenseDate[Op.lte] = new Date(endDate);
   }
 
-  // Account filter
-  if (accountId) where.accountId = accountId;
-
-  // Get all personal expenses
+  // সব ডাটা beneficiary join সহ নিয়ে আসা
   const expenses = await PersonalExpense.findAll({
     where,
-    order: [['expenseDate', 'ASC']],
-    raw: true,
+    include: [
+      {
+        model: Beneficiary,
+        as: "beneficiary",
+        attributes: ["id", "name"],
+      },
+    ],
+    order: [["expenseDate", "ASC"]],
   });
 
-  // Calculate total
+  // মোট খরচ
   const totalAmount = expenses.reduce((sum, exp) => {
     return sum + parseFloat(exp.amount || 0);
   }, 0);
 
-  // মাস আকারে period
-  let period = 'All Time';
+  // রিপোর্টের জন্য সময়
+  let period = "All Time";
   if (startDate && endDate) {
-    const startMonth = new Date(startDate).toLocaleString('en-US', { month: 'long', year: 'numeric' });
-    const endMonth = new Date(endDate).toLocaleString('en-US', { month: 'long', year: 'numeric' });
+    const startMonth = new Date(startDate).toLocaleString("en-US", {
+      month: "long",
+      year: "numeric",
+    });
+    const endMonth = new Date(endDate).toLocaleString("en-US", {
+      month: "long",
+      year: "numeric",
+    });
     period = startMonth === endMonth ? startMonth : `${startMonth} - ${endMonth}`;
   }
 
   return {
-    beneficiary: beneficiary || 'All',
+    beneficiaryId,
+    beneficiaryName: expenses[0]?.beneficiary?.name || null, // beneficiary টেবিল থেকে নাম
     period,
     totalExpense: totalAmount,
     expenseCount: expenses.length,
     expenses: expenses.map((e) => ({
       id: e.id,
-      beneficiary: e.beneficiary,
+      beneficiaryId: e.beneficiaryId,
+      beneficiaryName: e.beneficiary?.name || null,
       description: e.description,
       amount: parseFloat(e.amount || 0),
       expenseDate: e.expenseDate,
-      createdAt: e.createdAt,
     })),
     generatedAt: new Date(),
   };
 };
-
 module.exports = {
   getFinancialReport,
   getTenantActivityReport,
@@ -886,5 +895,5 @@ module.exports = {
   getMeterRechargeReportByProperty,
   getSubmeterConsumptionReport,
   generateBillsByPropertyAndDateRange,
-  getPersonalExpenseReport
+  getPersonalExpenseReportByBeneficiary
 };

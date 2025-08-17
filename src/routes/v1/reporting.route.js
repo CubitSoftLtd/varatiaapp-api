@@ -629,23 +629,24 @@ const router = express.Router();
  */
 /**
  * @swagger
- * /reports/personal-expenses:
+ * /reports/beneficiary-wise-expense:
  *   get:
- *     summary: Personal Expense within date range
- *     description: Generate bills for all active units of a property between startDate and endDate
+ *     summary: Get Personal Expense Report for a Beneficiary
+ *     description: Generate a report of personal expenses for a specific beneficiary within an optional date range
  *     tags: [Reports]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: query
- *         name: beneficiary
+ *         name: beneficiaryId
  *         required: true
  *         schema:
  *           type: string
- *         description: Beneficiary
+ *           format: uuid
+ *         description: ID of the beneficiary whose expense report will be generated
  *       - in: query
  *         name: startDate
- *         required: true
+ *         required: false
  *         schema:
  *           type: string
  *           format: date
@@ -653,64 +654,69 @@ const router = express.Router();
  *         description: Start date of the expense period
  *       - in: query
  *         name: endDate
- *         required: true
+ *         required: false
  *         schema:
  *           type: string
  *           format: date
  *           example: 2025-07-31
- *         description: End date of the Expense period
+ *         description: End date of the expense period
  *     responses:
  *       200:
- *         description: Expense data retrieved successfully
+ *         description: Personal Expense report retrieved successfully
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 results:
+ *                 beneficiaryId:
+ *                   type: string
+ *                   format: uuid
+ *                   example: "a1b2c3d4-1234-5678-9abc-def123456789"
+ *                 beneficiaryName:
+ *                   type: string
+ *                   example: "Rahim Uddin"
+ *                 period:
+ *                   type: string
+ *                   example: "July 2025"
+ *                 totalExpense:
+ *                   type: number
+ *                   format: float
+ *                   example: 7500.50
+ *                 expenseCount:
+ *                   type: integer
+ *                   example: 3
+ *                 expenses:
  *                   type: array
- *                   description: List of bills for each unit
+ *                   description: List of expenses within the given period
  *                   items:
  *                     type: object
  *                     properties:
- *                       fullInvoiceNumber:
+ *                       id:
  *                         type: string
- *                         example: INV-2025-0000
- *                       rentAmountFormatted:
+ *                         format: uuid
+ *                         example: "exp-123456"
+ *                       beneficiaryId:
+ *                         type: string
+ *                         format: uuid
+ *                         example: "a1b2c3d4-1234-5678-9abc-def123456789"
+ *                       beneficiaryName:
+ *                         type: string
+ *                         example: "Rahim Uddin"
+ *                       description:
+ *                         type: string
+ *                         example: "Office Supplies"
+ *                       amount:
  *                         type: number
  *                         format: float
- *                         example: 15000
- *                       issueDate:
+ *                         example: 2500.00
+ *                       expenseDate:
  *                         type: string
- *                         format: date-time
- *                         example: 2025-07-31T00:00:00.000Z
- *                       totalUtilityAmountFormatted:
- *                         type: number
- *                         format: float
- *                         example: 2500.50
- *                       otherChargesAmount:
- *                         type: number
- *                         format: float
- *                         example: 1200
- *                       totalAmountFormatted:
- *                         type: number
- *                         format: float
- *                         example: 18700.50
- *                       tenantName:
- *                         type: string
- *                         example: John Doe
- *                       unitName:
- *                         type: string
- *                         example: Unit A1
- *                       propertyName:
- *                         type: string
- *                         example: Green View Apartments
- *                       unitAddress:
- *                         type: string
- *                         example: 123 Street, City
- *                 totalResults:
- *                   type: integer
- *                   example: 5
+ *                         format: date
+ *                         example: 2025-07-15
+ *                 generatedAt:
+ *                   type: string
+ *                   format: date-time
+ *                   example: 2025-07-31T10:20:30.000Z
  *       400:
  *         description: Bad request - missing or invalid parameters
  *         content:
@@ -720,13 +726,13 @@ const router = express.Router();
  *               properties:
  *                 message:
  *                   type: string
- *                   example: startDate and endDate query parameters are required
+ *                   example: beneficiaryId is required
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
  *       403:
  *         $ref: '#/components/responses/Forbidden'
  *       404:
- *         description: Property not found
+ *         description: Beneficiary not found
  *         content:
  *           application/json:
  *             schema:
@@ -734,8 +740,9 @@ const router = express.Router();
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Property not found a1b2c3d4
+ *                   example: Beneficiary not found with ID a1b2c3d4
  */
+
 
 router.route('/financial').get(auth(), validate(reportingValidation.getFinancialRe), reportingController.getFinancialReport);
 
@@ -761,6 +768,7 @@ router
   .route('/property-wise-bill')
   .get(auth('bill:generate'), validate(reportingValidation.getBillByPropertyAndDateRangeReport), reportingController.getBillsByPropertyAndDateRange);
 router
-  .route('/personal-expenses')
-  .get(auth('bill:generate'), validate(reportingValidation.getPersonalExpenseReportV), reportingController.getPersonalExpenseReportC);
+  .route('/beneficiary-wise-expense')
+  .get(auth(), validate(reportingValidation.getPersonalExppenseReportV), reportingController.getPersonalExpenseReportC);
+
 module.exports = router;

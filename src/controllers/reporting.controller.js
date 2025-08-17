@@ -103,18 +103,15 @@ const { propertyId } = req.query
 
   res.status(httpStatus.OK).send(result);
 });
-const getPersonalExpenseReportC = catchAsync(async (req, res) => {
-  const filter = pick(req.query, ['beneficiary', 'startDate', 'endDate']);
 
-  if (!filter.beneficiary ||!filter.startDate || !filter.endDate) {
-    return res.status(400).send({ message: 'propertyId, meterId, startDate and endDate are required' });
-  }
+const getPersonalExpenseReportC = catchAsync(async (req, res) => {
+  const filter = pick(req.query, ['beneficiaryId',  'startDate', 'endDate']);
 
   if (req.user.role !== 'super_admin') {
     filter.accountId = req.user.accountId;
   }
 
-  const report = await reportingService.getPersonalExpenseReport(filter);
+  const report = await reportingService.getPersonalExpenseReportByBeneficiary(filter);
   res.send(report);
 });
 module.exports = {
