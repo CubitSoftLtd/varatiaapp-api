@@ -668,10 +668,9 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
     ],
   });
 
-  // Last invoice no বের করুন
+  // 🔹 Last invoice no বের করুন (GLOBAL, সব property মিলিয়ে)
   const year = new Date(startDate).getFullYear();
   const lastBill = await Bill.findOne({
-    include: [{ model: Unit, as: 'unit', where: { propertyId }, attributes: [] }],
     where: { issueDate: { [Op.between]: [`${year}-01-01`, `${year}-12-31`] } },
     order: [['invoiceNo', 'DESC']],
   });
@@ -700,7 +699,7 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
     const adjustedRentAmount = baseRentAmount - deductedAmount;
     let totalUtilityAmount = 0;
 
-    // Utility Calculation
+    // 🔹 Utility Calculation
     for (const submeter of unit.submeters) {
       const readings = await MeterReading.findAll({
         where: {
@@ -715,7 +714,6 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
         0
       );
 
-      // Base rate (UtilityType থেকে)
       let unitRate = submeter.meter?.utilityType?.unitRate || 0;
 
       // Condition apply → যদি consumption adjustedConsumption ছাড়ায়
@@ -732,7 +730,7 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
       totalUtilityAmount += submeterConsumption * unitRate;
     }
 
-    // Expenses আনুন
+    // 🔹 Expenses আনুন
     const expenses = await Expense.findAll({
       where: {
         unitId: unit.id,
@@ -746,12 +744,12 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
 
     const tenant = tenantId ? await Tenant.findByPk(tenantId, { attributes: ['id', 'name'] }) : null;
 
-    // Due Date সেট করুন
+    // 🔹 Due Date সেট করুন
     const dueDateObj = new Date(endDate);
     dueDateObj.setMonth(dueDateObj.getMonth() + 1);
     dueDateObj.setDate(10);
 
-    // Bill create
+    // 🔹 Bill create
     const newBill = await Bill.create({
       invoiceNo: lastInvoiceNo,
       tenantId,
@@ -796,6 +794,7 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
     throw new ApiError(httpStatus.BAD_REQUEST, `All bills for ${monthName} already created!!`);
   }
 
+  // 🔹 Final formatted results
   const formattedResults = billsData.map((bill) => {
     const billYear = new Date(bill.issueDate).getFullYear();
     const formattedInvoiceNo = bill.invoiceNo ? String(bill.invoiceNo).padStart(4, '0') : '0000';
