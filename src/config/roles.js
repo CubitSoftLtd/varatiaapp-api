@@ -143,36 +143,36 @@ const allRoles = {
   ],
   property_manager: [
     // Tenant permissions
-    'tenant:tenant_create',
+    // 'tenant:tenant_create',
     'tenant:view_all',
-    'tenant:tenant_update',
-    'tenant:delete',
+    // 'tenant:tenant_update',
+    // 'tenant:delete',
     // Unit permissions
-    'unit:management',
+    // 'unit:management',
     // Meter/Submeter permissions
-    'meter:management',
-    'sub_meter:management',
-    'meter_reading:management',
-    'utility_type:view_all',
-    'utility_type:create',
-    'expense_category:view_all',
+    // 'meter:management',
+    // 'sub_meter:management',
+    // 'meter_reading:management',
+    // 'utility_type:view_all',
+    // 'utility_type:create',
+    // 'expense_category:view_all',
     // Expense permissions
     'expense:management',
     // Property permissions
-    'property:management',
+    // 'property:management',
     // Read-only permissions for financial oversight
     'bill:view_all',
-    'bill:generate',
+    // 'bill:generate',
     'bill:view',
     'payment:create',
     'payment:view',
     'payment:view_all',
     'payment:update',
-    'payment:delete',
-    'payment:hard_delete',
-    'payment:restore',
+    // 'payment:delete',
+    // 'payment:hard_delete',
+    // 'payment:restore',
     'role:permission',
-    'report:management',
+    // 'report:management',
   ],
   tenant: [
     // Scoped permissions

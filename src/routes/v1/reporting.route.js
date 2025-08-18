@@ -744,31 +744,31 @@ const router = express.Router();
  */
 
 
-router.route('/financial').get(auth(), validate(reportingValidation.getFinancialRe), reportingController.getFinancialReport);
+router.route('/financial').get(auth('report:management'), validate(reportingValidation.getFinancialRe), reportingController.getFinancialReport);
 
 router
   .route('/tenant-activity')
-  .get(auth(), validate(reportingValidation.getTenantActivityReport), reportingController.getTenantActivityReport);
+  .get(auth('report:management'), validate(reportingValidation.getTenantActivityReport), reportingController.getTenantActivityReport);
 router
   .route('/monthly-financial')
-  .get(auth(), validate(reportingValidation.getMonthlyFinancialReport), reportingController.getMonthlyRevenueExpenseReport);
+  .get(auth('report:management'), validate(reportingValidation.getMonthlyFinancialReport), reportingController.getMonthlyRevenueExpenseReport);
 router
   .route('/tenant-history')
-  .get(auth(), validate(reportingValidation.getTenantHistoryValidate), reportingController.getTenantHistoryReportController);
+  .get(auth('report:management'), validate(reportingValidation.getTenantHistoryValidate), reportingController.getTenantHistoryReportController);
 router
   .route('/bill-pie')
-  .get(auth(), validate(reportingValidation.getBillPaymentPieByYear), reportingController.getBillPaymentPieByYear);
+  .get(auth('report:management'), validate(reportingValidation.getBillPaymentPieByYear), reportingController.getBillPaymentPieByYear);
 router
   .route('/meter-recharges')
-  .get(auth(), validate(reportingValidation.getMeterRechargeReport), reportingController.getMeterRechargeReport);
+  .get(auth('report:management'), validate(reportingValidation.getMeterRechargeReport), reportingController.getMeterRechargeReport);
 router
   .route('/submeter-consumption')
-  .get(auth(), validate(reportingValidation.getSubmeterConsumptionReport), reportingController.getSubmeterConsumptionReport);
+  .get(auth('report:management'), validate(reportingValidation.getSubmeterConsumptionReport), reportingController.getSubmeterConsumptionReport);
 router
   .route('/property-wise-bill')
   .get(auth('bill:generate'), validate(reportingValidation.getBillByPropertyAndDateRangeReport), reportingController.getBillsByPropertyAndDateRange);
 router
   .route('/beneficiary-wise-expense')
-  .get(auth(), validate(reportingValidation.getPersonalExppenseReportV), reportingController.getPersonalExpenseReportC);
+  .get(auth('report:management'), validate(reportingValidation.getPersonalExppenseReportV), reportingController.getPersonalExpenseReportC);
 
 module.exports = router;
