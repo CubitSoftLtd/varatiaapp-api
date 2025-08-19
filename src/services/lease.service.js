@@ -232,7 +232,7 @@ const hardDeleteLease = async (leaseId) => {
   }
 
   await Lease.sequelize.transaction(async (t) => {
-    const { unitId } = lease;
+    const { unitId, tenantId } = lease;
 
     // Step 1: Delete the lease
     await lease.destroy({ transaction: t });
@@ -252,6 +252,15 @@ const hardDeleteLease = async (leaseId) => {
         { status: 'vacant' },
         {
           where: { id: unitId },
+          transaction: t,
+        }
+      );
+    }
+    if (!otherActiveLease) {
+      await Tenant.update(
+        { status: 'past' },
+        {
+          where: { id: tenantId },
           transaction: t,
         }
       );
@@ -280,6 +289,13 @@ const terminateLease = async (leaseId) => {
       { status: 'vacant' },
       {
         where: { id: lease.unitId },
+        transaction: t,
+      }
+    );
+    await Tenant.update(
+      { status: 'past' },
+      {
+        where: { id: lease.tenantId },
         transaction: t,
       }
     );
