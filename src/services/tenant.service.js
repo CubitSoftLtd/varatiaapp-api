@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 const httpStatus = require('http-status');
 const { Op } = require('sequelize');
 const { Unit, Property, Tenant } = require('../models');
@@ -21,24 +22,20 @@ const createTenant = async (tenantBody) => {
   const existingTenant = await Tenant.findOne({
     where: {
       [Op.or]: [
-        { email: tenantBody.email },
-        { phoneNumber: tenantBody.phoneNumber },
-        tenantBody.nationalId ? { nationalId: tenantBody.nationalId } : null,
+        { phoneNumber: tenantBody.phoneNumber }
       ].filter(Boolean),
     },
   });
   if (existingTenant) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Tenant with this email, phone number, or national ID already exists');
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Tenant with this  phone number already exist');
   }
 
   // Use a transaction for creating the tenant
   const tenant = await Tenant.sequelize.transaction(async (t) => {
     return Tenant.create(
       {
-        firstName: tenantBody.firstName,
-        lastName: tenantBody.lastName,
-        name: `${tenantBody.firstName} ${tenantBody.lastName}`,
-        email: tenantBody.email,
+        name: tenantBody.name,
+        email: tenantBody.email||null,
         phoneNumber: tenantBody.phoneNumber,
         emergencyContactName: tenantBody.emergencyContactName,
         emergencyContactPhone: tenantBody.emergencyContactPhone,
@@ -48,7 +45,7 @@ const createTenant = async (tenantBody) => {
         depositAmount: tenantBody.depositAmount,
         depositAmountLeft: tenantBody.depositAmount,
         status: tenantBody.status || 'current',
-        nationalId: tenantBody.nationalId,
+        nationalId: tenantBody.nationalId||null,
         // moveInDate: tenantBody.moveInDate,
         // moveOutDate: tenantBody.moveOutDate,
         notes: tenantBody.notes,

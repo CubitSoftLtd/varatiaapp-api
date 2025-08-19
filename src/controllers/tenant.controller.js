@@ -46,7 +46,7 @@ const createTenant = catchAsync(async (req, res) => {
 });
 
 const getTenants = catchAsync(async (req, res) => {
-  const filter = pick(req.query, ['firstName', 'lastName', 'email', 'phoneNumber', 'unitId', 'status']);
+  const filter = pick(req.query, ['name', 'email', 'phoneNumber', 'unitId', 'status']);
   const options = pick(req.query, ['sortBy', 'limit', 'page']);
   options.include = parseInclude(req.query.include);
   const deleted = req.query.deleted || 'false'; // Default to 'false'

@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 const Joi = require('joi');
 
 const statusTypes = {
@@ -14,21 +15,15 @@ const nationalIdRegex = /^[A-Za-z0-9\-/]{5,50}$/;
 
 const createTenant = {
   body: Joi.object().keys({
-    firstName: Joi.string().required().min(1).max(100).messages({
+    name: Joi.string().required().min(1).max(100).messages({
       'string.base': 'First name must be a string',
       'string.empty': 'First name is required',
       'string.min': 'First name must be at least 1 character long',
       'string.max': 'First name cannot exceed 100 characters',
     }),
-    lastName: Joi.string().allow('').max(100).messages({
-      'string.base': 'Last name must be a string',
-      'string.empty': 'Last name is required',
-      'string.min': 'Last name must be at least 1 character long',
-      'string.max': 'Last name cannot exceed 100 characters',
-    }),
-    email: Joi.string().email().allow('').max(255).messages({
+
+    email: Joi.string().email().allow(null , '').max(255).messages({
       'string.base': 'Email must be a string',
-      'string.empty': 'Email is required',
       'string.email': 'Email must be a valid email address',
       'string.max': 'Email cannot exceed 255 characters',
     }),
@@ -72,7 +67,7 @@ const createTenant = {
         'string.base': 'Status must be a string',
         'any.only': 'Status must be one of: current, prospective, past, evicted, notice, inactive',
       }),
-    nationalId: Joi.string().pattern(nationalIdRegex).allow('').messages({
+    nationalId: Joi.string().pattern(nationalIdRegex).allow(null, '').messages({
       'string.base': 'National ID must be a string',
       'string.pattern.base': 'National ID must be valid (5-50 characters, alphanumeric, hyphen, slash allowed)',
     }),
@@ -91,15 +86,10 @@ const createTenant = {
 
 const getTenants = {
   query: Joi.object().keys({
-    firstName: Joi.string().min(1).max(100).messages({
+    name: Joi.string().min(1).max(100).messages({
       'string.base': 'First name must be a string',
       'string.min': 'First name must be at least 1 character long',
       'string.max': 'First name cannot exceed 100 characters',
-    }),
-    lastName: Joi.string().min(1).max(100).messages({
-      'string.base': 'Last name must be a string',
-      'string.min': 'Last name must be at least 1 character long',
-      'string.max': 'Last name cannot exceed 100 characters',
     }),
     email: Joi.string().email().max(255).messages({
       'string.base': 'Email must be a string',
@@ -179,21 +169,15 @@ const updateTenant = {
   }),
   body: Joi.object()
     .keys({
-      firstName: Joi.string().required().min(1).max(100).messages({
+      name: Joi.string().required().min(1).max(100).messages({
         'string.base': 'First name must be a string',
         'string.empty': 'First name is required',
         'string.min': 'First name must be at least 1 character long',
         'string.max': 'First name cannot exceed 100 characters',
       }),
-      lastName: Joi.string().allow('').max(100).messages({
-        'string.base': 'Last name must be a string',
-        'string.empty': 'Last name is required',
-        'string.min': 'Last name must be at least 1 character long',
-        'string.max': 'Last name cannot exceed 100 characters',
-      }),
-      email: Joi.string().email().allow('').max(255).messages({
+
+      email: Joi.string().email().allow(null ,'').max(255).messages({
         'string.base': 'Email must be a string',
-        'string.empty': 'Email is required',
         'string.email': 'Email must be a valid email address',
         'string.max': 'Email cannot exceed 255 characters',
       }),
@@ -237,7 +221,7 @@ const updateTenant = {
           'string.base': 'Status must be a string',
           'any.only': 'Status must be one of: current, prospective, past, evicted, notice, inactive',
         }),
-      nationalId: Joi.string().pattern(nationalIdRegex).allow('').messages({
+      nationalId: Joi.string().pattern(nationalIdRegex).allow(null,'').messages({
         'string.base': 'National ID must be a string',
         'string.pattern.base': 'National ID must be valid (5-50 characters, alphanumeric, hyphen, slash allowed)',
       }),

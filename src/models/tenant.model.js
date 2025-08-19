@@ -9,16 +9,6 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false, // Primary keys must be non-nullable
         comment: 'Unique identifier for the tenant',
       },
-      firstName: {
-        type: DataTypes.STRING(100), // Specify reasonable length
-        allowNull: false,
-        comment: "Tenant's first name",
-      },
-      lastName: {
-        type: DataTypes.STRING(100), // Specify reasonable length
-        allowNull: false,
-        comment: "Tenant's last name",
-      },
       name: {
         type: DataTypes.STRING(200),
         allowNull: false,
@@ -27,7 +17,7 @@ module.exports = (sequelize, DataTypes) => {
       email: {
         type: DataTypes.STRING(255),
         allowNull: true,
-        unique: true,
+        unique: false,
         comment: "Tenant's primary email address",
       },
       phoneNumber: {
@@ -136,9 +126,6 @@ module.exports = (sequelize, DataTypes) => {
       indexes: [
         {
           fields: ['unitId'], // Index for faster lookups by unit
-        },
-        {
-          fields: ['leaseStartDate', 'leaseEndDate'], // Index for date range queries
         },
         {
           fields: ['status'], // Index for filtering by status

@@ -37,10 +37,7 @@ const router = express.Router();
  *               - phoneNumber
  *               - depositAmount
  *             properties:
- *               firstName:
- *                 type: string
- *                 description: Tenant's first name
- *               lastName:
+ *               name:
  *                 type: string
  *                 description: Tenant's last name
  *               email:
@@ -79,8 +76,7 @@ const router = express.Router();
  *                 description: Additional notes about the tenant
  *                 nullable: true
  *             example:
- *               firstName: "John"
- *               lastName: "Doe"
+ *               name: "John"
  *               email: "john.doe@example.com"
  *               phoneNumber: "+8801712345678"
  *               emergencyContactName: "Jane Doe"
@@ -113,15 +109,10 @@ const router = express.Router();
  *       - bearerAuth: []
  *     parameters:
  *       - in: query
- *         name: firstName
+ *         name: name
  *         schema:
  *           type: string
- *         description: Tenant's first name
- *       - in: query
- *         name: lastName
- *         schema:
- *           type: string
- *         description: Tenant's last name
+ *         description: Tenant's  name
  *       - in: query
  *         name: email
  *         schema:
@@ -259,12 +250,9 @@ const router = express.Router();
  *           schema:
  *             type: object
  *             properties:
- *               firstName:
+ *               name:
  *                 type: string
  *                 description: Tenant's first name
- *               lastName:
- *                 type: string
- *                 description: Tenant's last name
  *               email:
  *                 type: string
  *                 format: email
@@ -298,8 +286,7 @@ const router = express.Router();
  *                 description: Additional notes about the tenant
  *                 nullable: true
  *             example:
- *               firstName: "John"
- *               lastName: "Smith"
+ *               name: "John"
  *               email: "john.smith@example.com"
  *               phoneNumber: "+8801712345678"
  *               emergencyContactName: "Jane Doe"
