@@ -26,12 +26,21 @@ const createSubmeter = async (submeterBody) => {
     where: {
       number: submeterBody.number,
       meterId: submeterBody.meterId,
+      unitId: submeterBody.unitId,
     },
   });
   if (existingSubmeter) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Submeter number already exists for this meter');
   }
+  const existingSubmeterUnit = await Submeter.findOne({
+    where: {
+      unitId: submeterBody.unitId,
+    },
+  });
 
+  if (existingSubmeterUnit) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Submeter already asign for this Unit');
+  }
   // Use a transaction for creating the submeter
   const submeter = await Submeter.sequelize.transaction(async (t) => {
     return Submeter.create(

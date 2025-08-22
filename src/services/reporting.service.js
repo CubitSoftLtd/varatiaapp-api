@@ -237,10 +237,12 @@ const getTenantHistoryReport = async (filter) => {
   });
 
   const tenant = await Tenant.findByPk(tenantId, {
-    attributes: ['id', 'name', 'depositAmount'],
+    attributes: ['id', 'name', 'depositAmount', 'depositAmountLeft'],
   });
 
   const totalBillAmount = bills.reduce((sum, b) => sum + parseFloat(b.totalAmount || 0), 0);
+  // const deductedAmount = bills.reduce((sum, b) => sum + parseFloat(b.totalAmount || 0), 0);
+  const totalDeductedAmount = bills.reduce((sum, b) => sum + parseFloat(b.deductedAmount || 0), 0);
   const totalUtilityAmount = bills.reduce((sum, b) => sum + parseFloat(b.totalUtilityAmount || 0), 0);
   const totalRentAmount = bills.reduce((sum, b) => sum + parseFloat(b.rentAmount || 0), 0);
   const totalOtherCharges = bills.reduce((sum, b) => sum + parseFloat(b.otherChargesAmount || 0), 0);
@@ -262,8 +264,10 @@ const getTenantHistoryReport = async (filter) => {
     unitId: lease?.unitId ?? null,
     unitName: lease?.unit?.name ?? null,
     property: lease?.property?.name ?? null,
+    depositAmountLeft: tenant?.depositAmountLeft,
 
     totalBillAmount,
+    totalDeductedAmount,
     totalUtilityAmount,
     totalRentAmount,
     totalOtherCharges,
@@ -292,6 +296,7 @@ const getTenantHistoryReport = async (filter) => {
       billingPeriodStart: b.billingPeriodStart,
       billingPeriodEnd: b.billingPeriodEnd,
       rentAmount: b.rentAmount,
+      deductedAmount: b.deductedAmount,
       totalUtilityAmount: b.totalUtilityAmount,
       otherChargesAmount: b.otherChargesAmount,
       totalAmount: b.totalAmount,
@@ -579,7 +584,25 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
 
     lastInvoiceNo += 1;
     const baseRentAmount = parseFloat(unit.rentAmount) || 0;
-    const adjustedRentAmount = baseRentAmount - deductedAmount;
+
+    // 🔹 Tenant data আনুন (depositAmountLeft সহ)
+    const tenant = tenantId
+      ? await Tenant.findByPk(tenantId, { attributes: ['id', 'name', 'depositAmountLeft'] })
+      : null;
+
+    // 🔹 কন্ডিশন সেট করুন → depositAmountLeft > 0 হলে তবেই deductedAmount মাইনাস হবে
+    let adjustedRentAmount = baseRentAmount;
+    let finalDeductedAmount = 0;
+
+    if (tenant && tenant.depositAmountLeft > 0 && deductedAmount > 0) {
+      adjustedRentAmount = baseRentAmount - deductedAmount;
+      finalDeductedAmount = deductedAmount;
+
+      // ✅ depositAmountLeft আপডেট করুন
+      // tenant.depositAmountLeft = Math.max(0, tenant.depositAmountLeft - deductedAmount);
+      await tenant.save();
+    }
+
     let totalUtilityAmount = 0;
 
     // 🔹 Utility Calculation
@@ -625,8 +648,6 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
 
     const totalAmount = adjustedRentAmount + totalUtilityAmount + otherChargesAmount;
 
-    const tenant = tenantId ? await Tenant.findByPk(tenantId, { attributes: ['id', 'name'] }) : null;
-
     // 🔹 Due Date সেট করুন
     const dueDateObj = new Date(endDate);
     dueDateObj.setMonth(dueDateObj.getMonth() + 1);
@@ -641,7 +662,7 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
       billingPeriodStart: startDate,
       billingPeriodEnd: endDate,
       rentAmount: baseRentAmount,
-      deductedAmount,
+      deductedAmount: finalDeductedAmount, // ✅ এখন শুধুমাত্র condition মেনে deduct হবে
       totalUtilityAmount,
       otherChargesAmount,
       totalAmount,
@@ -659,7 +680,7 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
       invoiceNo: newBill.invoiceNo,
       issueDate: newBill.issueDate,
       rentAmount: baseRentAmount,
-      deductedAmount,
+      deductedAmount: finalDeductedAmount, // ✅ ফাইনাল ডিডাকশন এখানে reflect হবে
       totalUtilityAmount: newBill.totalUtilityAmount,
       otherChargesAmount: newBill.otherChargesAmount,
       totalAmount: newBill.totalAmount,
@@ -701,6 +722,7 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
     totalResults: formattedResults.length,
   };
 };
+
 
 
 const getPersonalExpenseReportByBeneficiary = async (filter) => {

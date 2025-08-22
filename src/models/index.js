@@ -22,6 +22,7 @@ const TenancyHistory = require('./tenancyHistory.model');
 const Document = require('./document.model');
 const PersonalExpense = require('./personalExpense.model');
 const Beneficiary = require('./beneficiary.model');
+const DueBill = require('./dueBill.model');
 
 const env = process.env.NODE_ENV || 'development';
 const dbConfig = config.database[env];
@@ -58,6 +59,7 @@ const models = {
   Document: Document(sequelize, DataTypes),
   PersonalExpense: PersonalExpense(sequelize, DataTypes),
   Beneficiary: Beneficiary(sequelize, DataTypes),
+  DueBill: DueBill(sequelize, DataTypes),
 };
 
 // Associate models

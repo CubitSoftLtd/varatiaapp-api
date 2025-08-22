@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 /* eslint-disable spaced-comment */
 const httpStatus = require('http-status');
 const { Op } = require('sequelize'); // <--- ADD THIS LINE: Import Op for date range queries
@@ -389,10 +390,32 @@ const restoreBill = async (id) => {
  * @param {string} id - Bill UUID
  * @returns {Promise<void>}
  */
+
+
 const hardDeleteBill = async (id) => {
   const bill = await getBillById(id);
+  if (!bill) {
+    throw new Error("Bill not found");
+  }
+  if (bill.status === "paid") {
+    const lease = await Lease.findByPk(bill.leaseId);
+    if (!lease) {
+      throw new Error("Lease not found");
+    }
+    const tenant = await Tenant.findByPk(lease.tenantId);
+    if (!tenant) {
+      throw new Error("Tenant not found");
+    }
+    if (bill.deductedAmount && bill.deductedAmount > 0) {
+      tenant.depositAmountLeft =
+        Number(tenant.depositAmountLeft) + Number(bill.deductedAmount);
+      await tenant.save();
+    }
+  }
   await bill.destroy();
 };
+
+
 
 /**
  * Get all bills for a property within a date range, formatted for printing

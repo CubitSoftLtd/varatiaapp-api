@@ -65,6 +65,7 @@ const allRoles = {
     // Role management
     'role:management',
     'report:management',
+    'due:management',
     'beneficiary:management',
     'lease:management',
     'meter_charge:management',
@@ -105,6 +106,7 @@ const allRoles = {
     // Account permissions
     // 'account:management',
     // Meter/Submeter permissions
+    'due:management',
     'meter:management',
     'sub_meter:management',
     'meter_reading:management',
