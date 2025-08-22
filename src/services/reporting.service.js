@@ -242,8 +242,12 @@ const getTenantHistoryReport = async (filter) => {
 
   const totalBillAmount = bills.reduce((sum, b) => sum + parseFloat(b.totalAmount || 0), 0);
   // const deductedAmount = bills.reduce((sum, b) => sum + parseFloat(b.totalAmount || 0), 0);
-  const totalDeductedAmount = bills.reduce((sum, b) => sum + parseFloat(b.deductedAmount || 0), 0);
-  const totalUtilityAmount = bills.reduce((sum, b) => sum + parseFloat(b.totalUtilityAmount || 0), 0);
+  const totalDeductedAmount = bills.reduce(
+    (sum, b) => b.paymentStatus !== "unpaid"
+      ? sum + parseFloat(b.deductedAmount || 0)
+      : sum,
+    0
+  ); const totalUtilityAmount = bills.reduce((sum, b) => sum + parseFloat(b.totalUtilityAmount || 0), 0);
   const totalRentAmount = bills.reduce((sum, b) => sum + parseFloat(b.rentAmount || 0), 0);
   const totalOtherCharges = bills.reduce((sum, b) => sum + parseFloat(b.otherChargesAmount || 0), 0);
   const totalBalanceDue = bills.reduce((sum, b) => sum + parseFloat(b.balanceDue || 0), 0);
@@ -296,7 +300,8 @@ const getTenantHistoryReport = async (filter) => {
       billingPeriodStart: b.billingPeriodStart,
       billingPeriodEnd: b.billingPeriodEnd,
       rentAmount: b.rentAmount,
-      deductedAmount: b.deductedAmount,
+      deductedAmount: b.paymentStatus !== 'unpaid' ? b.deductedAmount : 0,
+      paymentStatus: b.paymentStatus,
       totalUtilityAmount: b.totalUtilityAmount,
       otherChargesAmount: b.otherChargesAmount,
       totalAmount: b.totalAmount,
@@ -593,10 +598,10 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
     // 🔹 কন্ডিশন সেট করুন → depositAmountLeft > 0 হলে তবেই deductedAmount মাইনাস হবে
     let adjustedRentAmount = baseRentAmount;
     let finalDeductedAmount = 0;
-
-    if (tenant && tenant.depositAmountLeft > 0 && deductedAmount > 0) {
-      adjustedRentAmount = baseRentAmount - deductedAmount;
-      finalDeductedAmount = deductedAmount;
+      const deductedAmountModify = tenant?.depositAmountLeft >deductedAmount ? deductedAmount:tenant?.depositAmountLeft
+    if (tenant && tenant.depositAmountLeft > 0 && deductedAmountModify > 0) {
+      adjustedRentAmount = baseRentAmount - deductedAmountModify;
+      finalDeductedAmount = deductedAmountModify;
 
       // ✅ depositAmountLeft আপডেট করুন
       // tenant.depositAmountLeft = Math.max(0, tenant.depositAmountLeft - deductedAmount);
@@ -705,7 +710,7 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
     return {
       fullInvoiceNumber: `INV-${billYear}-${formattedInvoiceNo}`,
       rentAmountFormatted: bill.rentAmount.toFixed(2),
-      deductedAmountFormatted: bill.deductedAmount.toFixed(2),
+      deductedAmountFormatted: bill.deductedAmount,
       issueDate: bill.issueDate,
       totalUtilityAmountFormatted: bill.totalUtilityAmount.toFixed(2),
       otherChargesAmount: bill.otherChargesAmount.toFixed(2),
@@ -726,7 +731,7 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
 
 
 const getPersonalExpenseReportByBeneficiary = async (filter) => {
-  const { beneficiaryId, startDate, endDate,accountId } = filter;
+  const { beneficiaryId, startDate, endDate, accountId } = filter;
 
   if (!beneficiaryId) {
     throw new Error("beneficiaryId is required");

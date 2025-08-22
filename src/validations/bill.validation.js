@@ -41,7 +41,7 @@ const baseBillSchema = {
     'number.precision': 'Rent amount must have at most 2 decimal places',
     'any.required': 'Rent amount is required',
   }),
-  dueDate: Joi.date().required().messages({
+  dueDate: Joi.date().allow('').messages({
     'date.base': 'Due date must be a valid date',
     'any.required': 'Due date is required',
   }),
@@ -187,7 +187,7 @@ const updateBill = {
         'number.min': 'Rent amount cannot be negative',
         'number.precision': 'Rent amount must have at most 2 decimal places',
       }),
-      dueDate: Joi.date().messages({
+      dueDate: Joi.date().allow('').messages({
         'date.base': 'Due date must be a valid date',
       }),
       issueDate: Joi.date().messages({

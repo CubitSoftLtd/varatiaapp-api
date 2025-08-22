@@ -61,7 +61,7 @@ const router = express.Router();
  *                 description: Security deposit amount paid by the tenant
  *               status:
  *                 type: string
- *                 enum: [current, prospective, past, evicted, notice, inactive]
+ *                 enum: [current, prospective, past, evicted, notice, inactive, 'occupying']
  *                 description: Current status of the tenant
  *                 default: current
  *               nationalId:
@@ -127,7 +127,7 @@ const router = express.Router();
  *         name: status
  *         schema:
  *           type: string
- *           enum: [current, prospective, past, evicted, notice, inactive]
+ *           enum: [current, prospective, past, evicted, notice, inactive, 'occupying']
  *         description: Tenant status
  *       - in: query
  *         name: deleted
@@ -273,7 +273,7 @@ const router = express.Router();
  *                 description: Security deposit amount paid by the tenant
  *               status:
  *                 type: string
- *                 enum: [current, prospective, past, evicted, notice, inactive]
+ *                 enum: [current, prospective, past, evicted, notice, inactive, 'occupying']
  *                 description: Current status of the tenant
  *               nationalId:
  *                 type: string

@@ -86,8 +86,8 @@ module.exports = (sequelize, DataTypes) => {
         comment: 'ID of the account that generated this bill',
       },
       status: {
-        type: DataTypes.ENUM('current', 'prospective', 'past', 'evicted', 'notice'), // More descriptive statuses
-        allowNull: false,
+        type: DataTypes.ENUM('current', 'prospective', 'past', 'evicted', 'notice', 'occupying'), // More descriptive statuses
+        allowNull: true,
         defaultValue: 'current',
         comment: 'Current status of the tenant in the property management system',
       },

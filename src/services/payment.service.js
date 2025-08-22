@@ -8,7 +8,7 @@ const ApiError = require('../utils/ApiError');
 const validMethods = ['cash', 'credit_card', 'bank_transfer', 'mobile_payment', 'check', 'online'];
 
 const createPayment = async (paymentData) => {
-  const { billId, tenantId, accountId, amountPaid, paymentDate, paymentMethod, transactionId, notes } = paymentData;
+  const { billId, tenantId, accountId, amountPaid, paymentDate, paymentMethod, transactionId, notes, billMonth } = paymentData;
 
   if (!billId || !accountId || !amountPaid || !paymentMethod) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Required fields: billId, accountId, amountPaid, paymentMethod');
@@ -60,6 +60,7 @@ const createPayment = async (paymentData) => {
     tenantId: tenantId || null,
     accountId,
     amountPaid,
+    billMonth,
     paymentDate: paymentDate || new Date(),
     paymentMethod,
     transactionId: transactionId || null,
@@ -183,7 +184,7 @@ const updatePayment = async (paymentId, updateBody) => {
   const payment = await getPaymentById(paymentId);
   if (!payment) throw new ApiError(httpStatus.NOT_FOUND, 'Payment not found');
 
-  const { tenantId, amountPaid, paymentDate, paymentMethod, transactionId, notes, billId } = updateBody;
+  const { tenantId, amountPaid, paymentDate, paymentMethod, transactionId, notes, billId,billMonth } = updateBody;
 
   if (billId) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Cannot update billId of a payment');
@@ -222,6 +223,7 @@ const updatePayment = async (paymentId, updateBody) => {
     tenantId: tenantId ?? payment.tenantId,
     amountPaid: amountPaid ?? payment.amountPaid,
     paymentDate: paymentDate || payment.paymentDate,
+    billMonth: billMonth || payment.billMonth,
     paymentMethod: paymentMethod || payment.paymentMethod,
     transactionId: transactionId ?? payment.transactionId,
     notes: notes ?? payment.notes,
@@ -328,7 +330,7 @@ const approvePayment = async (paymentId) => {
       const tenant = await Tenant.findByPk(activeLease.tenantId, { transaction: t });
 
       if (tenant && tenant.depositAmountLeft && tenant.depositAmountLeft > 0) {
-        const newDepositAmountLeft = parseFloat(tenant.depositAmountLeft) - parseFloat(activeLease.deductedAmount);
+        const newDepositAmountLeft = parseFloat(tenant.depositAmountLeft) - parseFloat(bill.deductedAmount);
         await tenant.update(
           { depositAmountLeft: newDepositAmountLeft < 0 ? 0 : newDepositAmountLeft },
           { transaction: t }

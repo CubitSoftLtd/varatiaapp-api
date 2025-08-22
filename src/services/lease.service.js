@@ -68,6 +68,7 @@ const createLease = async (leaseBody, user) => {
 
     // Step 2: Update unit status
     await Unit.update({ status: 'occupied' }, { where: { id: leaseBody.unitId }, transaction: t });
+    await Tenant.update({ status: 'occupying' }, { where: { id: leaseBody.tenantId }, transaction: t });
 
     // Step 3: Create meter reading (inside same transaction)
     if (leaseBody.unitId && leaseBody.startedMeterReading && leaseBody.leaseStartDate) {

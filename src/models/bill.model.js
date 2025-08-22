@@ -98,7 +98,7 @@ module.exports = (sequelize) => {
       },
       issueDate: {
         type: DataTypes.DATEONLY,
-        allowNull: false,
+        allowNull: true,
         defaultValue: DataTypes.NOW,
         comment: 'The date the bill was issued',
       },

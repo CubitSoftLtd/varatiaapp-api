@@ -47,6 +47,11 @@ module.exports = (sequelize) => {
         defaultValue: DataTypes.NOW,
         comment: 'The date and time the payment was received or processed',
       },
+      billMonth: {
+        type: DataTypes.DATEONLY,
+        allowNull: false,
+        comment: 'Start date of the billing period',
+      },
       paymentMethod: {
         type: DataTypes.ENUM('cash', 'credit_card', 'bank_transfer', 'mobile_payment', 'check', 'online'),
         allowNull: false,

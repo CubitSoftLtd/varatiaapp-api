@@ -26,7 +26,7 @@ const createBill = async (billBody) => {
   } = billBody;
 
   // **Validate Required Fields**
-  if (!accountId || !tenantId || !unitId || !billingPeriodStart || !billingPeriodEnd || !rentAmount || !dueDate) {
+  if (!accountId || !tenantId || !unitId || !billingPeriodStart || !billingPeriodEnd || !rentAmount) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Missing required fields');
   }
 
@@ -102,12 +102,12 @@ const createBill = async (billBody) => {
   });
 
   const deductedAmount = lease?.deductedAmount ? parseFloat(lease.deductedAmount) : 0;
-
-  // **Calculate totalAmount**
+  const depostieAmountLeftModify = tenant?.depositAmountLeft ? parseFloat(tenant.depositAmountLeft) : 0;
+  const deductedAmountMofiy = tenant?.depositAmountLeft> lease?.deductedAmount ? deductedAmount:depostieAmountLeftModify
   const otherChargesAmount = 0.0; // Placeholder: Update with expense logic if needed
 
   // rent থেকে deductedAmount বাদ
-  const adjustedRentAmount = parseFloat(rentAmount) - deductedAmount; // Placeholder: Update with expense logic if needed
+  const adjustedRentAmount = parseFloat(rentAmount) - deductedAmountMofiy; // Placeholder: Update with expense logic if needed
   const totalAmount =
     parseFloat(adjustedRentAmount) + parseFloat(calculatedTotalUtilityAmount) + parseFloat(otherChargesAmount);
 
@@ -134,6 +134,7 @@ const createBill = async (billBody) => {
         invoiceNo: nextInvoiceNo,
         billingPeriodStart,
         billingPeriodEnd,
+        deductedAmount:deductedAmountMofiy,
         rentAmount: parseFloat(rentAmount),
         totalUtilityAmount: parseFloat(calculatedTotalUtilityAmount),
         otherChargesAmount,
@@ -329,14 +330,18 @@ const updateBill = async (id, updateBody) => {
 
   // **Calculate totalAmount**
   // **Get deductedAmount from Lease**
+    const [ tenant] = await Promise.all([
+    Tenant.findByPk(tenantId),
+  ]);
   const lease = await Lease.findOne({
     where: { tenantId, unitId, status: 'active' },
   });
   const deductedAmount = lease?.deductedAmount ? parseFloat(lease.deductedAmount) : 0;
+  const depostieAmountLeftModify = tenant?.depositAmountLeft ? parseFloat(tenant.depositAmountLeft) : 0;
+  const deductedAmountMofiy = tenant?.depositAmountLeft> lease?.deductedAmount ? deductedAmount:depostieAmountLeftModify
+  const otherChargesAmount = 0.0; // Placeholder: Update with expense logic if needed
 
-  // **Calculate totalAmount**
-  const { otherChargesAmount } = bill;
-  const adjustedRentAmount = parseFloat(rentAmount) - deductedAmount;
+  const adjustedRentAmount = parseFloat(rentAmount) - deductedAmountMofiy;
   const totalAmount = adjustedRentAmount + parseFloat(calculatedTotalUtilityAmount) + parseFloat(otherChargesAmount);
 
   // **Update Bill**
@@ -350,7 +355,7 @@ const updateBill = async (id, updateBody) => {
     rentAmount: parseFloat(rentAmount),
     totalUtilityAmount: parseFloat(calculatedTotalUtilityAmount),
     otherChargesAmount,
-    deductedAmount,
+    deductedAmount:deductedAmountMofiy,
     totalAmount,
     dueDate,
     issueDate,
@@ -479,15 +484,15 @@ const getBillsByPropertyAndDateRange = async (propertyId, filter, options) => {
   const formattedResults = await Promise.all(
     rows.map(async (bill) => {
       // Active lease থেকে deductedAmount নেওয়া
-      const lease = await Lease.findOne({
-        where: { tenantId: bill.tenantId, unitId: bill.unitId, status: 'active' },
-      });
-      const deductedAmount = lease?.deductedAmount ? parseFloat(lease.deductedAmount) : 0;
+      // const lease = await Lease.findOne({
+      //   where: { tenantId: bill.tenantId, unitId: bill.unitId, status: 'active' },
+      // });
+      // const deductedAmount = bill?.deductedAmount ? parseFloat(bill.deductedAmount) : 0;
 
-      // Adjusted total
-      const adjustedRentAmount = parseFloat(bill.rentAmount) - deductedAmount;
-      const adjustedTotalAmount =
-        adjustedRentAmount + parseFloat(bill.totalUtilityAmount) + parseFloat(bill.otherChargesAmount);
+      // // Adjusted total
+      // const adjustedRentAmount = parseFloat(bill.rentAmount) - deductedAmount;
+      // const adjustedTotalAmount =
+      //   adjustedRentAmount + parseFloat(bill.totalUtilityAmount) + parseFloat(bill.otherChargesAmount);
 
       const billYear = new Date(bill.issueDate).getFullYear();
       const formattedInvoiceNo = String(bill.invoiceNo).padStart(4, '0');
@@ -498,8 +503,8 @@ const getBillsByPropertyAndDateRange = async (propertyId, filter, options) => {
         issueDate: bill.issueDate,
         totalUtilityAmountFormatted: bill.totalUtilityAmount,
         otherChargesAmount: bill.otherChargesAmount,
-        deductedAmount,
-        totalAmountFormatted: adjustedTotalAmount,
+        deductedAmount:bill.deductedAmount,
+        totalAmountFormatted: bill.totalAmount,
         tenantName: bill.tenant?.name || 'N/A',
         unitName: bill.unit?.name || 'N/A',
         propertyName: bill.unit?.property?.name || 'N/A',

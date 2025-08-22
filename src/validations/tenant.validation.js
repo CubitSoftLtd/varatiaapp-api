@@ -8,6 +8,7 @@ const statusTypes = {
   EVICTED: 'evicted',
   NOTICE: 'notice',
   INACTIVE: 'inactive',
+  OCCUPYING: 'occupying',
 };
 
 const phoneRegex = /^\+?[0-9\s\-.()]{7,25}$/;
@@ -22,7 +23,7 @@ const createTenant = {
       'string.max': 'First name cannot exceed 100 characters',
     }),
 
-    email: Joi.string().email().allow(null , '').max(255).messages({
+    email: Joi.string().email().allow(null, '').max(255).messages({
       'string.base': 'Email must be a string',
       'string.email': 'Email must be a valid email address',
       'string.max': 'Email cannot exceed 255 characters',
@@ -63,9 +64,10 @@ const createTenant = {
     status: Joi.string()
       .valid(...Object.values(statusTypes))
       .default('current')
+      .allow('')
       .messages({
         'string.base': 'Status must be a string',
-        'any.only': 'Status must be one of: current, prospective, past, evicted, notice, inactive',
+        'any.only': 'Status must be one of: current, prospective, past, evicted, notice, inactive, occupying',
       }),
     nationalId: Joi.string().pattern(nationalIdRegex).allow(null, '').messages({
       'string.base': 'National ID must be a string',
@@ -110,7 +112,7 @@ const getTenants = {
       .valid(...Object.values(statusTypes))
       .messages({
         'string.base': 'Status must be a string',
-        'any.only': 'Status must be one of: current, prospective, past, evicted, notice, inactive',
+        'any.only': 'Status must be one of: current, prospective, past, evicted, notice, inactive, occupying',
       }),
     sortBy: Joi.string()
       .pattern(/^[a-zA-Z]+:(asc|desc)$/)
@@ -176,7 +178,7 @@ const updateTenant = {
         'string.max': 'First name cannot exceed 100 characters',
       }),
 
-      email: Joi.string().email().allow(null ,'').max(255).messages({
+      email: Joi.string().email().allow(null, '').max(255).messages({
         'string.base': 'Email must be a string',
         'string.email': 'Email must be a valid email address',
         'string.max': 'Email cannot exceed 255 characters',
@@ -217,11 +219,12 @@ const updateTenant = {
       status: Joi.string()
         .valid(...Object.values(statusTypes))
         .default('current')
+        .allow('')
         .messages({
           'string.base': 'Status must be a string',
-          'any.only': 'Status must be one of: current, prospective, past, evicted, notice, inactive',
+          'any.only': 'Status must be one of: current, prospective, past, evicted, notice, inactive, occupying',
         }),
-      nationalId: Joi.string().pattern(nationalIdRegex).allow(null,'').messages({
+      nationalId: Joi.string().pattern(nationalIdRegex).allow(null, '').messages({
         'string.base': 'National ID must be a string',
         'string.pattern.base': 'National ID must be valid (5-50 characters, alphanumeric, hyphen, slash allowed)',
       }),

@@ -57,6 +57,10 @@ const router = express.Router({ mergeParams: true }); // mergeParams to inherit 
  *                 type: string
  *                 format: date-time
  *                 description: Date and time of payment
+ *               billMonth:
+ *                 type: string
+ *                 format: date
+ *                 description: Bill month 
  *               paymentMethod:
  *                 type: string
  *                 enum: [cash, credit_card, bank_transfer, mobile_payment, check, online]
@@ -73,6 +77,7 @@ const router = express.Router({ mergeParams: true }); // mergeParams to inherit 
  *               billId: 123e4567-e89b-12d3-a456-426614174000
  *               tenantId: 223e4567-e89b-12d3-a456-426614174001
  *               accountId: 323e4567-e89b-12d3-a456-426614174002
+ *               billMonth: 2025-06-01
  *               amountPaid: 500.00
  *               paymentDate: 2025-06-11T12:00:00Z
  *               paymentMethod: credit_card
@@ -120,11 +125,11 @@ const router = express.Router({ mergeParams: true }); // mergeParams to inherit 
  *           format: uuid
  *         description: Filter by account ID
  *       - in: query
- *         name: paymentDate
+ *         name: billMonth
  *         schema:
  *           type: string
- *           format: date-time
- *         description: Filter by payment date
+ *           format: date
+ *         description: Filter by bill month date
  *       - in: query
  *         name: paymentMethod
  *         schema:
@@ -270,6 +275,10 @@ const router = express.Router({ mergeParams: true }); // mergeParams to inherit 
  *                 type: string
  *                 format: date-time
  *                 description: Date and time of payment
+ *               billMonth:
+ *                 type: string
+ *                 format: date
+ *                 description: Bill month 
  *               paymentMethod:
  *                 type: string
  *                 enum: [cash, credit_card, bank_transfer, mobile_payment, check, online]
