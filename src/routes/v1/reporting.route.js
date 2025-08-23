@@ -882,8 +882,47 @@ const router = express.Router();
  *       "403":
  *         $ref: '#/components/responses/Forbidden'
  */
+/**
+ * @swagger
+ * /reports/dashboard-count:
+ *   get:
+ *     summary: Get dashboard counts
+ *     description: Retrieve counts of tenants, properties, meters, and submeters for an account.
+ *     tags: [Reports]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       "200":
+ *         description: Dashboard counts retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 tenants:
+ *                   type: integer
+ *                   example: 120
+ *                 properties:
+ *                   type: integer
+ *                   example: 35
+ *                 meters:
+ *                   type: integer
+ *                   example: 50
+ *                 submeters:
+ *                   type: integer
+ *                   example: 80
+ *                 generatedAt:
+ *                   type: string
+ *                   format: date-time
+ *                   example: 2025-08-23T15:45:00.000Z
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
+ */
 
 router.route('/financial').get(auth('report:management'), validate(reportingValidation.getFinancialRe), reportingController.getFinancialReport);
+router.route('/dashboard-count').get(auth('report:management'), validate(reportingValidation.getFinancialRe), reportingController.getDashboardCountsController);
 
 router
   .route('/tenant-activity')
