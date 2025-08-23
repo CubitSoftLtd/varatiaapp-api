@@ -90,6 +90,9 @@ const getBills = {
         'string.base': 'Tenant ID must be a string',
         'string.uuid': 'Tenant ID must be a valid UUID',
       }),
+    excludePaid: Joi.boolean().optional().messages({
+      'boolean.base': 'excludePaid must be a boolean value',
+    }),
     unitId: Joi.string()
       .uuid({ version: ['uuidv4'] })
       .messages({

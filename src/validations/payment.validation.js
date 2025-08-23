@@ -30,9 +30,7 @@ const paymentSchema = {
   paymentDate: Joi.date().messages({
     'date.base': 'Payment date must be a valid date',
   }),
-  billMonth: Joi.date().messages({
-    'date.base': 'Billing period start must be a valid date',
-  }),
+
   paymentMethod: Joi.string()
     .valid('cash', 'credit_card', 'bank_transfer', 'mobile_payment', 'check', 'online')
     .required()
@@ -77,9 +75,7 @@ const getPayments = {
     paymentDate: Joi.date().messages({
       'date.base': 'Payment date must be a valid date',
     }),
-    billMonth: Joi.date().messages({
-      'date.base': 'Payment date must be a valid date',
-    }),
+
     paymentMethod: Joi.string().valid('cash', 'credit_card', 'bank_transfer', 'mobile_payment', 'check', 'online').messages({
       'string.base': 'Payment method must be a string',
       'any.valid': 'Invalid payment method',
@@ -181,9 +177,7 @@ const updatePayment = {
       paymentDate: Joi.date().messages({
         'date.base': 'Payment date must be a valid date',
       }),
-      billMonth: Joi.date().messages({
-        'date.base': 'Billing period start must be a valid date',
-      }),
+
       paymentMethod: Joi.string()
         .valid('cash', 'credit_card', 'bank_transfer', 'mobile_payment', 'check', 'online')
         .messages({

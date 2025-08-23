@@ -7,30 +7,6 @@ const httpStatus = require('http-status');
 const { Bill, Payment, Expense, Lease, MaintenanceRequest, MeterCharge, Unit, Tenant, Property, Meter, Sequelize, MeterReading, UtilityType, Submeter, PersonalExpense, Beneficiary } = require('../models');
 const ApiError = require('../utils/ApiError');
 
-// const getFinancialReport = async (filter) => {
-//   const { startDate, endDate, propertyId } = filter;
-//   const where = {};
-//   if (startDate) where.createdAt = { [Op.gte]: new Date(startDate) };
-//   if (endDate) where.createdAt = { [Op.lte]: new Date(endDate) };
-//   if (propertyId) where.propertyId = propertyId;
-
-//   const totalRevenue = (await Payment.sum('amountPaid', { where })) || 0;
-//   const otherExpenses = (await Expense.sum('amount', { where })) || 0;
-//   const meterCharges = (await MeterCharge.sum('amount', { where })) || 0;
-//   const totalExpenses = otherExpenses + meterCharges;
-//   const outstandingPayments =
-//     (await Bill.sum('totalAmount', {
-//       where: { paymentStatus: 'pending', ...where },
-//     })) || 0;
-
-//   return {
-//     totalRevenue,
-//     totalExpenses,
-//     outstandingPayments,
-//     profit: totalRevenue - totalExpenses,
-//     generatedAt: new Date(),
-//   };
-// };
 const getFinancialReport = async (filter) => {
   const { startDate, endDate, propertyId, accountId } = filter;
   const where = {};
@@ -83,39 +59,6 @@ const getFinancialReport = async (filter) => {
   };
 };
 
-const getTenantActivityReport = async (filter) => {
-  const { startDate, endDate, tenantId, unitId } = filter;
-  const where = {};
-  if (startDate) where.createdAt = { [Op.gte]: new Date(startDate) };
-  if (endDate) where.createdAt = { [Op.lte]: new Date(endDate) };
-  if (tenantId) where.tenantId = tenantId;
-  if (unitId) where.unitId = unitId;
-
-  const leases = await Lease?.findAll({ where });
-  const payments = await Payment?.findAll({ where });
-  const maintenanceRequests = await MaintenanceRequest?.findAll({ where });
-
-  return {
-    leases: leases?.map((l) => ({
-      id: l.id,
-      status: l.status,
-      startDate: l.startDate,
-      endDate: l.endDate,
-    })),
-    payments: payments?.map((p) => ({
-      id: p.id,
-      amount: p.amount,
-      paymentDate: p.paymentDate,
-    })),
-    maintenanceRequests: maintenanceRequests?.map((m) => ({
-      id: m.id,
-      description: m.description,
-      status: m.status,
-    })),
-    generatedAt: new Date(),
-  };
-};
-
 const getMonthlyRevenueExpenseReport = async ({ year, accountId }) => {
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -127,25 +70,45 @@ const getMonthlyRevenueExpenseReport = async ({ year, accountId }) => {
 
   const startOfYear = new Date(`${year}-01-01`);
   const startOfNextYear = new Date(`${parseInt(year) + 1}-01-01`);
-  const whereClause = {
-    isDeleted: false,
-    accountId,
-    createdAt: {
-      [Op.gte]: startOfYear,
-      [Op.lt]: startOfNextYear,
-    },
-  };
+
   // Fetch all payments within year
   const payments = await Payment.findAll({
-    where: whereClause,
+    where: {
+      isDeleted: false,
+      accountId,
+      createdAt: {
+        [Op.gte]: startOfYear,
+        [Op.lt]: startOfNextYear,
+      },
+    },
     attributes: ['amountPaid', 'createdAt'],
     raw: true,
   });
 
-  // Fetch all expenses within year
+  // Fetch all expenses within year (Expense + PersonalExpense)
   const expenses = await Expense.findAll({
-    where: whereClause,
-    attributes: ['amount', 'createdAt'],
+    where: {
+      isDeleted: false,
+      accountId,
+      expenseDate: {  // createdAt নয়, expenseDate ব্যবহার করা হলো
+        [Op.gte]: startOfYear,
+        [Op.lt]: startOfNextYear,
+      },
+    },
+    attributes: ['amount', 'expenseDate'],
+    raw: true,
+  });
+
+  const personalExpenses = await PersonalExpense.findAll({
+    where: {
+      isDeleted: false,
+      accountId,
+      expenseDate: {
+        [Op.gte]: startOfYear,
+        [Op.lt]: startOfNextYear,
+      },
+    },
+    attributes: ['amount', 'expenseDate'],
     raw: true,
   });
 
@@ -155,10 +118,16 @@ const getMonthlyRevenueExpenseReport = async ({ year, accountId }) => {
     result[monthIndex].revenue += parseFloat(p.amountPaid);
   }
 
-  // Map expenses to months
+  // Map Expense to months
   for (const e of expenses) {
-    const monthIndex = new Date(e.createdAt).getMonth();
+    const monthIndex = new Date(e.expenseDate).getMonth();
     result[monthIndex].expense += parseFloat(e.amount);
+  }
+
+  // Map PersonalExpense to months
+  for (const pe of personalExpenses) {
+    const monthIndex = new Date(pe.expenseDate).getMonth();
+    result[monthIndex].expense += parseFloat(pe.amount);
   }
 
   return {
@@ -172,93 +141,42 @@ const getMonthlyRevenueExpenseReport = async ({ year, accountId }) => {
 const getTenantHistoryReport = async (filter) => {
   const { tenantId, leaseId } = filter;
 
-  if (!tenantId) {
-    throw new Error('tenantId is required');
-  }
+  if (!tenantId) throw new Error('tenantId is required');
 
   let lease = null;
   let unitId = null;
 
-  // 🔍 Step 1: Load selected lease to extract unitId
   if (leaseId) {
     lease = await Lease.findOne({
-      where: {
-        id: leaseId,
-        tenantId,
-      },
+      where: { id: leaseId, tenantId },
       include: [
-        {
-          model: Unit,
-          as: 'unit',
-          attributes: ['id', 'name'],
-        },
-        {
-          model: Property,
-          as: 'property',
-          attributes: ['id', 'name'],
-        },
+        { model: Unit, as: 'unit', attributes: ['id', 'name'] },
+        { model: Property, as: 'property', attributes: ['id', 'name'] },
+        { model: Tenant, as: 'tenant', attributes: ['id', 'name', 'depositAmount', 'depositAmountLeft'] },
       ],
     });
 
-    if (!lease) {
-      throw new Error('Lease not found or does not belong to tenant');
-    }
-
+    if (!lease) throw new Error('Lease not found or does not belong to tenant');
     unitId = lease.unitId;
   }
 
-  // 🔍 Step 2: Filter bills by tenantId and (optional) unitId
   const billWhere = { tenantId };
-  if (unitId) {
-    billWhere.unitId = unitId;
-  }
+  if (unitId) billWhere.unitId = unitId;
 
-  const bills = await Bill.findAll({
-    where: billWhere,
-  });
-
-  // 🔍 Step 3: Filter payments by billId in found bills
-  const billIds = bills.map((b) => b.id);
-
-  const payments = await Payment.findAll({
-    where: {
-      tenantId,
-      billId: {
-        [Op.in]: billIds.length ? billIds : [null], // avoid empty IN ()
-      },
-    },
-    include: [
-      {
-        model: Bill,
-        as: 'bill',
-        attributes: ['id', 'invoiceNo', 'issueDate', 'totalAmount'],
-      },
-    ],
-  });
-
-  const tenant = await Tenant.findByPk(tenantId, {
-    attributes: ['id', 'name', 'depositAmount', 'depositAmountLeft'],
-  });
+  const bills = await Bill.findAll({ where: billWhere });
 
   const totalBillAmount = bills.reduce((sum, b) => sum + parseFloat(b.totalAmount || 0), 0);
-  // const deductedAmount = bills.reduce((sum, b) => sum + parseFloat(b.totalAmount || 0), 0);
   const totalDeductedAmount = bills.reduce(
-    (sum, b) => b.paymentStatus !== "unpaid"
-      ? sum + parseFloat(b.deductedAmount || 0)
-      : sum,
+    (sum, b) => b.paymentStatus !== 'unpaid' ? sum + parseFloat(b.deductedAmount || 0) : sum,
     0
-  ); const totalUtilityAmount = bills.reduce((sum, b) => sum + parseFloat(b.totalUtilityAmount || 0), 0);
+  );
+  const totalUtilityAmount = bills.reduce((sum, b) => sum + parseFloat(b.totalUtilityAmount || 0), 0);
   const totalRentAmount = bills.reduce((sum, b) => sum + parseFloat(b.rentAmount || 0), 0);
   const totalOtherCharges = bills.reduce((sum, b) => sum + parseFloat(b.otherChargesAmount || 0), 0);
   const totalBalanceDue = bills.reduce((sum, b) => sum + parseFloat(b.balanceDue || 0), 0);
-  const totalPaidAmount = payments.reduce((sum, p) => sum + parseFloat(p.amountPaid || 0), 0);
+  const totalPaidAmount = bills.reduce((sum, b) => sum + parseFloat(b.amountPaid || 0), 0);
 
   return {
-    tenantId: tenant.id,
-    tenantName: tenant.name,
-    depositAmount: tenant.depositAmount,
-    period: leaseId ? `Lease ID: ${leaseId}` : 'All Time',
-
     leaseId: lease?.id ?? null,
     leaseStatus: lease?.status ?? null,
     leaseStartDate: lease?.leaseStartDate ?? null,
@@ -268,31 +186,18 @@ const getTenantHistoryReport = async (filter) => {
     unitId: lease?.unitId ?? null,
     unitName: lease?.unit?.name ?? null,
     property: lease?.property?.name ?? null,
-    depositAmountLeft: tenant?.depositAmountLeft,
+    period: leaseId ? `Lease ID: ${leaseId}` : 'All Time',
 
     totalBillAmount,
+    totalPaidAmount,
     totalDeductedAmount,
     totalUtilityAmount,
     totalRentAmount,
     totalOtherCharges,
-    totalPaidAmount,
     totalBalanceDue,
-
-    payments: payments.map((p) => ({
-      id: p.id,
-      billId: p.billId,
-      billInvoiceNo: p.bill?.invoiceNo,
-      billTotalAmount: p.bill?.totalAmount,
-      paymentMethod: p.paymentMethod,
-      transactionId: p.transactionId,
-      paymentDate: p.paymentDate,
-      amountPaid: p.amountPaid,
-      bills: {
-        id: p.bill.id,
-        fullInvoiceNumber: `INV-${new Date(p.bill.issueDate).getFullYear()}-${String(p.bill.invoiceNo).padStart(4, '0')}`,
-      },
-    })),
-
+    depositAmount: lease?.tenant?.depositAmount ?? 0,
+    depositAmountLeft: lease?.tenant?.depositAmountLeft ?? 0,
+    tenantName: lease?.tenant?.name,
     bills: bills.map((b) => ({
       id: b.id,
       invoiceNo: b.invoiceNo,
@@ -309,8 +214,6 @@ const getTenantHistoryReport = async (filter) => {
       balanceDue: b.balanceDue,
       tenantName: b.tenant?.fullName,
     })),
-
-    generatedAt: new Date(),
   };
 };
 
@@ -598,7 +501,7 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
     // 🔹 কন্ডিশন সেট করুন → depositAmountLeft > 0 হলে তবেই deductedAmount মাইনাস হবে
     let adjustedRentAmount = baseRentAmount;
     let finalDeductedAmount = 0;
-      const deductedAmountModify = tenant?.depositAmountLeft >deductedAmount ? deductedAmount:tenant?.depositAmountLeft
+    const deductedAmountModify = tenant?.depositAmountLeft > deductedAmount ? deductedAmount : tenant?.depositAmountLeft
     if (tenant && tenant.depositAmountLeft > 0 && deductedAmountModify > 0) {
       adjustedRentAmount = baseRentAmount - deductedAmountModify;
       finalDeductedAmount = deductedAmountModify;
@@ -795,14 +698,154 @@ const getPersonalExpenseReportByBeneficiary = async (filter) => {
     generatedAt: new Date(),
   };
 };
+
+const getFinancialReportByYear = async (filter) => {
+  const { year, propertyId, accountId } = filter;
+  if (!year) {
+    throw new Error("year is required");
+  }
+
+  const startOfYear = new Date(`${year}-01-01T00:00:00.000Z`);
+  const endOfYear = new Date(`${parseInt(year) + 1}-01-01T00:00:00.000Z`);
+
+  const where = {
+    createdAt: { [Op.gte]: startOfYear, [Op.lt]: endOfYear },
+  };
+
+  // Property ID filter
+  if (propertyId) where.propertyId = propertyId;
+
+  // Account ID filter
+  if (accountId) where.accountId = accountId;
+
+  // ✅ Total Revenue (only approved payments)
+  const totalRevenue = (await Payment.sum('amountPaid', {
+    where: {
+      ...where,
+      status: 'approved',
+    },
+  })) || 0;
+
+  // ✅ Total Expenses (Expense + PersonalExpense)
+  const expenseAmount = (await Expense.sum('amount', { where })) || 0;
+  const personalExpenseAmount = (await PersonalExpense.sum('amount', { where })) || 0;
+  const totalExpenses = expenseAmount + personalExpenseAmount;
+
+  // ✅ Outstanding payments
+  const bills = await Bill.findAll({
+    where,
+    attributes: ['totalAmount', 'amountPaid'],
+  });
+
+  let outstandingPayments = 0;
+  for (const bill of bills) {
+    const total = parseFloat(bill.totalAmount ?? '0');
+    const paid = parseFloat(bill.amountPaid ?? '0');
+    outstandingPayments += total - paid;
+  }
+
+  return {
+    year: parseInt(year),
+    totalRevenue,
+    totalExpenses,
+    outstandingPayments,
+    profit: totalRevenue - totalExpenses,
+    generatedAt: new Date(),
+  };
+};
+const getTenantPayments = async (filter) => {
+  const { tenantId, leaseId } = filter;
+
+  if (!tenantId) throw new Error('tenantId is required');
+
+  let lease = null;
+  let unitId = null;
+
+  if (leaseId) {
+    lease = await Lease.findOne({
+      where: { id: leaseId, tenantId },
+      include: [
+        { model: Unit, as: 'unit', attributes: ['id', 'name'] },
+        { model: Property, as: 'property', attributes: ['id', 'name'] },
+        { model: Tenant, as: 'tenant', attributes: ['id', 'name', 'depositAmount', 'depositAmountLeft'] },
+      ],
+    });
+
+    if (!lease) throw new Error('Lease not found or does not belong to tenant');
+    unitId = lease.unitId;
+  }
+
+  // 🔹 Bills needed for aggregating totals
+  const billWhere = { tenantId };
+  if (unitId) billWhere.unitId = unitId;
+  const bills = await Bill.findAll({ where: billWhere });
+
+  const totalBillAmount = bills.reduce((sum, b) => sum + parseFloat(b.totalAmount || 0), 0);
+  const totalDeductedAmount = bills.reduce(
+    (sum, b) => b.paymentStatus !== 'unpaid' ? sum + parseFloat(b.deductedAmount || 0) : sum,
+    0
+  );
+  const totalUtilityAmount = bills.reduce((sum, b) => sum + parseFloat(b.totalUtilityAmount || 0), 0);
+  const totalRentAmount = bills.reduce((sum, b) => sum + parseFloat(b.rentAmount || 0), 0);
+  const totalOtherCharges = bills.reduce((sum, b) => sum + parseFloat(b.otherChargesAmount || 0), 0);
+  const totalBalanceDue = bills.reduce((sum, b) => sum + parseFloat(b.balanceDue || 0), 0);
+  // const totalPaidAmount = bills.reduce((sum, b) => sum + parseFloat(b.balanceDue || 0), 0);
+
+  const payments = await Payment.findAll({
+    where: { tenantId, billId: { [Op.in]: bills.map(b => b.id) } },
+    include: [
+      { model: Bill, as: 'bill', attributes: ['id', 'invoiceNo', 'issueDate', 'totalAmount'] },
+    ],
+  });
+
+  const totalPaidAmount = payments.reduce((sum, p) => sum + parseFloat(p.amountPaid || 0), 0);
+
+  return {
+    leaseId: lease?.id ?? null,
+    leaseStatus: lease?.status ?? null,
+    leaseStartDate: lease?.leaseStartDate ?? null,
+    leaseEndDate: lease?.leaseEndDate ?? null,
+    unitId: lease?.unitId ?? null,
+    unitName: lease?.unit?.name ?? null,
+    property: lease?.property?.name ?? null,
+    period: leaseId ? `Lease ID: ${leaseId}` : 'All Time',
+    moveInDate: lease?.moveInDate ?? null,
+    moveOutDate: lease?.moveOutDate ?? null,
+    totalBillAmount,
+    totalDeductedAmount,
+    totalUtilityAmount,
+    totalRentAmount,
+    totalOtherCharges,
+    totalBalanceDue,
+    totalPaidAmount,
+    depositAmount: lease?.tenant?.depositAmount ?? 0,
+    depositAmountLeft: lease?.tenant?.depositAmountLeft ?? 0,
+    tenantName: lease?.tenant?.name,
+    payments: payments.map((p) => ({
+      id: p.id,
+      billId: p.billId,
+      billInvoiceNo: p.bill?.invoiceNo,
+      billTotalAmount: p.bill?.totalAmount,
+      paymentMethod: p.paymentMethod,
+      transactionId: p.transactionId,
+      paymentDate: p.paymentDate,
+      amountPaid: p.amountPaid,
+      billFullInvoiceNumber: p.bill
+        ? `INV-${new Date(p.bill.issueDate).getFullYear()}-${String(p.bill.invoiceNo).padStart(4, '0')}`
+        : null,
+    })),
+  };
+};
+
 module.exports = {
   getFinancialReport,
-  getTenantActivityReport,
   getMonthlyRevenueExpenseReport,
   getTenantHistoryReport,
   getBillPaymentPieByYear,
   getMeterRechargeReportByProperty,
   getSubmeterConsumptionReport,
   generateBillsByPropertyAndDateRange,
-  getPersonalExpenseReportByBeneficiary
+  getPersonalExpenseReportByBeneficiary,
+  getFinancialReportByYear,
+  getTenantPayments
 };

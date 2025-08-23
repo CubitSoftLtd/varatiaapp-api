@@ -164,22 +164,23 @@ const createBill = async (billBody) => {
  * @param {string} deleted - 'true', 'false', or 'all'
  * @returns {Promise<{ results: Bill[], page: number, limit: number, totalPages: number, totalResults: number }>}
  */
-const getAllBills = async (filter, options, deleted = 'false') => {
+
+const getAllBills = async (filter, options, deleted = 'false', excludePaid = false) => {
   const whereClause = { ...filter };
 
-  // Apply the isDeleted filter based on the 'deleted' parameter
-  if (deleted === 'true') {
-    whereClause.isDeleted = true;
-  } else if (deleted === 'false') {
-    whereClause.isDeleted = false;
-  } else if (deleted === 'all') {
-    // No filter on isDeleted, allowing all bills to be returned
-  } else {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid value for deleted parameter');
+  // isDeleted filter
+  if (deleted === 'true') whereClause.isDeleted = true;
+  else if (deleted === 'false') whereClause.isDeleted = false;
+  else if (deleted !== 'all') throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid deleted value');
+
+  // excludePaid filter
+  if (excludePaid) {
+    // যদি paymentStatus already filter না থাকে, paid বাদ দিতে Op.ne use করি
+    whereClause.paymentStatus = { [Op.ne]: 'paid' };
   }
 
-  const limit = options.limit && parseInt(options.limit, 10) > 0 ? parseInt(options.limit, 10) : 10;
-  const page = options.page && parseInt(options.page, 10) > 0 ? parseInt(options.page, 10) : 1;
+  const limit = options.limit ? parseInt(options.limit, 10) : 10;
+  const page = options.page ? parseInt(options.page, 10) : 1;
   const offset = (page - 1) * limit;
 
   const sort = [];
@@ -198,11 +199,9 @@ const getAllBills = async (filter, options, deleted = 'false') => {
     include,
   });
 
-  // Format invoice numbers for all results
   rows.forEach((bill) => {
     const billYear = new Date(bill.issueDate).getFullYear();
     const formattedInvoiceNo = String(bill.invoiceNo).padStart(4, '0');
-    /* eslint-disable-next-line no-param-reassign */
     bill.dataValues.fullInvoiceNumber = `INV-${billYear}-${formattedInvoiceNo}`;
   });
 
@@ -214,6 +213,7 @@ const getAllBills = async (filter, options, deleted = 'false') => {
     totalResults: count,
   };
 };
+
 
 /**
  * Get bill by ID

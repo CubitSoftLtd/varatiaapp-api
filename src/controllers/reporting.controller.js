@@ -34,6 +34,11 @@ const getTenantHistoryReportController = catchAsync(async (req, res) => {
   const report = await reportingService.getTenantHistoryReport(filter);
   res.send(report);
 });
+const getTenantHistoryPaymentReportController = catchAsync(async (req, res) => {
+  const filter = pick(req.query, ['tenantId', 'leaseId']); // ✅ শুধুমাত্র tenantId ও leaseId
+  const report = await reportingService.getTenantPayments(filter);
+  res.send(report);
+});
 
 const getBillPaymentPieByYear = catchAsync(async (req, res) => {
   const filter = pick(req.query, ['year']);
@@ -114,15 +119,31 @@ const getPersonalExpenseReportC = catchAsync(async (req, res) => {
   const report = await reportingService.getPersonalExpenseReportByBeneficiary(filter);
   res.send(report);
 });
+
+const getFinancialReportYear = catchAsync(async (req, res) => {
+  const filter = pick(req.query, ['year', 'propertyId', 'accountId']);
+  const options = pick(req.query, ['sortBy', 'limit', 'page']);
+  if (req.user.role !== 'super_admin') {
+    filter.accountId = req.user.accountId;
+  }
+  if (!filter.year) {
+    return res.status(400).send({ message: "Year is required" });
+  }
+  const report = await reportingService.getFinancialReportByYear(filter, options);
+  res.send(report);
+});
+
 module.exports = {
   getFinancialReport,
   getTenantActivityReport,
   getMonthlyRevenueExpenseReport,
   getTenantHistoryReportController,
+  getTenantHistoryPaymentReportController,
   getBillPaymentPieByYear,
   getMeterRechargeReport,
   getSubmeterConsumptionReport,
   getBillsByPropertyAndDateRange,
   getPersonalExpenseReportC,
+  getFinancialReportYear,
   
 };

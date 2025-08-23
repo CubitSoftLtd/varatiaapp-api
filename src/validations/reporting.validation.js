@@ -55,6 +55,25 @@ const getPersonalExppenseReportV = {
     endDate: Joi.date().iso().greater(Joi.ref('startDate')).optional(),
   }),
 };
+
+const geFinancialReportByYear = {
+  query: Joi.object().keys({
+    year: Joi.number().integer().min(2000).max(2099).optional(),
+  }),
+};
+const getTenantBills = {
+  query: Joi.object().keys({
+    tenantId: Joi.string().uuid().required(), // tenant UUID
+    leaseId: Joi.string().uuid().optional(), // lease UUID optional
+  }),
+};
+
+const getTenantPayments = {
+  query: Joi.object().keys({
+    tenantId: Joi.string().uuid().required(), // tenant UUID
+    leaseId: Joi.string().uuid().optional(), // lease UUID optional
+  }),
+};
 module.exports = {
   getFinancialSummary,
   getMaintenanceStats,
@@ -64,4 +83,7 @@ module.exports = {
   getSubmeterConsumptionReport,
   getBillByPropertyAndDateRangeReport,
   getPersonalExppenseReportV,
+  geFinancialReportByYear,
+  getTenantBills,
+  getTenantPayments,
 };

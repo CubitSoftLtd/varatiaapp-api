@@ -156,6 +156,11 @@ const router = express.Router();
  *           enum: [true, false, all]
  *         description: 'Filter accounts by deletion status (default: false)'
  *       - in: query
+ *         name: excludePaid
+ *         schema:
+ *           type: boolean
+ *         description: Exclude bills with paymentStatus "paid" if true
+ *       - in: query
  *         name: sortBy
  *         schema:
  *           type: string

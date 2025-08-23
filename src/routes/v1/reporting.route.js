@@ -195,7 +195,9 @@ const router = express.Router();
  *         $ref: '#/components/responses/Unauthorized'
  *       "403":
  *         $ref: '#/components/responses/Forbidden'
- *
+ */
+/**
+ * @swagger
  * /reports/monthly-financial:
  *   get:
  *     summary: Get monthly financial report
@@ -243,10 +245,13 @@ const router = express.Router();
  *         $ref: '#/components/responses/Unauthorized'
  *       "403":
  *         $ref: '#/components/responses/Forbidden'
+ */
+/**
+ * @swagger
  * /reports/tenant-history:
  *   get:
- *     summary: Get tenant history report
- *     description: Retrieve a month-wise financial report with total revenue and expenses.
+ *     summary: Get tenant bills report
+ *     description: Retrieve tenant bills with lease info and totals.
  *     tags: [Reports]
  *     security:
  *       - bearerAuth: []
@@ -256,31 +261,54 @@ const router = express.Router();
  *         required: true
  *         schema:
  *           type: string
- *           example: a1b2c3d4
+ *           format: uuid
  *         description: ID of the tenant
  *       - in: query
- *         name: startDate
+ *         name: leaseId
  *         schema:
  *           type: string
- *           format: date
- *           example: 2025-07-01
- *         description: Start date of the report period (optional)
- *       - in: query
- *         name: endDate
- *         schema:
- *           type: string
- *           format: date
- *           example: 2025-07-31
- *         description: End date of the report period (optional)
+ *           format: uuid
+ *         description: Optional lease ID to filter bills
  *     responses:
- *       "200":
- *         description: OK
+ *       200:
+ *         description: Tenant bills retrieved successfully
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 leases:
+ *                 leaseId:
+ *                   type: string
+ *                   format: uuid
+ *                 leaseStatus:
+ *                   type: string
+ *                 leaseStartDate:
+ *                   type: string
+ *                   format: date
+ *                 leaseEndDate:
+ *                   type: string
+ *                   format: date
+ *                 unitId:
+ *                   type: string
+ *                 unitName:
+ *                   type: string
+ *                 property:
+ *                   type: string
+ *                 period:
+ *                   type: string
+ *                 totalBillAmount:
+ *                   type: number
+ *                 totalDeductedAmount:
+ *                   type: number
+ *                 totalUtilityAmount:
+ *                   type: number
+ *                 totalRentAmount:
+ *                   type: number
+ *                 totalOtherCharges:
+ *                   type: number
+ *                 totalBalanceDue:
+ *                   type: number
+ *                 bills:
  *                   type: array
  *                   items:
  *                     type: object
@@ -288,20 +316,103 @@ const router = express.Router();
  *                       id:
  *                         type: string
  *                         format: uuid
- *                       status:
+ *                       invoiceNo:
  *                         type: string
- *                       leaseStartDate:
+ *                       fullInvoiceNumber:
  *                         type: string
- *                         format: date
- *                       leaseEndDate:
- *                         type: string
- *                         format: date
- *                       moveInDate:
+ *                       billingPeriodStart:
  *                         type: string
  *                         format: date
- *                       moveOutDate:
+ *                       billingPeriodEnd:
  *                         type: string
  *                         format: date
+ *                       rentAmount:
+ *                         type: number
+ *                       deductedAmount:
+ *                         type: number
+ *                       paymentStatus:
+ *                         type: string
+ *                       totalUtilityAmount:
+ *                         type: number
+ *                       otherChargesAmount:
+ *                         type: number
+ *                       totalAmount:
+ *                         type: number
+ *                       amountPaid:
+ *                         type: number
+ *                       balanceDue:
+ *                         type: number
+ *                       tenantName:
+ *                         type: string
+ *                 generatedAt:
+ *                   type: string
+ *                   format: date-time
+ *                   example: 2025-08-23T12:00:00.000Z
+ */
+/**
+ * @swagger
+ * /reports/tenant-payment-history:
+ *   get:
+ *     summary: Get tenant payment history
+ *     description: Retrieve tenant payments with lease info and total paid amount.
+ *     tags: [Reports]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: tenantId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: ID of the tenant
+ *       - in: query
+ *         name: leaseId
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Optional lease ID to filter payments
+ *     responses:
+ *       200:
+ *         description: Tenant payments retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 leaseId:
+ *                   type: string
+ *                   format: uuid
+ *                 leaseStatus:
+ *                   type: string
+ *                 leaseStartDate:
+ *                   type: string
+ *                   format: date
+ *                 leaseEndDate:
+ *                   type: string
+ *                   format: date
+ *                 unitId:
+ *                   type: string
+ *                 unitName:
+ *                   type: string
+ *                 property:
+ *                   type: string
+ *                 period:
+ *                   type: string
+ *                 totalBillAmount:
+ *                   type: number
+ *                 totalDeductedAmount:
+ *                   type: number
+ *                 totalUtilityAmount:
+ *                   type: number
+ *                 totalRentAmount:
+ *                   type: number
+ *                 totalOtherCharges:
+ *                   type: number
+ *                 totalBalanceDue:
+ *                   type: number
+ *                 totalPaidAmount:
+ *                   type: number
  *                 payments:
  *                   type: array
  *                   items:
@@ -313,47 +424,25 @@ const router = express.Router();
  *                       billId:
  *                         type: string
  *                         format: uuid
- *                       paymentMethod:
- *                         type: integer
- *                       amountPaid:
+ *                       billInvoiceNo:
+ *                         type: string
+ *                       billTotalAmount:
  *                         type: number
+ *                       paymentMethod:
+ *                         type: string
+ *                       transactionId:
+ *                         type: string
  *                       paymentDate:
  *                         type: string
  *                         format: date
- *                 bills:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       id:
- *                         type: string
- *                         format: uuid
- *                       invoiceNo:
- *                         type: string
- *                       billingPeriodStart:
- *                         type: string
- *                         format: date
- *                       billingPeriodEnd:
- *                         type: string
- *                         format: date
- *                       rentAmount:
- *                         type: number
- *                       totalUtilityAmount:
- *                         type: number
- *                       otherChargesAmount:
- *                         type: number
- *                       totalAmount:
- *                         type: number
  *                       amountPaid:
  *                         type: number
+ *                       billFullInvoiceNumber:
+ *                         type: string
  *                 generatedAt:
  *                   type: string
  *                   format: date-time
- *                   example: 2025-05-28T10:57:00.000Z
- *       "401":
- *         $ref: '#/components/responses/Unauthorized'
- *       "403":
- *         $ref: '#/components/responses/Forbidden'
+ *                   example: 2025-08-23T12:00:00.000Z
  */
 /**
  * @swagger
@@ -742,7 +831,57 @@ const router = express.Router();
  *                   type: string
  *                   example: Beneficiary not found with ID a1b2c3d4
  */
-
+/**
+ * @swagger
+ * /reports/financial-report-by-year:
+ *   get:
+ *     summary: Get year-wise financial report
+ *     description: Returns the percentage of paid vs outstanding bills for a given year.
+ *     tags: [Reports]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: year
+ *         schema:
+ *           type: integer
+ *           example: 2025
+ *         description: The year for which to generate the report
+ *       - in: query
+ *         name: propertyId
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: ID of the property to generate bills for
+ *     responses:
+ *       "200":
+ *         description: OK
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 totalRevenue:
+ *                   type: number
+ *                   example: 5000
+ *                 totalExpenses:
+ *                   type: number
+ *                   example: 2000
+ *                 outstandingPayments:
+ *                   type: number
+ *                   example: 1000
+ *                 profit:
+ *                   type: number
+ *                   example: 3000
+ *                 generatedAt:
+ *                   type: string
+ *                   format: date-time
+ *                   example: 2025-05-28T10:57:00.000Z
+ *       "401":
+ *         $ref: '#/components/responses/Unauthorized'
+ *       "403":
+ *         $ref: '#/components/responses/Forbidden'
+ */
 
 router.route('/financial').get(auth('report:management'), validate(reportingValidation.getFinancialRe), reportingController.getFinancialReport);
 
@@ -754,7 +893,10 @@ router
   .get(auth('report:management'), validate(reportingValidation.getMonthlyFinancialReport), reportingController.getMonthlyRevenueExpenseReport);
 router
   .route('/tenant-history')
-  .get(auth('report:management'), validate(reportingValidation.getTenantHistoryValidate), reportingController.getTenantHistoryReportController);
+  .get(auth('report:management'), validate(reportingValidation.getTenantBills), reportingController.getTenantHistoryReportController);
+router
+  .route('/tenant-payment-history')
+  .get(auth('report:management'), validate(reportingValidation.getTenantPayments), reportingController.getTenantHistoryPaymentReportController);
 router
   .route('/bill-pie')
   .get(auth('report:management'), validate(reportingValidation.getBillPaymentPieByYear), reportingController.getBillPaymentPieByYear);
@@ -770,5 +912,8 @@ router
 router
   .route('/beneficiary-wise-expense')
   .get(auth('report:management'), validate(reportingValidation.getPersonalExppenseReportV), reportingController.getPersonalExpenseReportC);
+router
+  .route('/financial-report-by-year')
+  .get(auth('report:management'), validate(reportingValidation.geFinancialReportByYear), reportingController.getFinancialReportYear);
 
 module.exports = router;

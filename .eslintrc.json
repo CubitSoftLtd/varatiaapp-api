@@ -20,6 +20,7 @@
     "radix": "off",
     "no-plusplus": "off",
     "no-continue": "off",
-    "no-await-in-loop": "off"
+    "no-await-in-loop": "off",
+    "no-param-reassign": "off"
   }
 }
