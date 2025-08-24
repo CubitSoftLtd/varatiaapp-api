@@ -336,11 +336,9 @@ const approvePayment = async (paymentId) => {
     });
 
     if (activeLease && activeLease.deductedAmount && activeLease.deductedAmount > 0) {
-      const tenant = await Tenant.findByPk(activeLease.tenantId, { transaction: t });
-
-      if (tenant && tenant.depositAmountLeft && tenant.depositAmountLeft > 0) {
-        const newDepositAmountLeft = parseFloat(tenant.depositAmountLeft) - parseFloat(bill.deductedAmount);
-        await tenant.update(
+      if (activeLease && activeLease.depositAmountLeft && activeLease.depositAmountLeft > 0) {
+        const newDepositAmountLeft = parseFloat(activeLease.depositAmountLeft) - parseFloat(bill.deductedAmount);
+        await activeLease.update(
           { depositAmountLeft: newDepositAmountLeft < 0 ? 0 : newDepositAmountLeft },
           { transaction: t }
         );
@@ -379,17 +377,17 @@ const approveMultiplePayments = async (paymentIds) => {
         throw new ApiError(httpStatus.BAD_REQUEST, `Cannot approve payment for cancelled bill ID: ${bill.id}`);
       }
 
-      // Auto approve payment
+      // ✅ Approve payment
       await payment.update({ status: 'approved' }, { transaction: t });
 
-      // Calculate total approved payments
+      // 🔹 Recalculate total approved payments
       const approvedPayments = await Payment.findAll({
         where: { billId: bill.id, isDeleted: false, status: 'approved' },
         transaction: t,
       });
       const totalPaid = approvedPayments.reduce((sum, p) => sum + parseFloat(p.amountPaid || 0), 0);
 
-      // Update bill status
+      // 🔹 Update bill status
       const totalAmount = parseFloat(bill.totalAmount || 0);
       let newBillStatus;
       if (totalPaid >= totalAmount) newBillStatus = 'paid';
@@ -398,17 +396,21 @@ const approveMultiplePayments = async (paymentIds) => {
 
       await bill.update({ amountPaid: totalPaid, paymentStatus: newBillStatus }, { transaction: t });
 
-      // Update tenant deposit if lease deductedAmount exists
+      // 🔹 Update lease depositAmountLeft (if deduction applied in this bill)
       const activeLease = await Lease.findOne({
-        where: { unitId: bill.unitId, status: 'active' },
+        where: { unitId: bill.unitId, tenantId: bill.tenantId, status: 'active' },
         transaction: t,
       });
 
       if (activeLease && parseFloat(activeLease.deductedAmount || 0) > 0) {
-        const tenant = await Tenant.findByPk(activeLease.tenantId, { transaction: t });
-        if (tenant && parseFloat(tenant.depositAmountLeft || 0) > 0) {
-          const newDepositLeft = parseFloat(tenant.depositAmountLeft || 0) - parseFloat(activeLease.deductedAmount || 0);
-          await tenant.update({ depositAmountLeft: newDepositLeft < 0 ? 0 : newDepositLeft }, { transaction: t });
+        const currentDepositLeft = parseFloat(activeLease.depositAmountLeft || 0);
+        if (currentDepositLeft > 0 && parseFloat(bill.deductedAmount || 0) > 0) {
+          const newDepositLeft = currentDepositLeft - parseFloat(bill.deductedAmount || 0);
+
+          await activeLease.update(
+            { depositAmountLeft: newDepositLeft < 0 ? 0 : newDepositLeft },
+            { transaction: t }
+          );
         }
       }
 
@@ -418,6 +420,7 @@ const approveMultiplePayments = async (paymentIds) => {
     return results;
   });
 };
+
 
 module.exports = {
   createPayment,

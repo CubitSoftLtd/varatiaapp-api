@@ -86,6 +86,18 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: true,
         comment: 'Any additional notes about the lease',
       },
+      depositAmount: {
+        type: DataTypes.DECIMAL(18, 2),
+        allowNull: true,
+        defaultValue: 0.0,
+        comment: 'The security deposit amount paid by the tenant',
+      },
+      depositAmountLeft: {
+        type: DataTypes.DECIMAL(18, 2),
+        allowNull: true,
+        defaultValue: 0.0,
+        comment: 'The security deposit amount paid by the tenant',
+      },
       status: {
         type: DataTypes.ENUM('active', 'terminated'), // More descriptive statuses
         allowNull: false,

@@ -102,8 +102,8 @@ const createBill = async (billBody) => {
   });
 
   const deductedAmount = lease?.deductedAmount ? parseFloat(lease.deductedAmount) : 0;
-  const depostieAmountLeftModify = tenant?.depositAmountLeft ? parseFloat(tenant.depositAmountLeft) : 0;
-  const deductedAmountMofiy = tenant?.depositAmountLeft> lease?.deductedAmount ? deductedAmount:depostieAmountLeftModify
+  const depostieAmountLeftModify = lease?.depositAmountLeft ? parseFloat(lease.depositAmountLeft) : 0;
+  const deductedAmountMofiy = lease?.depositAmountLeft> lease?.deductedAmount ? deductedAmount:depostieAmountLeftModify
   const otherChargesAmount = 0.0; // Placeholder: Update with expense logic if needed
 
   // rent থেকে deductedAmount বাদ
@@ -337,8 +337,8 @@ const updateBill = async (id, updateBody) => {
     where: { tenantId, unitId, status: 'active' },
   });
   const deductedAmount = lease?.deductedAmount ? parseFloat(lease.deductedAmount) : 0;
-  const depostieAmountLeftModify = tenant?.depositAmountLeft ? parseFloat(tenant.depositAmountLeft) : 0;
-  const deductedAmountMofiy = tenant?.depositAmountLeft> lease?.deductedAmount ? deductedAmount:depostieAmountLeftModify
+  const depostieAmountLeftModify = lease?.depositAmountLeft ? parseFloat(lease.depositAmountLeft) : 0;
+  const deductedAmountMofiy = lease?.depositAmountLeft> lease?.deductedAmount ? deductedAmount:depostieAmountLeftModify
   const otherChargesAmount = 0.0; // Placeholder: Update with expense logic if needed
 
   const adjustedRentAmount = parseFloat(rentAmount) - deductedAmountMofiy;
@@ -412,9 +412,9 @@ const hardDeleteBill = async (id) => {
       throw new Error("Tenant not found");
     }
     if (bill.deductedAmount && bill.deductedAmount > 0) {
-      tenant.depositAmountLeft =
-        Number(tenant.depositAmountLeft) + Number(bill.deductedAmount);
-      await tenant.save();
+      lease.depositAmountLeft =
+        Number(lease.depositAmountLeft) + Number(bill.deductedAmount);
+      await lease.save();
     }
   }
   await bill.destroy();

@@ -31,8 +31,7 @@ const router = express.Router();
  *           schema:
  *             type: object
  *             required:
- *               - firstName
- *               - lastName
+ *               - name
  *               - email
  *               - phoneNumber
  *               - depositAmount
@@ -55,10 +54,6 @@ const router = express.Router();
  *                 type: string
  *                 description: Phone number for the emergency contact
  *                 nullable: true
- *
- *               depositAmount:
- *                 type: number
- *                 description: Security deposit amount paid by the tenant
  *               status:
  *                 type: string
  *                 enum: [current, prospective, past, evicted, notice, inactive, 'occupying']
@@ -81,7 +76,6 @@ const router = express.Router();
  *               phoneNumber: "+8801712345678"
  *               emergencyContactName: "Jane Doe"
  *               emergencyContactPhone: "+8801912345678"
- *               depositAmount: 1500.00
  *               status: "current"
  *               nationalId: "19901234567890123"
  *               notes: "Reliable tenant"
@@ -268,9 +262,6 @@ const router = express.Router();
  *                 type: string
  *                 description: Phone number for the emergency contact
  *                 nullable: true
- *               depositAmount:
- *                 type: number
- *                 description: Security deposit amount paid by the tenant
  *               status:
  *                 type: string
  *                 enum: [current, prospective, past, evicted, notice, inactive, 'occupying']
@@ -291,7 +282,6 @@ const router = express.Router();
  *               phoneNumber: "+8801712345678"
  *               emergencyContactName: "Jane Doe"
  *               emergencyContactPhone: "+8801912345678"
- *               depositAmount: 1500.00
  *               status: "notice"
  *               nationalId: "19901234567890123"
  *               notes: "Updated notes"

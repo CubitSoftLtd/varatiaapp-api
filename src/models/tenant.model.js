@@ -65,18 +65,6 @@ module.exports = (sequelize, DataTypes) => {
       //   allowNull: true, // Lease might be month-to-month or open-ended
       //   comment: "Date the tenant's lease agreement is scheduled to end (null for open-ended leases)",
       // },
-      depositAmount: {
-        type: DataTypes.DECIMAL(18, 2), // Increased precision for currency
-        allowNull: true,
-        defaultValue: 0.0,
-        comment: 'The security deposit amount paid by the tenant',
-      },
-      depositAmountLeft: {
-        type: DataTypes.DECIMAL(18, 2), // Increased precision for currency
-        allowNull: true,
-        defaultValue: 0.0,
-        comment: 'The security deposit amount paid by the tenant',
-      },
       accountId: {
         type: DataTypes.UUID,
         allowNull: false,

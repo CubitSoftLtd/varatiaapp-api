@@ -76,6 +76,7 @@ const router = express.Router();
  *               moveOutDate: 2025-06-30
  *               startedMeterReading: 1000.00
  *               deductedAmount: 1000.00
+ *               depositAmount: 1000.00
  *               notes: Reliable tenant
  *               status: active
  *     responses:
@@ -268,6 +269,7 @@ const router = express.Router();
  *               moveOutDate: 2025-06-30
  *               startedMeterReading: 1000.00
  *               deductedAmount: 1000.00
+ *               depositAmount: 1000.00
  *               notes: Reliable tenant
  *               status: active
  *     responses:

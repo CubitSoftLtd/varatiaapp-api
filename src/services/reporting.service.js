@@ -152,7 +152,7 @@ const getTenantHistoryReport = async (filter) => {
       include: [
         { model: Unit, as: 'unit', attributes: ['id', 'name'] },
         { model: Property, as: 'property', attributes: ['id', 'name'] },
-        { model: Tenant, as: 'tenant', attributes: ['id', 'name', 'depositAmount', 'depositAmountLeft'] },
+        { model: Tenant, as: 'tenant', attributes: ['id', 'name'] },
       ],
     });
 
@@ -195,8 +195,8 @@ const getTenantHistoryReport = async (filter) => {
     totalRentAmount,
     totalOtherCharges,
     totalBalanceDue,
-    depositAmount: lease?.tenant?.depositAmount ?? 0,
-    depositAmountLeft: lease?.tenant?.depositAmountLeft ?? 0,
+    depositAmount: lease?.depositAmount ?? 0,
+    depositAmountLeft: lease?.depositAmountLeft ?? 0,
     tenantName: lease?.tenant?.name,
     bills: bills.map((b) => ({
       id: b.id,
@@ -415,14 +415,14 @@ const getSubmeterConsumptionReport = async ({ propertyId, meterId, startDate, en
 };
 
 const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDate, accountId) => {
-  // Property validate
+  // 🔹 Property validate
   const property = await Property.findByPk(propertyId);
   if (!property) throw new ApiError(httpStatus.NOT_FOUND, `Property not found: ${propertyId}`);
 
-  // Active leases আনুন
+  // 🔹 Active leases আনুন (deposit সহ)
   const leases = await Lease.findAll({
     where: { propertyId, status: 'active' },
-    attributes: ['unitId', 'tenantId', 'deductedAmount'],
+    attributes: ['id', 'unitId', 'tenantId', 'deductedAmount', 'depositAmount', 'depositAmountLeft'],
   });
 
   if (leases.length === 0) {
@@ -430,14 +430,14 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
   }
 
   const unitIds = leases.map(l => l.unitId);
-  const unitTenantMap = {};
-  const unitDeductedMap = {};
+
+  // maps তৈরি
+  const unitLeaseMap = {}; // full lease access করার জন্য
   leases.forEach(l => {
-    unitTenantMap[l.unitId] = l.tenantId;
-    unitDeductedMap[l.unitId] = parseFloat(l.deductedAmount) || 0;
+    unitLeaseMap[l.unitId] = l;
   });
 
-  // Unit data আনুন
+  // 🔹 Unit data আনুন
   const units = await Unit.findAll({
     where: { id: { [Op.in]: unitIds } },
     attributes: ['id', 'name', 'rentAmount'],
@@ -476,8 +476,13 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
   let createdBillsCount = 0;
 
   for (const unit of units) {
-    const tenantId = unitTenantMap[unit.id];
-    const deductedAmount = unitDeductedMap[unit.id] || 0;
+    const lease = unitLeaseMap[unit.id];
+    if (!lease) continue;
+
+    const {tenantId} = lease;
+    const baseRentAmount = parseFloat(unit.rentAmount) || 0;
+    const deductedAmount = parseFloat(lease.deductedAmount) || 0;
+    const depositAmountLeft = parseFloat(lease.depositAmountLeft) || 0;
 
     // আগে থেকে এই তারিখে বিল আছে কিনা চেক
     const existingBill = await Bill.findOne({
@@ -491,24 +496,18 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
     if (existingBill) continue;
 
     lastInvoiceNo += 1;
-    const baseRentAmount = parseFloat(unit.rentAmount) || 0;
 
-    // 🔹 Tenant data আনুন (depositAmountLeft সহ)
-    const tenant = tenantId
-      ? await Tenant.findByPk(tenantId, { attributes: ['id', 'name', 'depositAmountLeft'] })
-      : null;
-
-    // 🔹 কন্ডিশন সেট করুন → depositAmountLeft > 0 হলে তবেই deductedAmount মাইনাস হবে
+    // 🔹 Rent adjustment (depositAmountLeft থেকে deduction)
     let adjustedRentAmount = baseRentAmount;
     let finalDeductedAmount = 0;
-    const deductedAmountModify = tenant?.depositAmountLeft > deductedAmount ? deductedAmount : tenant?.depositAmountLeft
-    if (tenant && tenant.depositAmountLeft > 0 && deductedAmountModify > 0) {
+
+    const deductedAmountModify = depositAmountLeft > deductedAmount ? deductedAmount : depositAmountLeft;
+
+    if (depositAmountLeft > 0 && deductedAmountModify > 0) {
       adjustedRentAmount = baseRentAmount - deductedAmountModify;
       finalDeductedAmount = deductedAmountModify;
 
-      // ✅ depositAmountLeft আপডেট করুন
-      // tenant.depositAmountLeft = Math.max(0, tenant.depositAmountLeft - deductedAmount);
-      await tenant.save();
+      // ✅ Lease এর depositAmountLeft update করুন
     }
 
     let totalUtilityAmount = 0;
@@ -592,7 +591,7 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
       totalUtilityAmount: newBill.totalUtilityAmount,
       otherChargesAmount: newBill.otherChargesAmount,
       totalAmount: newBill.totalAmount,
-      tenant: tenant ? { id: tenant.id, name: tenant.name } : null,
+      tenant: tenantId ? { id: tenantId } : null,
       unit: {
         id: unit.id,
         name: unit.name,
@@ -618,7 +617,7 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
       totalUtilityAmountFormatted: bill.totalUtilityAmount.toFixed(2),
       otherChargesAmount: bill.otherChargesAmount.toFixed(2),
       totalAmountFormatted: bill.totalAmount.toFixed(2),
-      tenantName: bill.tenant?.name || 'N/A',
+      tenantId: bill.tenant?.id || 'N/A',
       unitName: bill.unit?.name || 'N/A',
       propertyName: bill.unit?.property?.name || 'N/A',
     };
@@ -630,6 +629,7 @@ const generateBillsByPropertyAndDateRange = async (propertyId, startDate, endDat
     totalResults: formattedResults.length,
   };
 };
+
 
 
 

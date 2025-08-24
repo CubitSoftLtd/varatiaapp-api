@@ -61,6 +61,8 @@ const createLease = async (leaseBody, user) => {
         startedMeterReading: leaseBody.startedMeterReading,
         notes: leaseBody.notes,
         deductedAmount: leaseBody.deductedAmount,
+        depositAmount: leaseBody.depositAmount,
+        depositAmountLeft: leaseBody.depositAmount,
         accountId: leaseBody.accountId,
       },
       { transaction: t }
