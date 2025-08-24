@@ -132,7 +132,16 @@ const getFinancialReportYear = catchAsync(async (req, res) => {
   const report = await reportingService.getFinancialReportByYear(filter, options);
   res.send(report);
 });
+const getDashboardCountsController = catchAsync(async (req, res) => {
+  const filter = pick(req.query, ['accountId']);
 
+  if (req.user.role !== 'super_admin') {
+    filter.accountId = req.user.accountId;
+  }
+
+  const result = await reportingService.getDashboardCounts(filter);
+  res.send(result);
+});
 module.exports = {
   getFinancialReport,
   getTenantActivityReport,
@@ -145,5 +154,6 @@ module.exports = {
   getBillsByPropertyAndDateRange,
   getPersonalExpenseReportC,
   getFinancialReportYear,
+  getDashboardCountsController,
   
 };

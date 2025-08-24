@@ -136,6 +136,28 @@ const getAllPayments = async (filter, options, deleted = 'false') => {
   };
 };
 
+// const getPaymentsByBillId = async (billId, include = []) => {
+//   const bill = await Bill.findByPk(billId);
+//   if (!bill) {
+//     throw new ApiError(httpStatus.NOT_FOUND, `Bill not found for ID: ${billId}`);
+//   }
+//   if (include.some((item) => item.model === Bill && item.attributes.includes('invoiceNo'))) {
+//     include = include.map((item) => {
+//       if (item.model === Bill) {
+//         return {
+//           ...item,
+//           attributes: [...(item.attributes || []), 'issueDate'],
+//         };
+//       }
+//       return item;
+//     });
+//   }
+//   return Payment.findAll({
+//     where: { billId, isDeleted: false },
+//     order: [['paymentDate', 'DESC']],
+//     include,
+//   });
+// };
 const getPaymentsByBillId = async (billId, include = []) => {
   const bill = await Bill.findByPk(billId);
   if (!bill) {
@@ -152,11 +174,24 @@ const getPaymentsByBillId = async (billId, include = []) => {
       return item;
     });
   }
-  return Payment.findAll({
+  const payments = await Payment.findAll({
     where: { billId, isDeleted: false },
     order: [['paymentDate', 'DESC']],
     include,
   });
+  const results = payments.map((payment) => {
+    const clonedPayment = payment.toJSON();
+
+    if (clonedPayment.bill?.issueDate && clonedPayment.bill?.invoiceNo !== undefined) {
+      const billYear = new Date(clonedPayment.bill.issueDate).getFullYear();
+      const formattedInvoiceNo = String(clonedPayment.bill.invoiceNo).padStart(4, '0');
+      clonedPayment.bill.invoiceNo = `INV-${billYear}-${formattedInvoiceNo}`;
+      delete clonedPayment.bill.issueDate;
+    }
+    return clonedPayment;
+  });
+
+  return results;
 };
 
 const getPaymentById = async (paymentId, include = []) => {

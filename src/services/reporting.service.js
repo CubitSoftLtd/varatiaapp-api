@@ -836,7 +836,33 @@ const getTenantPayments = async (filter) => {
     })),
   };
 };
+const getDashboardCounts = async (filter) => {
+  try {
+    const whereClause = { isDeleted: false };
 
+    if (filter?.accountId) {
+      whereClause.accountId = filter.accountId;
+    }
+
+    const [tenantCount, propertyCount, meterCount, submeterCount,unitCount] = await Promise.all([
+      Tenant.count({ where: whereClause }),
+      Property.count({ where: whereClause }),
+      Meter.count({ where: whereClause }),
+      Submeter.count({ where: whereClause }),
+      Unit.count({ where: whereClause }),
+    ]);
+
+    return {
+      tenants: tenantCount,
+      properties: propertyCount,
+      meters: meterCount,
+      submeters: submeterCount,
+      unit: unitCount,
+    };
+  } catch (error) {
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to fetch dashboard counts');
+  }
+};
 module.exports = {
   getFinancialReport,
   getMonthlyRevenueExpenseReport,
@@ -847,5 +873,6 @@ module.exports = {
   generateBillsByPropertyAndDateRange,
   getPersonalExpenseReportByBeneficiary,
   getFinancialReportByYear,
-  getTenantPayments
+  getTenantPayments,
+  getDashboardCounts
 };
