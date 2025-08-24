@@ -767,7 +767,7 @@ const getTenantPayments = async (filter) => {
       include: [
         { model: Unit, as: 'unit', attributes: ['id', 'name'] },
         { model: Property, as: 'property', attributes: ['id', 'name'] },
-        { model: Tenant, as: 'tenant', attributes: ['id', 'name', 'depositAmount', 'depositAmountLeft'] },
+        { model: Tenant, as: 'tenant', attributes: ['id', 'name'] },
       ],
     });
 
@@ -818,8 +818,8 @@ const getTenantPayments = async (filter) => {
     totalOtherCharges,
     totalBalanceDue,
     totalPaidAmount,
-    depositAmount: lease?.tenant?.depositAmount ?? 0,
-    depositAmountLeft: lease?.tenant?.depositAmountLeft ?? 0,
+    depositAmount: lease?.depositAmount ?? 0,
+    depositAmountLeft: lease?.depositAmountLeft ?? 0,
     tenantName: lease?.tenant?.name,
     payments: payments.map((p) => ({
       id: p.id,

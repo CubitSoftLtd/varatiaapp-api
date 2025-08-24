@@ -370,9 +370,16 @@ const approvePayment = async (paymentId) => {
       transaction: t
     });
 
-    if (activeLease && activeLease.deductedAmount && activeLease.deductedAmount > 0) {
-      if (activeLease && activeLease.depositAmountLeft && activeLease.depositAmountLeft > 0) {
-        const newDepositAmountLeft = parseFloat(activeLease.depositAmountLeft) - parseFloat(bill.deductedAmount);
+    if (
+      bill.paymentStatus === 'unpaid' &&
+      activeLease &&
+      activeLease.deductedAmount &&
+      activeLease.deductedAmount > 0
+    ) {
+      if (activeLease.depositAmountLeft && activeLease.depositAmountLeft > 0) {
+        const newDepositAmountLeft =
+          parseFloat(activeLease.depositAmountLeft) - parseFloat(bill.deductedAmount);
+
         await activeLease.update(
           { depositAmountLeft: newDepositAmountLeft < 0 ? 0 : newDepositAmountLeft },
           { transaction: t }
@@ -437,8 +444,13 @@ const approveMultiplePayments = async (paymentIds) => {
         transaction: t,
       });
 
-      if (activeLease && parseFloat(activeLease.deductedAmount || 0) > 0) {
+      if (
+        bill.paymentStatus === 'unpaid' &&
+        activeLease &&
+        parseFloat(activeLease.deductedAmount || 0) > 0
+      ) {
         const currentDepositLeft = parseFloat(activeLease.depositAmountLeft || 0);
+
         if (currentDepositLeft > 0 && parseFloat(bill.deductedAmount || 0) > 0) {
           const newDepositLeft = currentDepositLeft - parseFloat(bill.deductedAmount || 0);
 
